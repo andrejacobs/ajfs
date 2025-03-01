@@ -1,4 +1,4 @@
-# ajfs-mk2 - Specification
+# ajfs - Specification
 
 Author: André Jacobs
 Date: 3/10/2024
