@@ -1,0 +1,20 @@
+Conclusion
+
+Apple MacBook Air M2
+187GB dataset with 754520 files
+vanilla used between 60%-70% of CPU
+one-worker used 100% CPU
+
+vanilla was on average about 1 second faster than one-worker
+
+---
+
+Linux server with Intel i3-7100
+
+2.1TB dataset with 1938198 files
+vanilla was on average about 3 seconds faster than one-worker
+
+9.3TB dataset with 2216432 files
+vanilla was on average about 5 seconds faster than one-worker
+
+Conclusion: Just walk the file hierarchy and write the results in the same goroutine (main thread)

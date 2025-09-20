@@ -1,0 +1,107 @@
+On Simba:
+
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/greatwhite             3.6T  2.1T  1.4T  62% /media/greatwhite
+/dev/mapper/megalodon               13T  9.3T  2.8T  78% /media/megalodon
+
+/media/greatwhite 2.1TB
+
+BENCH_DIR="/media/greatwhite" BENCH_OUT="~/temp" go test -run=^$ -bench=. -benchtime=5x -benchmem
+
+Using "/media/greatwhite" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       5	18597687054 ns/op	864000953 B/op	10356641 allocs/op
+Benchmark/one-worker-4      	       5	11826111378 ns/op	864907944 B/op	10357246 allocs/op
+PASS
+ok  	benchmark-walking	152.653s
+
+Using "/media/greatwhite" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       5	8788190132 ns/op	863923264 B/op	10356527 allocs/op
+Benchmark/one-worker-4      	       5	11981272620 ns/op	864958881 B/op	10357219 allocs/op
+PASS
+ok  	benchmark-walking	103.874s
+
+BENCH_DIR="/media/greatwhite" BENCH_OUT="~/temp" go test -run=^$ -bench=. -benchtime=2x -benchmem
+
+Using "/media/greatwhite" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       2	9408906822 ns/op	863941696 B/op	10356565 allocs/op
+Benchmark/one-worker-4      	       2	11699459932 ns/op	864894088 B/op	10357266 allocs/op
+PASS
+ok  	benchmark-walking	42.223s
+
+Using "/media/greatwhite" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       2	8507412600 ns/op	863929912 B/op	10356531 allocs/op
+Benchmark/one-worker-4      	       2	11957458114 ns/op	864894416 B/op	10357277 allocs/op
+PASS
+ok  	benchmark-walking	40.952s
+
+-------------------------------------------------------------------------------
+
+/media/megalodon 9.3TB
+
+BENCH_DIR="/media/megalodon" BENCH_OUT="~/temp" go test -run=^$ -bench=. -benchtime=5x -benchmem
+
+Using "/media/megalodon" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       5	10785200510 ns/op	1042494739 B/op	12773928 allocs/op
+Benchmark/one-worker-4      	       5	15061204592 ns/op	1043509214 B/op	12774653 allocs/op
+PASS
+ok  	benchmark-walking	129.249s
+
+Using "/media/megalodon" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       5	10901180175 ns/op	1042441972 B/op	12773916 allocs/op
+Benchmark/one-worker-4      	       5	15113007393 ns/op	1043491912 B/op	12774646 allocs/op
+PASS
+ok  	benchmark-walking	130.075s
+
+BENCH_DIR="/media/megalodon" BENCH_OUT="~/temp" go test -run=^$ -bench=. -benchtime=2x -benchmem
+
+Using "/media/megalodon" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       2	30907737090 ns/op	1042709516 B/op	12774220 allocs/op
+Benchmark/one-worker-4      	       2	15148225390 ns/op	1043404640 B/op	12774730 allocs/op
+PASS
+ok  	benchmark-walking	92.332s
+
+Using "/media/megalodon" as the dataset
+Using "/root/temp" as the output
+goos: linux
+goarch: amd64
+pkg: benchmark-walking
+cpu: Intel(R) Core(TM) i3-7100 CPU @ 3.90GHz
+Benchmark/vanilla-4         	       2	10881091152 ns/op	1042434292 B/op	12773903 allocs/op
+Benchmark/one-worker-4      	       2	15112041332 ns/op	1043424680 B/op	12774716 allocs/op
+PASS
+ok  	benchmark-walking	51.999s

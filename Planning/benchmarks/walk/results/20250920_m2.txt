@@ -1,0 +1,63 @@
+On M2 MacBook Air:
+
+~/TODO_SORT_OUT 187GB
+
+BENCH_DIR="~/TODO_SORT_OUT" BENCH_OUT="~/temp" go test -run=^$ -bench=. -benchtime=5x -benchmem
+
+Using "~/TODO_SORT_OUT" as the dataset
+Using "/Users/andre/temp" as the output
+goos: darwin
+goarch: arm64
+pkg: benchmark-walking
+cpu: Apple M2
+Benchmark/vanilla-8         	       5	10735174792 ns/op	463389360 B/op	 4534828 allocs/op
+Benchmark/one-worker-8      	       5	11730764058 ns/op	463520433 B/op	 4535272 allocs/op
+PASS
+ok  	benchmark-walking	112.566s
+
+Using "~/TODO_SORT_OUT" as the dataset
+Using "/Users/andre/temp" as the output
+goos: darwin
+goarch: arm64
+pkg: benchmark-walking
+cpu: Apple M2
+Benchmark/vanilla-8         	       5	10917233375 ns/op	463394025 B/op	 4534856 allocs/op
+Benchmark/one-worker-8      	       5	11762985050 ns/op	463519398 B/op	 4535278 allocs/op
+PASS
+ok  	benchmark-walking	113.594s
+
+Using "~/TODO_SORT_OUT" as the dataset
+Using "/Users/andre/temp" as the output
+goos: darwin
+goarch: arm64
+pkg: benchmark-walking
+cpu: Apple M2
+Benchmark/vanilla-8         	       5	10902918075 ns/op	463388240 B/op	 4534836 allocs/op
+Benchmark/one-worker-8      	       5	11778961775 ns/op	463524886 B/op	 4535278 allocs/op
+PASS
+ok  	benchmark-walking	113.663s
+
+
+BENCH_DIR="~/TODO_SORT_OUT" BENCH_OUT="~/temp" go test -run=^$ -bench=. -benchtime=2x -benchmem
+
+Using "~/TODO_SORT_OUT" as the dataset
+Using "/Users/andre/temp" as the output
+goos: darwin
+goarch: arm64
+pkg: benchmark-walking
+cpu: Apple M2
+Benchmark/vanilla-8         	       2	10987985792 ns/op	463395848 B/op	 4534853 allocs/op
+Benchmark/one-worker-8      	       2	11725806708 ns/op	463521220 B/op	 4535278 allocs/op
+PASS
+ok  	benchmark-walking	45.622s
+
+Using "~/TODO_SORT_OUT" as the dataset
+Using "/Users/andre/temp" as the output
+goos: darwin
+goarch: arm64
+pkg: benchmark-walking
+cpu: Apple M2
+Benchmark/vanilla-8         	       2	10925453396 ns/op	463394636 B/op	 4534849 allocs/op
+Benchmark/one-worker-8      	       2	11642831125 ns/op	463525180 B/op	 4535300 allocs/op
+PASS
+ok  	benchmark-walking	45.326s
