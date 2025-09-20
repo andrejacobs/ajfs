@@ -1,11 +1,12 @@
 package walk_test
 
-// Run with: BENCH_DIR="./path/to/dataset" go test -run=^$ -bench=. -benchtime=3x
+// Run with: BENCH_DIR="./path/to/dataset" go test -run=^$ -bench=. -benchtime=3x -benchmem
 // Optionally BENCH_OUT="~/temp/output"
 
 // Reference:
 // -benchtime=10x Limits iterations to 10 times
 // -benchtime=10s Limits iteration time to 10 seconds
+// -race for race detector
 
 import (
 	"fmt"
@@ -59,6 +60,14 @@ func Benchmark(b *testing.B) {
 			}
 		}
 	})
+
+	b.Run("one-worker", func(b *testing.B) {
+		for b.Loop() {
+			if err := oneWorkerWalk(); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
 
 func vanillaWalk() error {
@@ -84,4 +93,36 @@ func vanillaWalk() error {
 	}
 
 	return nil
+}
+
+func oneWorkerWalk() error {
+	outPath := filepath.Join(outDir, "walk-one-worker.txt")
+	f, err := os.Create(outPath)
+	if err != nil {
+		return fmt.Errorf("failed to create the output file %q. %w", outPath, err)
+	}
+	defer f.Close()
+
+	recvCh := make(chan string)
+
+	var hadErr error
+	go func() {
+		var fn fs.WalkDirFunc = func(path string, d fs.DirEntry, rcvErr error) error {
+			if rcvErr != nil {
+				return rcvErr
+			}
+			recvCh <- path
+			return nil
+		}
+
+		w := file.NewWalker()
+		hadErr = w.Walk(benchDir, fn)
+		close(recvCh)
+	}()
+
+	for path := range recvCh {
+		fmt.Fprintln(f, path)
+	}
+
+	return hadErr
 }
