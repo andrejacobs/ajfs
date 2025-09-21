@@ -1,6 +1,6 @@
 %%%% HASHDEEP-1.0
 %%%% size,sha256,filename
-## Invoked from: /Users/andre/git/Personal/tools/ajfs/internal/ajfs/testdata/diff/a
+## Invoked from: /Users/andre/git/Personal/tools/ajfs/internal/testdata/diff/a
 ## $ hashdeep -c sha256 -l -r ./
 ## 
 33,1f9ed96a26c3eab2b438161f081403df43da3295d1fe48e9ce566b036296d99c,./both/8.txt
