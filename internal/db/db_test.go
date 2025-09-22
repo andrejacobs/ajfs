@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/andrejacobs/ajfs/internal/db"
+	"github.com/andrejacobs/ajfs/internal/scan"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +51,7 @@ func TestCreateDatabase(t *testing.T) {
 	err = binary.Read(f, binary.LittleEndian, &header)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(0), header.EntryCount)
-	assert.Equal(t, uint64(0), header.EntryOffset)
+	assert.Greater(t, header.EntryOffset, uint64(0))
 	assert.Equal(t, db.FeatureFlags(0), header.Features)
 	assert.Equal(t, [8]uint64{}, header.FeatureReserved)
 }
@@ -128,4 +129,43 @@ func TestOpenDatabase(t *testing.T) {
 	assert.Equal(t, runtime.GOOS, meta.OS)
 	assert.Equal(t, runtime.GOARCH, meta.Arch)
 	assert.True(t, time.Now().After(meta.CreatedAt))
+}
+
+func TestWritePathInfo(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile) // delete if it already exists
+	defer os.Remove(tempFile)
+
+	// Create new database and write 2 path info objects
+	dbf, err := db.CreateDatabase(tempFile, "/test/")
+	require.NoError(t, err)
+
+	p1 := scan.PathInfo{
+		Id:      scan.IdFromPath("a.txt"),
+		Path:    "a.txt",
+		Size:    uint64(42),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	assert.NoError(t, dbf.Write(&p1))
+
+	p2 := scan.PathInfo{
+		Id:      scan.IdFromPath("some/dir/b.txt"),
+		Path:    "some/dir/b.txt",
+		Size:    uint64(142),
+		Mode:    0644,
+		ModTime: time.Now().Add(-20 * time.Minute),
+	}
+	assert.NoError(t, dbf.Write(&p2))
+
+	assert.NoError(t, dbf.Close())
+
+	// Open and validate
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	assert.Equal(t, uint64(2), dbf.EntriesCount())
+
+	//TODO: read the 2 entries and compare
 }

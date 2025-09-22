@@ -2,13 +2,16 @@
 package db
 
 import (
+	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"runtime"
 	"time"
 
+	"github.com/andrejacobs/ajfs/internal/scan"
 	"github.com/andrejacobs/go-aj/ajio"
 )
 
@@ -35,6 +38,9 @@ type DatabaseFile struct {
 	meta         MetaEntry
 
 	reader ajio.MultiByteReaderSeeker
+
+	bufWriter *bufio.Writer
+	writer    ajio.TrackedOffsetWriter
 }
 
 // Create a new file
@@ -52,37 +58,37 @@ func CreateDatabase(path string, root string) (*DatabaseFile, error) {
 		return nil, fmt.Errorf("failed to create the ajfs database file. path: %q. %w", path, err)
 	}
 
-	dbf.reader = ajio.NewMultiByteReaderSeeker(dbf.file)
+	//TODO: reader should only be available on OpenDatabase
+	// dbf.reader = ajio.NewMultiByteReaderSeeker(dbf.file)
+
+	dbf.bufWriter = bufio.NewWriter(dbf.file)
+	dbf.writer = ajio.NewTrackedOffsetWriter(dbf.bufWriter, 0)
 
 	// Write prefix
 	dbf.prefixHeader.init()
-	if err := dbf.prefixHeader.write(dbf.file); err != nil {
+	if err := dbf.prefixHeader.write(dbf.writer); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs prefix header. path: %q. %w", path, err)
 	}
 
 	// Write initial empty header (this should be updated before finishing the file)
-	if err := dbf.header.write(dbf.file); err != nil {
+	if err := dbf.header.write(dbf.writer); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs header. path: %q. %w", path, err)
 	}
 
 	// Root entry
 	dbf.root.path = root
-	if err := dbf.root.write(dbf.file); err != nil {
+	if err := dbf.root.write(dbf.writer); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs root entry. path: %s. %w", path, err)
 	}
 
 	// Meta entry
 	dbf.meta.init()
-	if err := dbf.meta.write(dbf.file); err != nil {
+	if err := dbf.meta.write(dbf.writer); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs meta entry. path: %q. %w", path, err)
 	}
 
 	// Determine the start of the path object entries
-	offset, err := currentOffset(dbf.file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get the current file offset. path: %q. %w", path, err)
-	}
-	dbf.header.EntriesOffset = uint64(offset)
+	dbf.header.EntriesOffset = uint64(dbf.writer.Offset())
 
 	return dbf, nil
 }
@@ -136,8 +142,18 @@ func (dbf *DatabaseFile) Close() error {
 		return nil
 	}
 
-	if err := dbf.file.Sync(); err != nil {
-		return err
+	if dbf.bufWriter != nil {
+		if err := dbf.Flush(); err != nil {
+			return err
+		}
+
+		if err := dbf.finishCreation(); err != nil {
+			return err
+		}
+
+		if err := dbf.file.Sync(); err != nil {
+			return err
+		}
 	}
 
 	if err := dbf.file.Close(); err != nil {
@@ -146,6 +162,37 @@ func (dbf *DatabaseFile) Close() error {
 
 	dbf.file = nil
 	return nil
+}
+
+// Update the header
+func (dbf *DatabaseFile) finishCreation() error {
+	if dbf.bufWriter == nil {
+		panic("database was not opened for writing")
+	}
+
+	// Update the header
+	_, err := dbf.file.Seek(headerOffset(), io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("failed to finish creating the ajfs database. failed to seek to header offset. %w", err)
+	}
+
+	if err := dbf.header.write(dbf.file); err != nil {
+		return fmt.Errorf("failed to update the ajfs header. %w", err)
+	}
+
+	dbf.bufWriter = nil
+	dbf.writer = nil
+
+	return nil
+}
+
+// Ensure unwritten data is written to the file on disk.
+func (dbf *DatabaseFile) Flush() error {
+	if dbf.bufWriter == nil {
+		panic("database was not opened for writing")
+	}
+
+	return dbf.bufWriter.Flush()
 }
 
 // File format version.
@@ -171,6 +218,27 @@ func (dbf *DatabaseFile) RootPath() string {
 // Meta data about the database.
 func (dbf *DatabaseFile) Meta() MetaEntry {
 	return dbf.meta
+}
+
+// The number of path info entries.
+func (dbf *DatabaseFile) EntriesCount() uint64 {
+	return dbf.header.EntriesCount
+}
+
+func (dbf *DatabaseFile) Write(pi *scan.PathInfo) error {
+	if dbf.bufWriter == nil {
+		panic("database was not opened for writing")
+	}
+
+	//AJ### TODO will need the offset table
+
+	entry := pathEntryFromPathInfo(pi)
+	if err := entry.write(dbf.writer); err != nil {
+		return err
+	}
+
+	dbf.header.EntriesCount += 1
+	return nil
 }
 
 //-----------------------------------------------------------------------------
@@ -209,20 +277,10 @@ type header struct {
 }
 
 func (s *header) read(r io.ReadSeeker) error {
-	_, err := r.Seek(headerOffset(), io.SeekStart)
-	if err != nil {
-		return err
-	}
 	return binary.Read(r, binary.LittleEndian, s)
 }
 
-func (s *header) write(w io.WriteSeeker) error {
-	var err error
-	_, err = w.Seek(headerOffset(), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
+func (s *header) write(w io.Writer) error {
 	return binary.Write(w, binary.LittleEndian, s)
 }
 
@@ -321,6 +379,71 @@ func (s *MetaEntry) write(w io.Writer) error {
 }
 
 //-----------------------------------------------------------------------------
+// Path info
+
+// Path entry
+type pathEntry struct {
+	header pathEntryHeader // fixed size struct to make serialization easier
+
+	// The following fields will be written as the size of the data varint followed by the encoded form of the data
+	modTime time.Time // Last modification time.
+	path    string    // The file system path.
+}
+
+type pathEntryHeader struct {
+	Id   scan.PathId // The unique identifier
+	Size uint64      // Size in bytes, if it is a file
+	Type fs.FileMode
+	Mode fs.FileMode
+}
+
+func (s *pathEntry) read(r ajio.MultiByteReader) error {
+	if err := binary.Read(r, binary.LittleEndian, &s.header); err != nil {
+		return fmt.Errorf("failed to read path entry header. %w", err)
+	}
+
+	// ModTime
+	data, _, err := varData.Read(r, nil)
+	if err != nil {
+		return fmt.Errorf("failed to read path entry modification time. %w", err)
+	}
+	if err := s.modTime.UnmarshalBinary(data); err != nil {
+		return fmt.Errorf("failed to read path entry modification time (decoding failed). %w", err)
+	}
+
+	// Path
+	data, _, err = varData.Read(r, nil)
+	if err != nil {
+		return fmt.Errorf("failed to read path entry's path string. %w", err)
+	}
+
+	s.path = string(data)
+	return nil
+}
+
+func (s *pathEntry) write(w io.Writer) error {
+	if err := binary.Write(w, binary.LittleEndian, s.header); err != nil {
+		return fmt.Errorf("failed to write path entry header. path: %q. %w", s.path, err)
+	}
+
+	// ModTime
+	data, err := s.modTime.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("failed to write path entry modification time (encoding failed). path: %q. %w", s.path, err)
+	}
+	if _, err := varData.Write(w, data); err != nil {
+		return fmt.Errorf("failed to write path entry modification time. path: %q. %w", s.path, err)
+	}
+
+	// Path
+	if _, err := varData.WriteString(w, s.path); err != nil {
+		return fmt.Errorf("failed to write path entry's path string. path: %q. %w", s.path, err)
+	}
+
+	return nil
+}
+
+//-----------------------------------------------------------------------------
 // Feature flags
 
 type FeatureFlags uint16
@@ -341,9 +464,30 @@ func (f FeatureFlags) HasTree() bool {
 //-----------------------------------------------------------------------------
 // Helpers
 
-// Current position in the file
-func currentOffset(w io.WriteSeeker) (int64, error) {
-	return w.Seek(0, io.SeekCurrent)
+// Convert from scan.PathInfo to pathEntry
+func pathEntryFromPathInfo(i *scan.PathInfo) pathEntry {
+	result := pathEntry{
+		header: pathEntryHeader{
+			Id:   i.Id,
+			Size: i.Size,
+			Mode: i.Mode,
+		},
+		modTime: i.ModTime,
+		path:    i.Path,
+	}
+	return result
+}
+
+// Convert from pathEntry to scan.PathInfo
+func pathInfoFromPathEntry(e *pathEntry) scan.PathInfo {
+	result := scan.PathInfo{
+		Id:      e.header.Id,
+		Size:    e.header.Size,
+		Mode:    e.header.Mode,
+		ModTime: e.modTime,
+		Path:    e.path,
+	}
+	return result
 }
 
 //-----------------------------------------------------------------------------
