@@ -18,7 +18,13 @@ import (
 // header
 // root
 // meta
+// entries
+// entry offset table
+// [optional] checksum table
+// [optional] tree
+// [optional] future features (without breaking existing databases)
 
+// DatabaseFile is the underlying data storage used by ajfs as a single file.
 type DatabaseFile struct {
 	file *os.File
 	path string
@@ -71,12 +77,12 @@ func CreateDatabase(path string, root string) (*DatabaseFile, error) {
 		return nil, fmt.Errorf("failed to write the ajfs meta entry. path: %q. %w", path, err)
 	}
 
-	// // Determine start of entries
-	// offset, err := currentOffset(dbf.file)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get the current file offset. path: %s. %v", path, err)
-	// }
-	// dbf.Header.EntryOffset = uint64(offset)
+	// Determine the start of the path object entries
+	offset, err := currentOffset(dbf.file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the current file offset. path: %q. %w", path, err)
+	}
+	dbf.header.EntriesOffset = uint64(offset)
 
 	return dbf, nil
 }
@@ -193,8 +199,9 @@ func (s *prefixHeader) write(w io.Writer) error {
 // Header (version 1)
 
 type header struct {
-	EntryCount  uint64 // The number of path objects
-	EntryOffset uint64 // The offset in bytes at which the path objects start
+	EntriesCount             uint64 // The number of path objects
+	EntriesOffset            uint64 // The offset in bytes at which the path objects start
+	EntriesOffsetTableOffset uint64 // The offset to the entries offset table
 
 	Features FeatureFlags // Feature flags
 
@@ -329,6 +336,14 @@ func (f FeatureFlags) HasChecksums() bool {
 
 func (f FeatureFlags) HasTree() bool {
 	return (f & featureTree) != 0
+}
+
+//-----------------------------------------------------------------------------
+// Helpers
+
+// Current position in the file
+func currentOffset(w io.WriteSeeker) (int64, error) {
+	return w.Seek(0, io.SeekCurrent)
 }
 
 //-----------------------------------------------------------------------------
