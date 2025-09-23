@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -147,7 +148,7 @@ func TestWritePathInfo(t *testing.T) {
 		Mode:    0740,
 		ModTime: time.Now().Add(-10 * time.Minute),
 	}
-	assert.NoError(t, dbf.Write(&p1))
+	assert.NoError(t, dbf.WriteEntry(&p1))
 
 	p2 := scan.PathInfo{
 		Id:      scan.IdFromPath("some/dir/b.txt"),
@@ -156,8 +157,9 @@ func TestWritePathInfo(t *testing.T) {
 		Mode:    0644,
 		ModTime: time.Now().Add(-20 * time.Minute),
 	}
-	assert.NoError(t, dbf.Write(&p2))
+	assert.NoError(t, dbf.WriteEntry(&p2))
 
+	assert.NoError(t, dbf.FinishEntries())
 	assert.NoError(t, dbf.Close())
 
 	// Open and validate
@@ -167,5 +169,77 @@ func TestWritePathInfo(t *testing.T) {
 
 	assert.Equal(t, uint64(2), dbf.EntriesCount())
 
-	//TODO: read the 2 entries and compare
+	c2, err := dbf.ReadEntryAtIndex(1)
+	require.NoError(t, err)
+	assert.True(t, p2.Equals(&c2))
+
+	c1, err := dbf.ReadEntryAtIndex(0)
+	require.NoError(t, err)
+	assert.True(t, p1.Equals(&c1))
 }
+
+func TestReadAll(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile) // delete if it already exists
+	defer os.Remove(tempFile)
+
+	// Create new database and write N path info objects
+	dbf, err := db.CreateDatabase(tempFile, "/test/")
+	require.NoError(t, err)
+
+	expCount := 10
+	expTime := time.Now().Add(-10 * time.Minute)
+
+	for i := range expCount {
+		path := fmt.Sprintf("/some/path/%d.txt", i)
+		p := scan.PathInfo{
+			Id:      scan.IdFromPath(path),
+			Path:    path,
+			Size:    uint64(i),
+			Mode:    0740,
+			ModTime: expTime,
+		}
+		require.NoError(t, dbf.WriteEntry(&p))
+	}
+
+	require.NoError(t, dbf.FinishEntries())
+	require.NoError(t, dbf.Close())
+
+	// Open, read and validate
+
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+	assert.Equal(t, uint64(expCount), dbf.EntriesCount())
+
+	rcvCount := 0
+	fn := func(idx int, pi scan.PathInfo) error {
+		rcvCount += 1
+		path := fmt.Sprintf("/some/path/%d.txt", idx)
+		assert.Equal(t, scan.IdFromPath(path), pi.Id)
+		assert.Equal(t, path, pi.Path)
+		assert.Equal(t, uint64(idx), pi.Size)
+		assert.Equal(t, fs.FileMode(0740), pi.Mode)
+		assert.True(t, expTime.Equal(pi.ModTime))
+		return nil
+	}
+
+	assert.NoError(t, dbf.ReadAllEntries(fn))
+	assert.Equal(t, expCount, rcvCount)
+
+	// Search for an entry and then stop
+	rcvCount = 0
+	fnSearch := func(idx int, pi scan.PathInfo) error {
+		rcvCount += 1
+		if idx == 5 {
+			return db.SkipAll
+		}
+		return nil
+	}
+
+	assert.NoError(t, dbf.ReadAllEntries(fnSearch))
+	assert.Equal(t, 6, rcvCount)
+}
+
+//TODO: check for the panics
+//TODO: Need to check if the vardata stuff actually respects endianess

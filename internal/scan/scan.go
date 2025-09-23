@@ -38,6 +38,15 @@ func (p *PathInfo) IsFile() bool {
 	return p.Mode.IsRegular()
 }
 
+// Return true if this path info is equal to another.
+func (p *PathInfo) Equals(o *PathInfo) bool {
+	return (p.Id == o.Id) &&
+		(p.Path == o.Path) &&
+		(p.Size == o.Size) &&
+		(p.Mode == o.Mode) &&
+		(p.ModTime.Equal(o.ModTime))
+}
+
 // Create a path identifier.
 func IdFromPath(path string) PathId {
 	return PathId(file.CalculatePathHash(path))
