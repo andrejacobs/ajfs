@@ -1,5 +1,5 @@
-// Package scan is used to walk a file hierarchy and produce the relevant path info entities.
-package scan
+// Package path is used to represent path info objects.
+package path
 
 import (
 	"fmt"
@@ -11,11 +11,11 @@ import (
 
 // Unique identifier of a path.
 // It is simply the SHA1 hash of the path.
-type PathId file.PathHash
+type Id file.PathHash
 
 // Describe a found path while scanning.
-type PathInfo struct {
-	Id   PathId // The unique identifier
+type Info struct {
+	Id   Id     // The unique identifier
 	Path string // The file system path
 
 	Size    uint64      // Size in bytes, if it is a file
@@ -24,22 +24,22 @@ type PathInfo struct {
 }
 
 // Stringer implementation.
-func (p PathInfo) String() string {
+func (p Info) String() string {
 	return fmt.Sprintf("{%x}, %v, %q, %v, %v", p.Id, p.Size, p.Path, p.Mode, p.ModTime)
 }
 
 // Return true if the path is a directory.
-func (p *PathInfo) IsDir() bool {
+func (p *Info) IsDir() bool {
 	return p.Mode.IsDir()
 }
 
 // Return true if the path is a regular file
-func (p *PathInfo) IsFile() bool {
+func (p *Info) IsFile() bool {
 	return p.Mode.IsRegular()
 }
 
 // Return true if this path info is equal to another.
-func (p *PathInfo) Equals(o *PathInfo) bool {
+func (p *Info) Equals(o *Info) bool {
 	return (p.Id == o.Id) &&
 		(p.Path == o.Path) &&
 		(p.Size == o.Size) &&
@@ -48,6 +48,6 @@ func (p *PathInfo) Equals(o *PathInfo) bool {
 }
 
 // Create a path identifier.
-func IdFromPath(path string) PathId {
-	return PathId(file.CalculatePathHash(path))
+func IdFromPath(path string) Id {
+	return Id(file.CalculatePathHash(path))
 }

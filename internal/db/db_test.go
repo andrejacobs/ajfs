@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/andrejacobs/ajfs/internal/db"
-	"github.com/andrejacobs/ajfs/internal/scan"
+	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -141,8 +141,8 @@ func TestWritePathInfo(t *testing.T) {
 	dbf, err := db.CreateDatabase(tempFile, "/test/")
 	require.NoError(t, err)
 
-	p1 := scan.PathInfo{
-		Id:      scan.IdFromPath("a.txt"),
+	p1 := path.Info{
+		Id:      path.IdFromPath("a.txt"),
 		Path:    "a.txt",
 		Size:    uint64(42),
 		Mode:    0740,
@@ -150,8 +150,8 @@ func TestWritePathInfo(t *testing.T) {
 	}
 	assert.NoError(t, dbf.WriteEntry(&p1))
 
-	p2 := scan.PathInfo{
-		Id:      scan.IdFromPath("some/dir/b.txt"),
+	p2 := path.Info{
+		Id:      path.IdFromPath("some/dir/b.txt"),
 		Path:    "some/dir/b.txt",
 		Size:    uint64(142),
 		Mode:    0644,
@@ -191,10 +191,10 @@ func TestReadAll(t *testing.T) {
 	expTime := time.Now().Add(-10 * time.Minute)
 
 	for i := range expCount {
-		path := fmt.Sprintf("/some/path/%d.txt", i)
-		p := scan.PathInfo{
-			Id:      scan.IdFromPath(path),
-			Path:    path,
+		filePath := fmt.Sprintf("/some/path/%d.txt", i)
+		p := path.Info{
+			Id:      path.IdFromPath(filePath),
+			Path:    filePath,
 			Size:    uint64(i),
 			Mode:    0740,
 			ModTime: expTime,
@@ -213,11 +213,11 @@ func TestReadAll(t *testing.T) {
 	assert.Equal(t, uint64(expCount), dbf.EntriesCount())
 
 	rcvCount := 0
-	fn := func(idx int, pi scan.PathInfo) error {
+	fn := func(idx int, pi path.Info) error {
 		rcvCount += 1
-		path := fmt.Sprintf("/some/path/%d.txt", idx)
-		assert.Equal(t, scan.IdFromPath(path), pi.Id)
-		assert.Equal(t, path, pi.Path)
+		filePath := fmt.Sprintf("/some/path/%d.txt", idx)
+		assert.Equal(t, path.IdFromPath(filePath), pi.Id)
+		assert.Equal(t, filePath, pi.Path)
 		assert.Equal(t, uint64(idx), pi.Size)
 		assert.Equal(t, fs.FileMode(0740), pi.Mode)
 		assert.True(t, expTime.Equal(pi.ModTime))
@@ -229,7 +229,7 @@ func TestReadAll(t *testing.T) {
 
 	// Search for an entry and then stop
 	rcvCount = 0
-	fnSearch := func(idx int, pi scan.PathInfo) error {
+	fnSearch := func(idx int, pi path.Info) error {
 		rcvCount += 1
 		if idx == 5 {
 			return db.SkipAll
@@ -252,11 +252,11 @@ func TestReadWritePanicConditions(t *testing.T) {
 
 	// Not allowed to read
 	assert.Panics(t, func() { _, _ = dbf.ReadEntryAtIndex(0) })
-	assert.Panics(t, func() { _ = dbf.ReadAllEntries(func(idx int, pi scan.PathInfo) error { return nil }) })
+	assert.Panics(t, func() { _ = dbf.ReadAllEntries(func(idx int, pi path.Info) error { return nil }) })
 
 	// Write 1 entry
-	p := scan.PathInfo{
-		Id:      scan.IdFromPath("some/dir/b.txt"),
+	p := path.Info{
+		Id:      path.IdFromPath("some/dir/b.txt"),
 		Path:    "some/dir/b.txt",
 		Size:    uint64(142),
 		Mode:    0644,

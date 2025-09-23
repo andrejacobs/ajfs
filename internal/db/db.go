@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/andrejacobs/ajfs/internal/scan"
+	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/andrejacobs/go-aj/ajio"
 )
 
@@ -223,7 +223,7 @@ func (dbf *DatabaseFile) EntriesCount() uint64 {
 }
 
 // Write the path info to the database.
-func (dbf *DatabaseFile) WriteEntry(pi *scan.PathInfo) error {
+func (dbf *DatabaseFile) WriteEntry(pi *path.Info) error {
 	if dbf.bufWriter == nil {
 		panic("database was not opened for writing")
 	}
@@ -240,7 +240,7 @@ func (dbf *DatabaseFile) WriteEntry(pi *scan.PathInfo) error {
 }
 
 // Read the path info object with the specified index.
-func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (scan.PathInfo, error) {
+func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (path.Info, error) {
 	if dbf.reader == nil {
 		panic("database was not opened for reading")
 	}
@@ -252,12 +252,12 @@ func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (scan.PathInfo, error) {
 	offset := dbf.entryOffsets[idx]
 	_, err := dbf.reader.Seek(int64(offset), io.SeekStart)
 	if err != nil {
-		return scan.PathInfo{}, fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
+		return path.Info{}, fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
 	}
 
 	entry := pathEntry{}
 	if err := entry.read(dbf.reader); err != nil {
-		return scan.PathInfo{}, fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
+		return path.Info{}, fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
 	}
 
 	return pathInfoFromPathEntry(&entry), nil
@@ -267,7 +267,7 @@ func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (scan.PathInfo, error) {
 // idx Is the index of the entry.
 // pi Is the path info object.
 // Return [SkipAll] to stop reading all the entries.
-type ReadAllEntriesFn func(idx int, pi scan.PathInfo) error
+type ReadAllEntriesFn func(idx int, pi path.Info) error
 
 // Read all the path info objects from the database and call the callback function.
 // If the callback function returns [SkipAll] then the reading process will be stopped and nil will be returned as the error.
@@ -569,8 +569,8 @@ type pathEntry struct {
 }
 
 type pathEntryHeader struct {
-	Id   scan.PathId // The unique identifier
-	Size uint64      // Size in bytes, if it is a file
+	Id   path.Id // The unique identifier
+	Size uint64  // Size in bytes, if it is a file
 	Type fs.FileMode
 	Mode fs.FileMode
 }
@@ -642,8 +642,8 @@ func (f FeatureFlags) HasTree() bool {
 //-----------------------------------------------------------------------------
 // Helpers
 
-// Convert from scan.PathInfo to pathEntry
-func pathEntryFromPathInfo(i *scan.PathInfo) pathEntry {
+// Convert from path.PathInfo to pathEntry
+func pathEntryFromPathInfo(i *path.Info) pathEntry {
 	result := pathEntry{
 		header: pathEntryHeader{
 			Id:   i.Id,
@@ -656,9 +656,9 @@ func pathEntryFromPathInfo(i *scan.PathInfo) pathEntry {
 	return result
 }
 
-// Convert from pathEntry to scan.PathInfo
-func pathInfoFromPathEntry(e *pathEntry) scan.PathInfo {
-	result := scan.PathInfo{
+// Convert from pathEntry to path.PathInfo
+func pathInfoFromPathEntry(e *pathEntry) path.Info {
+	result := path.Info{
 		Id:      e.header.Id,
 		Size:    e.header.Size,
 		Mode:    e.header.Mode,
