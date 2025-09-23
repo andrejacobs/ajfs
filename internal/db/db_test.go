@@ -241,5 +241,48 @@ func TestReadAll(t *testing.T) {
 	assert.Equal(t, 6, rcvCount)
 }
 
-//TODO: check for the panics
+func TestReadWritePanicConditions(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile) // delete if it already exists
+	defer os.Remove(tempFile)
+
+	// Create new database
+	dbf, err := db.CreateDatabase(tempFile, "/test/")
+	require.NoError(t, err)
+
+	// Not allowed to read
+	assert.Panics(t, func() { _, _ = dbf.ReadEntryAtIndex(0) })
+	assert.Panics(t, func() { _ = dbf.ReadAllEntries(func(idx int, pi scan.PathInfo) error { return nil }) })
+
+	// Write 1 entry
+	p := scan.PathInfo{
+		Id:      scan.IdFromPath("some/dir/b.txt"),
+		Path:    "some/dir/b.txt",
+		Size:    uint64(142),
+		Mode:    0644,
+		ModTime: time.Now().Add(-20 * time.Minute),
+	}
+	assert.NoError(t, dbf.WriteEntry(&p))
+
+	// Not allowed to Close before you called FinishEntries
+	assert.Panics(t, func() { dbf.Close() })
+
+	// Finish creation
+	assert.NoError(t, dbf.FinishEntries())
+	assert.NoError(t, dbf.Close())
+
+	// Open tests
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	// Not allowed to write
+	assert.Panics(t, func() { _ = dbf.WriteEntry(&p) })
+	assert.Panics(t, func() { _ = dbf.Flush() })
+	assert.Panics(t, func() { _ = dbf.FinishEntries() })
+
+	// Not allowed to read out of index bounds
+	assert.Panics(t, func() { _, _ = dbf.ReadEntryAtIndex(1) })
+}
+
 //TODO: Need to check if the vardata stuff actually respects endianess
