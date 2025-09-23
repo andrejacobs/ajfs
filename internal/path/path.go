@@ -51,3 +51,19 @@ func (p *Info) Equals(o *Info) bool {
 func IdFromPath(path string) Id {
 	return Id(file.CalculatePathHash(path))
 }
+
+// Create the path info from the results of a file system walk [filepath.WalkDir] or [file.Walker].
+func InfoFromWalk(path string, entry fs.DirEntry) (Info, error) {
+	fileInfo, err := entry.Info()
+	if err != nil {
+		return Info{}, fmt.Errorf("failed to create the path.Info object from path %q. %w", path, err)
+	}
+
+	return Info{
+		Id:      IdFromPath(path),
+		Path:    path,
+		Size:    uint64(fileInfo.Size()),
+		Mode:    fileInfo.Mode(),
+		ModTime: fileInfo.ModTime(),
+	}, nil
+}
