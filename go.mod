@@ -3,7 +3,7 @@ module github.com/andrejacobs/ajfs
 go 1.25.1
 
 require (
-	github.com/andrejacobs/go-aj v0.0.0-20250922132031-9f32b417bd09
+	github.com/andrejacobs/go-aj v0.0.0-20250925185210-602bd0f459d5
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -13,3 +13,5 @@ require (
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/andrejacobs/go-aj => ../../../Public/go/go-aj

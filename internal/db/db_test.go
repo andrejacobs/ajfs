@@ -18,14 +18,14 @@ import (
 
 type prefixHeader struct {
 	Signature [4]byte
-	Version   uint8
+	Version   uint16
 }
 
 type header struct {
-	EntryCount      uint64
-	EntryOffset     uint64
+	EntryCount      uint32
+	EntryOffset     uint32
 	Features        db.FeatureFlags
-	FeatureReserved [8]uint64
+	FeatureReserved [8]uint32
 }
 
 func TestCreateDatabase(t *testing.T) {
@@ -46,15 +46,15 @@ func TestCreateDatabase(t *testing.T) {
 	require.NoError(t, err)
 	expSignature := [4]byte{0x41, 0x4A, 0x46, 0x53} // AJFS
 	assert.Equal(t, expSignature, prefix.Signature)
-	assert.Equal(t, uint8(1), prefix.Version)
+	assert.Equal(t, uint16(1), prefix.Version)
 
 	header := header{}
 	err = binary.Read(f, binary.LittleEndian, &header)
 	require.NoError(t, err)
-	assert.Equal(t, uint64(0), header.EntryCount)
-	assert.Greater(t, header.EntryOffset, uint64(0))
+	assert.Equal(t, uint32(0), header.EntryCount)
+	assert.Greater(t, header.EntryOffset, uint32(0))
 	assert.Equal(t, db.FeatureFlags(0), header.Features)
-	assert.Equal(t, [8]uint64{}, header.FeatureReserved)
+	assert.Equal(t, [8]uint32{}, header.FeatureReserved)
 }
 
 func TestCreateDatabaseWhenExistingFileExists(t *testing.T) {
@@ -82,7 +82,7 @@ func TestOpenDatabaseWhenInvalidFile(t *testing.T) {
 	f, err := os.CreateTemp("", "unit-test")
 	require.NoError(t, err)
 	defer os.Remove(f.Name())
-	magic := [5]byte{0x12, 0x4A, 0x46, 0x53, 0x41}
+	magic := [6]byte{0x12, 0x4A, 0x46, 0x53, 0x41, 0xAB}
 	require.NoError(t, binary.Write(f, binary.LittleEndian, magic))
 	_ = f.Close()
 
@@ -122,7 +122,7 @@ func TestOpenDatabase(t *testing.T) {
 	defer f.Close()
 
 	assert.Equal(t, tempFile, f.Path())
-	assert.Equal(t, uint8(1), f.Version())
+	assert.Equal(t, 1, f.Version())
 	assert.Equal(t, db.FeatureFlags(0), f.Features())
 	assert.Equal(t, expRoot, f.RootPath())
 
@@ -167,7 +167,7 @@ func TestWritePathInfo(t *testing.T) {
 	require.NoError(t, err)
 	defer dbf.Close()
 
-	assert.Equal(t, uint64(2), dbf.EntriesCount())
+	assert.Equal(t, 2, dbf.EntriesCount())
 
 	c2, err := dbf.ReadEntryAtIndex(1)
 	require.NoError(t, err)
@@ -210,7 +210,7 @@ func TestReadAll(t *testing.T) {
 	dbf, err = db.OpenDatabase(tempFile)
 	require.NoError(t, err)
 	defer dbf.Close()
-	assert.Equal(t, uint64(expCount), dbf.EntriesCount())
+	assert.Equal(t, expCount, dbf.EntriesCount())
 
 	rcvCount := 0
 	fn := func(idx int, pi path.Info) error {
