@@ -1,3 +1,3 @@
 # ajfs
 
-Snapshot file hierarchy, meta data and checksums.
+Snapshot file hierarchy, meta data and hash signatures.

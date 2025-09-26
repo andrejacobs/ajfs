@@ -24,7 +24,7 @@ import (
 // meta
 // entries
 // entry offset table
-// [optional] checksum table
+// [optional] hash table
 // [optional] tree
 // [optional] future features (without breaking existing databases)
 
@@ -655,12 +655,12 @@ func (s *pathEntry) write(w io.Writer) error {
 type FeatureFlags uint16
 
 const (
-	featureChecksums = 1 << iota // Contains the calculated file checksums (hashes) for the path objects.
+	featureHashTable = 1 << iota // Contains the calculated file hash signatures for the path objects.
 	featureTree                  // Contains the cached file tree.
 )
 
-func (f FeatureFlags) HasChecksums() bool {
-	return (f & featureChecksums) != 0
+func (f FeatureFlags) HasHashTable() bool {
+	return (f & featureHashTable) != 0
 }
 
 func (f FeatureFlags) HasTree() bool {

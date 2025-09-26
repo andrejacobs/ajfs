@@ -13,7 +13,7 @@ Why mk2 (mark 2)?
 
 What is this tool for?
 
--   Used to take snapshots of file hierarchies, meta data and checksums.
+-   Used to take snapshots of file hierarchies, meta data and hash signatures.
 -   Can be used to track differences. Between different hierarchies, different periods in time.
 -   Can be used to browse, search etc. offline from the host on which the files exists.
 -   Can be used to see if files have been changed (damaged maybe? need to be backed up maybe? etc.)
