@@ -2,6 +2,7 @@
 package scan
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -27,7 +28,7 @@ func NewScanner() Scanner {
 
 // Scan starts the file hierarchy traversal and will write the found path info objects to the database.
 // dbf should be a newly created database [db.CreateDatabase].
-func (s Scanner) Scan(dbf *db.DatabaseFile) error {
+func (s Scanner) Scan(ctx context.Context, dbf *db.DatabaseFile) error {
 	w := file.NewWalker()
 	w.FileExcluder = s.FileExcluder
 	w.DirExcluder = s.DirExcluder
@@ -35,6 +36,10 @@ func (s Scanner) Scan(dbf *db.DatabaseFile) error {
 	fn := func(rcvPath string, d fs.DirEntry, rcvErr error) error {
 		if rcvErr != nil {
 			return rcvErr
+		}
+
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 
 		relPath, err := filepath.Rel(dbf.RootPath(), rcvPath)
