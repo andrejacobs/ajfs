@@ -30,7 +30,7 @@ type header struct {
 
 func TestCreateDatabase(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
-	_ = os.Remove(tempFile) // delete if it already exists
+	_ = os.Remove(tempFile)
 
 	dbf, err := db.CreateDatabase(tempFile, "/test/")
 	defer os.Remove(tempFile)
@@ -107,7 +107,7 @@ func TestOpenDatabaseWhenInvalidFile(t *testing.T) {
 
 func TestOpenDatabase(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
-	_ = os.Remove(tempFile) // delete if it already exists
+	_ = os.Remove(tempFile)
 
 	// Create a valid "empty" database
 	expRoot := "/test/"
@@ -134,7 +134,7 @@ func TestOpenDatabase(t *testing.T) {
 
 func TestWritePathInfo(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
-	_ = os.Remove(tempFile) // delete if it already exists
+	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
 	// Create new database and write 2 path info objects
@@ -180,7 +180,7 @@ func TestWritePathInfo(t *testing.T) {
 
 func TestReadAll(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
-	_ = os.Remove(tempFile) // delete if it already exists
+	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
 	// Create new database and write N path info objects
@@ -243,7 +243,7 @@ func TestReadAll(t *testing.T) {
 
 func TestReadWritePanicConditions(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
-	_ = os.Remove(tempFile) // delete if it already exists
+	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
 	// Create new database

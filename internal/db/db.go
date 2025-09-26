@@ -189,10 +189,7 @@ func (dbf *DatabaseFile) Close() error {
 
 // Ensure unwritten data is written to the file on disk.
 func (dbf *DatabaseFile) Flush() error {
-	if dbf.bufWriter == nil {
-		panic("database was not opened for writing")
-	}
-
+	dbf.panicIfNotWriting()
 	return dbf.bufWriter.Flush()
 }
 
@@ -228,9 +225,7 @@ func (dbf *DatabaseFile) EntriesCount() int {
 
 // Write the path info to the database.
 func (dbf *DatabaseFile) WriteEntry(pi *path.Info) error {
-	if dbf.bufWriter == nil {
-		panic("database was not opened for writing")
-	}
+	dbf.panicIfNotWriting()
 
 	offset, err := ajmath.Uint64ToUint32(dbf.currentWriteOffset())
 	if err != nil {
@@ -249,9 +244,7 @@ func (dbf *DatabaseFile) WriteEntry(pi *path.Info) error {
 
 // Read the path info object with the specified index.
 func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (path.Info, error) {
-	if dbf.reader == nil {
-		panic("database was not opened for reading")
-	}
+	dbf.panicIfNotReading()
 
 	if idx >= int(dbf.header.EntriesCount) {
 		panic(fmt.Sprintf("invalid index %d, EntriesCount = %d", idx, dbf.header.EntriesCount))
@@ -280,9 +273,7 @@ type ReadAllEntriesFn func(idx int, pi path.Info) error
 // Read all the path info objects from the database and call the callback function.
 // If the callback function returns [SkipAll] then the reading process will be stopped and nil will be returned as the error.
 func (dbf *DatabaseFile) ReadAllEntries(fn ReadAllEntriesFn) error {
-	if dbf.reader == nil {
-		panic("database was not opened for reading")
-	}
+	dbf.panicIfNotReading()
 
 	_, err := dbf.reader.Seek(int64(dbf.header.EntriesOffset), io.SeekStart)
 	if err != nil {
@@ -334,12 +325,16 @@ func (dbf *DatabaseFile) FinishEntries() error {
 
 // Update the header
 func (dbf *DatabaseFile) finishCreation() error {
-	if dbf.bufWriter == nil {
-		panic("database was not opened for writing")
-	}
+	dbf.panicIfNotWriting()
 
 	if (dbf.header.EntriesCount > 0) && (dbf.header.EntriesOffsetTableOffset == 0) {
 		panic("FinishEntries was never called")
+	}
+
+	//TODO: Check that if hash table/tree feature is used, then the offsets were updated
+
+	if dbf.header.Features.HasHashTable() && (dbf.header.HashTableOffset == 0) {
+		panic("hash table was not written")
 	}
 
 	// Update the header
@@ -447,6 +442,20 @@ func (dbf *DatabaseFile) currentWriteOffset() uint64 {
 	return dbf.writer.Offset()
 }
 
+// Panic if the database was not opened for creation (as in file writing)
+func (dbf *DatabaseFile) panicIfNotWriting() {
+	if dbf.bufWriter == nil {
+		panic("database was not opened for writing")
+	}
+}
+
+// Panic if the database was not opened for reading
+func (dbf *DatabaseFile) panicIfNotReading() {
+	if dbf.reader == nil {
+		panic("database was not opened for reading")
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Prefix Header
 
@@ -478,6 +487,9 @@ type header struct {
 	EntriesOffsetTableOffset uint32 // The offset to the entries offset table
 
 	Features FeatureFlags // Feature flags
+
+	HashTableOffset uint32 // The start of the hash table
+	TreeOffset      uint32 // The start of the tree
 
 	FeatureReserved [8]uint32 // 8x feature offsets reserved for future use without breaking backwards compatibility
 }
