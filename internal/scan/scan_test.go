@@ -44,7 +44,12 @@ func TestScan(t *testing.T) {
 	err = w.Walk(dataDir, func(rcvPath string, d fs.DirEntry, rcvErr error) error {
 		require.NoError(t, rcvErr)
 
-		expInfo, err := path.InfoFromWalk(rcvPath, d)
+		relPath, err := filepath.Rel(dataDir, rcvPath)
+		if err != nil {
+			return err
+		}
+
+		expInfo, err := path.InfoFromWalk(relPath, d)
 		require.NoError(t, err)
 
 		info, err := dbf.ReadEntryAtIndex(count)
@@ -91,7 +96,12 @@ func TestLocalScan(t *testing.T) {
 	err = w.Walk(localDir, func(rcvPath string, d fs.DirEntry, rcvErr error) error {
 		require.NoError(t, rcvErr)
 
-		expInfo, err := path.InfoFromWalk(rcvPath, d)
+		relPath, err := filepath.Rel(localDir, rcvPath)
+		if err != nil {
+			return err
+		}
+
+		expInfo, err := path.InfoFromWalk(relPath, d)
 		require.NoError(t, err)
 
 		info, err := dbf.ReadEntryAtIndex(count)

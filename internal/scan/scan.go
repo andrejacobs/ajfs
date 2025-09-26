@@ -4,6 +4,7 @@ package scan
 import (
 	"fmt"
 	"io/fs"
+	"path/filepath"
 
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
@@ -36,7 +37,12 @@ func (s Scanner) Scan(dbf *db.DatabaseFile) error {
 			return rcvErr
 		}
 
-		info, err := path.InfoFromWalk(rcvPath, d)
+		relPath, err := filepath.Rel(dbf.RootPath(), rcvPath)
+		if err != nil {
+			return err
+		}
+
+		info, err := path.InfoFromWalk(relPath, d)
 		if err != nil {
 			return err
 		}
