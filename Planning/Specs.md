@@ -3,6 +3,8 @@
 Author: André Jacobs
 Date: 3/10/2024
 
+-   28/09/2025: Added more commands and details.
+
 ## Overview
 
 Why mk2 (mark 2)?
@@ -34,9 +36,55 @@ Overview of the subcommands that will be available.
 
 ### Core features
 
+-   `info`
+
+    -   Display information about a database.
+    -   path, version, root path, meta (os, arch), file size, creation date
+    -   number of entries (files, directories)
+    -   total size of all files, max file size, avg file size
+
 -   `scan`
 
-    -   Build up a tree of directories and files
-    -   Calculate hashes etc.
+    -   Used to walk a file hierarchy and store the found paths in a new ajfs database file.
+    -   [Optional] Calculate the file signature hashes.
+        -   `--hash`: Start calculating hashes once the scan is finished. This can be interrupted and continued.
+        -   `--algo`: The hashing algorithm to use. Valid values are `sha1`, `sha256` and `sha512`.
+        -   `--progress`: Show progress while calculating file hash signatures.
     -   Store the information in a single file "database".
     -   Will not update an existing database. Use `update` command for this.
+    -   Will not override an existing database.
+        -   `--force`: Override an existing database.
+    -   See the path filtering section on how to control which directories and files will be walked.
+
+-   `list`
+
+    -   List out all the path entries in the database.
+    -   `--full`: Display the full path including the root path of when the database was created.
+
+### Global flags
+
+-   `-h, --help`
+
+    -   Displays usage and help information.
+
+-   `--version`
+
+    -   Displays the version of the tool.
+
+-   `-v, --verbose`
+
+    -   Output verbose information
+
+-   `--db`
+    -   Path to the database file. Default "./db.ajfs"
+
+### Path filtering
+
+-   TODO
+
+## Example usage
+
+-   Version: `ajfs --version`
+-   Help: `ajfs --help`
+-   Help on a specific command: `ajfs scan --help`
+-   List out the database entries: `ajfs list --full`
