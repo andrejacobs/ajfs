@@ -6,14 +6,14 @@ import (
 	"io"
 
 	"github.com/andrejacobs/go-aj/ajhash"
-	"github.com/andrejacobs/go-aj/ajmath"
+	"github.com/andrejacobs/go-aj/ajmath/safe"
 )
 
 // file format
 // ... <entries and entries offset table>
 // sentinel
 // header
-// n * hash
+// n * hashEntry, where n == number of file path entries
 // sentinel
 
 //TODO: need a util dbf.HashTableAlgo etc.
@@ -21,47 +21,114 @@ import (
 //-----------------------------------------------------------------------------
 // DatabaseFile
 
+type createHashTable struct {
+	header hashTableHeader
+
+	offsets map[uint32]uint32 // map from path entry index to the hash offset
+}
+
 // Start writing the initial hash table.
 func (dbf *DatabaseFile) StartHashTable(algo ajhash.Algo) error {
 	dbf.panicIfNotWriting()
 
+	if !dbf.createFeatures.HasHashTable() {
+		panic("database is not expected to have a hash table")
+	}
+
 	// Determine the offset
 	var err error
-	dbf.header.HashTableOffset, err = ajmath.Uint64ToUint32(dbf.currentWriteOffset())
+	dbf.header.HashTableOffset, err = safe.Uint64ToUint32(dbf.file.Offset())
 	if err != nil {
 		return fmt.Errorf("failed to set the ajfs hash table offset. %w", err)
 	}
 
 	// Enable feature
-	dbf.header.Features |= featureHashTable
+	dbf.header.Features |= FeatureHashTable
 
 	// 1st sentinel
-	_, err = dbf.writer.Write(hashTableSentinel[:])
+	_, err = dbf.file.Write(hashTableSentinel[:])
 	if err != nil {
 		return fmt.Errorf("failed to write the hash table (1st sentinel). %w", err)
 	}
 
 	// Write header
-	header := hashTableHeader{
-		Algo:         algo,
-		EntriesCount: dbf.header.EntriesCount,
+	dbf.createHashTable = createHashTable{
+		header: hashTableHeader{
+			Algo:         algo,
+			EntriesCount: dbf.header.FileEntriesCount,
+		},
+		offsets: make(map[uint32]uint32, dbf.header.FileEntriesCount),
 	}
 
-	if err := header.write(dbf.writer); err != nil {
+	if err := dbf.createHashTable.header.write(dbf.file); err != nil {
 		return fmt.Errorf("failed to write the hash table header. %w", err)
 	}
 
 	// Write inital empty entries
-	for i := range header.EntriesCount {
-		if _, err := dbf.writer.Write(algo.ZeroValue()); err != nil {
-			return fmt.Errorf("failed to write the initial hash table entries (index %d). %w", i, err)
+	zeroHash := algo.ZeroValue()
+	for _, idx := range dbf.fileIndices {
+		entry := hashEntry{
+			Index: idx,
+			Hash:  zeroHash,
+		}
+
+		offset, err := safe.Uint64ToUint32(dbf.file.Offset())
+		if err != nil {
+			return fmt.Errorf("failed to write the initial hash table entries (index %d). %w", idx, err)
+		}
+		dbf.createHashTable.offsets[idx] = offset
+
+		if err := entry.write(dbf.file); err != nil {
+			return fmt.Errorf("failed to write the initial hash table entries (index %d). %w", idx, err)
 		}
 	}
 
 	// 2nd sentinel
-	_, err = dbf.writer.Write(hashTableSentinel[:])
+	_, err = dbf.file.Write(hashTableSentinel[:])
 	if err != nil {
 		return fmt.Errorf("failed to write the hash table (1st sentinel). %w", err)
+	}
+
+	if err := dbf.file.Flush(); err != nil {
+		return fmt.Errorf("failed to write the hash table. %w", err)
+	}
+
+	return nil
+}
+
+// Write the file hash signature for the path info object with the specified index in the database.
+// idx Index of the path info object.
+// hash The file hash signature.
+func (dbf *DatabaseFile) WriteHashEntry(idx int, hash []byte) error {
+	dbf.panicIfNotWriting()
+
+	safeIdx, err := safe.IntToUint32(idx)
+	if err != nil {
+		return fmt.Errorf("failed to write hash entry for index %d. %w", idx, err)
+	}
+
+	offset, ok := dbf.createHashTable.offsets[safeIdx]
+	if !ok {
+		return fmt.Errorf("failed to write hash entry for index %d, no offset found", idx)
+	}
+
+	_, err = dbf.file.Seek(int64(offset), io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("failed to write hash entry for index %d (file seek). %w", idx, err)
+	}
+	dbf.file.ResetWriteBuffer()
+
+	entry := hashEntry{
+		Index: safeIdx,
+		Hash:  hash,
+	}
+
+	if err := entry.write(dbf.file); err != nil {
+		return fmt.Errorf("failed to write hash entry for index %d. %w", idx, err)
+	}
+
+	if err := dbf.file.Flush(); err != nil {
+		return fmt.Errorf("failed to write hash entry for index %d. %w", idx, err)
 	}
 
 	return nil
@@ -94,14 +161,15 @@ func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
 		panic("database contains no hash table")
 	}
 
-	_, err := dbf.reader.Seek(int64(dbf.header.HashTableOffset), io.SeekStart)
+	_, err := dbf.file.Seek(int64(dbf.header.HashTableOffset), io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("failed to read hash table entries. %w", err)
 	}
+	dbf.file.ResetReadBuffer()
 
 	// Check 1st sentinel
 	var s [4]byte
-	_, err = dbf.reader.Read(s[:])
+	_, err = dbf.file.Read(s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the hash table (1st sentinel). %w", err)
 	}
@@ -111,24 +179,29 @@ func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
 
 	// Read the header
 	header := hashTableHeader{}
-	if err := header.read(dbf.reader); err != nil {
+	if err := header.read(dbf.file); err != nil {
 		return fmt.Errorf("failed to read the hash table header. %w", err)
 	}
 
-	if dbf.header.EntriesCount != header.EntriesCount {
-		return fmt.Errorf("the number of hash table entries %d does not match the number of path entries %d in the database", header.EntriesCount, dbf.header.EntriesCount)
+	if dbf.header.FileEntriesCount != header.EntriesCount {
+		return fmt.Errorf("the number of hash table entries %d does not match the number of file path entries %d in the database", header.EntriesCount, dbf.header.FileEntriesCount)
 	}
 
 	// Read the hash entries
-	hash := make([]byte, header.Algo.Size())
-
-	for idx := range header.EntriesCount {
-		_, err = dbf.reader.Read(hash)
-		if err != nil {
-			return fmt.Errorf("failed to read the hash table entry at index %d. %w", idx, err)
+	for i := range header.EntriesCount {
+		entry := hashEntry{
+			Hash: header.Algo.Buffer(),
+		}
+		if err := entry.read(dbf.file); err != nil {
+			return fmt.Errorf("failed to read the hash table entry at index %d. %w", i, err)
 		}
 
-		if err := fn(int(idx), hash); err != nil {
+		idx, err := safe.Uint32ToInt(entry.Index)
+		if err != nil {
+			return fmt.Errorf("failed to read the hash table entry at index %d (path entry index %d will cause integer overflow). %w", i, entry.Index, err)
+		}
+
+		if err := fn(idx, entry.Hash); err != nil {
 			if err == SkipAll {
 				return nil
 			}
@@ -137,7 +210,7 @@ func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
 	}
 
 	// Check 2nd sentinel
-	_, err = dbf.reader.Read(s[:])
+	_, err = dbf.file.Read(s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the hash table (2nd sentinel). %w", err)
 	}
@@ -156,12 +229,38 @@ type hashTableHeader struct {
 	EntriesCount uint32 // This must match the db Header's EntriesCount
 }
 
-func (s *hashTableHeader) read(r io.ReadSeeker) error {
+func (s *hashTableHeader) read(r io.Reader) error {
 	return binary.Read(r, binary.LittleEndian, s)
 }
 
 func (s *hashTableHeader) write(w io.Writer) error {
 	return binary.Write(w, binary.LittleEndian, s)
+}
+
+//-----------------------------------------------------------------------------
+// Hash entry
+
+type hashEntry struct {
+	Index uint32 // Index of the matching file path entry
+	Hash  []byte // File signature hash
+}
+
+func (s *hashEntry) read(r io.Reader) error {
+	if err := binary.Read(r, binary.LittleEndian, &s.Index); err != nil {
+		return err
+	}
+
+	_, err := r.Read(s.Hash)
+	return err
+}
+
+func (s *hashEntry) write(w io.Writer) error {
+	if err := binary.Write(w, binary.LittleEndian, s.Index); err != nil {
+		return err
+	}
+
+	_, err := w.Write(s.Hash)
+	return err
 }
 
 //-----------------------------------------------------------------------------

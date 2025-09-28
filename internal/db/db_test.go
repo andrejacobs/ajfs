@@ -22,17 +22,18 @@ type prefixHeader struct {
 }
 
 type header struct {
-	EntryCount      uint32
-	EntryOffset     uint32
-	Features        db.FeatureFlags
-	FeatureReserved [8]uint32
+	EntryCount       uint32
+	FileEntriesCount uint32
+	EntryOffset      uint32
+	Features         db.FeatureFlags
+	FeatureReserved  [8]uint32
 }
 
 func TestCreateDatabase(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 
-	dbf, err := db.CreateDatabase(tempFile, "/test/")
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
 	defer os.Remove(tempFile)
 	require.NoError(t, err)
 	require.NoError(t, dbf.Close())
@@ -63,7 +64,7 @@ func TestCreateDatabaseWhenExistingFileExists(t *testing.T) {
 	_ = f.Close()
 	defer os.Remove(f.Name())
 
-	_, err = db.CreateDatabase(f.Name(), "/test/")
+	_, err = db.CreateDatabase(f.Name(), "/test/", db.FeatureJustEntries)
 	var expErr *fs.PathError
 	require.ErrorAs(t, err, &expErr)
 }
@@ -111,7 +112,7 @@ func TestOpenDatabase(t *testing.T) {
 
 	// Create a valid "empty" database
 	expRoot := "/test/"
-	dbf, err := db.CreateDatabase(tempFile, expRoot)
+	dbf, err := db.CreateDatabase(tempFile, expRoot, db.FeatureJustEntries)
 	defer os.Remove(tempFile)
 	require.NoError(t, err)
 	require.NoError(t, dbf.Close())
@@ -138,7 +139,7 @@ func TestWritePathInfo(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database and write 2 path info objects
-	dbf, err := db.CreateDatabase(tempFile, "/test/")
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	p1 := path.Info{
@@ -151,10 +152,10 @@ func TestWritePathInfo(t *testing.T) {
 	assert.NoError(t, dbf.WriteEntry(&p1))
 
 	p2 := path.Info{
-		Id:      path.IdFromPath("some/dir/b.txt"),
-		Path:    "some/dir/b.txt",
+		Id:      path.IdFromPath("some/dir"),
+		Path:    "some/dir",
 		Size:    uint64(142),
-		Mode:    0644,
+		Mode:    0644 | fs.ModeDir,
 		ModTime: time.Now().Add(-20 * time.Minute),
 	}
 	assert.NoError(t, dbf.WriteEntry(&p2))
@@ -168,6 +169,7 @@ func TestWritePathInfo(t *testing.T) {
 	defer dbf.Close()
 
 	assert.Equal(t, 2, dbf.EntriesCount())
+	assert.Equal(t, 1, dbf.FileEntriesCount())
 
 	c2, err := dbf.ReadEntryAtIndex(1)
 	require.NoError(t, err)
@@ -184,7 +186,7 @@ func TestReadAll(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database and write N path info objects
-	dbf, err := db.CreateDatabase(tempFile, "/test/")
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	expCount := 10
@@ -247,7 +249,7 @@ func TestReadWritePanicConditions(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database
-	dbf, err := db.CreateDatabase(tempFile, "/test/")
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	// Not allowed to read

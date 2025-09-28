@@ -2,10 +2,9 @@ module github.com/andrejacobs/ajfs
 
 go 1.25.1
 
-require (
-	github.com/andrejacobs/go-aj v0.0.0-20250927001153-d89d2aada697
-	github.com/stretchr/testify v1.11.1
-)
+require github.com/andrejacobs/go-aj v0.0.0-20250928085753-c9be4ea9f7d5
+
+require github.com/stretchr/testify v1.11.1
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

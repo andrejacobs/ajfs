@@ -21,7 +21,7 @@ func TestScan(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database
-	dbf, err := db.CreateDatabase(tempFile, dataDir)
+	dbf, err := db.CreateDatabase(tempFile, dataDir, db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	// Perform the scan
@@ -71,7 +71,7 @@ func TestScanCancelled(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database
-	dbf, err := db.CreateDatabase(tempFile, dataDir)
+	dbf, err := db.CreateDatabase(tempFile, dataDir, db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	// Perform the scan

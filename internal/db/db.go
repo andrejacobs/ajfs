@@ -2,7 +2,6 @@
 package db
 
 import (
-	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -12,8 +11,9 @@ import (
 	"time"
 
 	"github.com/andrejacobs/ajfs/internal/path"
-	"github.com/andrejacobs/go-aj/ajio"
-	"github.com/andrejacobs/go-aj/ajmath"
+	"github.com/andrejacobs/go-aj/ajio/trackedoffset"
+	"github.com/andrejacobs/go-aj/ajio/vardata"
+	"github.com/andrejacobs/go-aj/ajmath/safe"
 )
 
 // The underlying file format for the ajfs database:
@@ -36,7 +36,7 @@ import (
 // - Finish
 // - Close
 type DatabaseFile struct {
-	file *os.File
+	file *trackedoffset.File
 	path string
 
 	prefixHeader prefixHeader
@@ -44,64 +44,72 @@ type DatabaseFile struct {
 	root         rootEntry
 	meta         MetaEntry
 
-	entryOffsets []uint32
-
-	// only for reading
-	reader ajio.MultiByteReaderSeeker
+	entryOffsets []uint32 // offset to where each path info entry is stored
 
 	// only for creation
-	bufWriter *bufio.Writer
-	writer    ajio.TrackedOffsetWriter
+	creating       bool
+	createFeatures FeatureFlags
+	fileIndices    []uint32 // indices of path info entries that are files
+
+	createHashTable createHashTable
 }
 
 // Create a new file
 // If the file already exists then an error will be returned.
 // path is the file path at which the database file will be created.
 // root is the file path that the database will represents and that will be used to scan the file hierarchy.
-func CreateDatabase(path string, root string) (*DatabaseFile, error) {
+// features indicate the expected features that will be present in the database.
+func CreateDatabase(path string, root string, features FeatureFlags) (*DatabaseFile, error) {
 	dbf := &DatabaseFile{
-		path: path,
+		path:           path,
+		creating:       true,
+		createFeatures: features,
 	}
 
 	var err error
-	dbf.file, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	dbf.file, err = trackedoffset.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the ajfs database file. path: %q. %w", path, err)
 	}
 
-	dbf.bufWriter = bufio.NewWriter(dbf.file)
-	dbf.writer = ajio.NewTrackedOffsetWriter(dbf.bufWriter, 0)
-
 	// Write prefix
 	dbf.prefixHeader.init()
-	if err := dbf.prefixHeader.write(dbf.writer); err != nil {
+	if err := dbf.prefixHeader.write(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs prefix header. path: %q. %w", path, err)
 	}
 
 	// Write initial empty header (this should be updated before finishing the file)
-	if err := dbf.header.write(dbf.writer); err != nil {
+	if err := dbf.header.write(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs header. path: %q. %w", path, err)
 	}
 
 	// Root entry
 	dbf.root.path = root
-	if err := dbf.root.write(dbf.writer); err != nil {
+	if err := dbf.root.write(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs root entry. path: %s. %w", path, err)
 	}
 
 	// Meta entry
 	dbf.meta.init()
-	if err := dbf.meta.write(dbf.writer); err != nil {
+	if err := dbf.meta.write(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs meta entry. path: %q. %w", path, err)
 	}
 
+	if err := dbf.file.Flush(); err != nil {
+		return nil, fmt.Errorf("failed to create the ajfs database. path: %q. %w", path, err)
+	}
+
 	// Determine the start of the path object entries
-	dbf.header.EntriesOffset, err = ajmath.Uint64ToUint32(dbf.currentWriteOffset())
+	dbf.header.EntriesOffset, err = safe.Uint64ToUint32(dbf.file.Offset())
 	if err != nil {
 		return nil, fmt.Errorf("failed to set the ajfs EntriesOffset. %w", err)
 	}
 
 	dbf.entryOffsets = make([]uint32, 0, 4096)
+
+	if dbf.createFeatures.HasHashTable() {
+		dbf.fileIndices = make([]uint32, 0, 4096)
+	}
 
 	return dbf, nil
 }
@@ -113,15 +121,13 @@ func OpenDatabase(path string) (*DatabaseFile, error) {
 	}
 
 	var err error
-	dbf.file, err = os.Open(path)
+	dbf.file, err = trackedoffset.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open the ajfs database file. path: %q. %w", path, err)
 	}
 
-	dbf.reader = ajio.NewMultiByteReaderSeeker(dbf.file)
-
 	// Check the signature and version
-	if err := dbf.prefixHeader.read(dbf.reader); err != nil {
+	if err := dbf.prefixHeader.read(dbf.file); err != nil {
 		return nil, fmt.Errorf("error reading the ajfs prefix header. path: %q. %w", path, err)
 	}
 	if dbf.prefixHeader.Signature != signature {
@@ -132,17 +138,17 @@ func OpenDatabase(path string) (*DatabaseFile, error) {
 	}
 
 	// Read the header
-	if err := dbf.header.read(dbf.reader); err != nil {
+	if err := dbf.header.read(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to read the ajfs header. path: %q. %w", path, err)
 	}
 
 	// Read the root info
-	if err := dbf.root.read(dbf.reader); err != nil {
+	if err := dbf.root.read(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to read the ajfs root entry. path: %q. %w", path, err)
 	}
 
 	// Read the meta info
-	if err := dbf.meta.read(dbf.reader); err != nil {
+	if err := dbf.meta.read(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to read the ajfs meta entry. path: %q. %w", path, err)
 	}
 
@@ -160,7 +166,7 @@ func (dbf *DatabaseFile) Close() error {
 		return nil
 	}
 
-	if dbf.bufWriter != nil {
+	if dbf.creating {
 		if err := dbf.Flush(); err != nil {
 			return err
 		}
@@ -179,10 +185,8 @@ func (dbf *DatabaseFile) Close() error {
 	}
 
 	dbf.file = nil
-	dbf.reader = nil
-	dbf.bufWriter = nil
-	dbf.writer = nil
 	dbf.entryOffsets = nil
+	dbf.fileIndices = nil
 
 	return nil
 }
@@ -190,7 +194,7 @@ func (dbf *DatabaseFile) Close() error {
 // Ensure unwritten data is written to the file on disk.
 func (dbf *DatabaseFile) Flush() error {
 	dbf.panicIfNotWriting()
-	return dbf.bufWriter.Flush()
+	return dbf.file.Flush()
 }
 
 // File format version.
@@ -223,23 +227,45 @@ func (dbf *DatabaseFile) EntriesCount() int {
 	return int(dbf.header.EntriesCount)
 }
 
+// The number of path info entries that are files.
+func (dbf *DatabaseFile) FileEntriesCount() int {
+	return int(dbf.header.FileEntriesCount)
+}
+
 // Write the path info to the database.
 func (dbf *DatabaseFile) WriteEntry(pi *path.Info) error {
 	dbf.panicIfNotWriting()
 
-	offset, err := ajmath.Uint64ToUint32(dbf.currentWriteOffset())
+	offset, err := safe.Uint64ToUint32(dbf.file.Offset())
 	if err != nil {
 		return err
 	}
 	dbf.entryOffsets = append(dbf.entryOffsets, offset)
 
+	index := dbf.header.EntriesCount
+
 	entry := pathEntryFromPathInfo(pi)
-	if err := entry.write(dbf.writer); err != nil {
+	if err := entry.write(dbf.file); err != nil {
 		return err
 	}
 
-	dbf.header.EntriesCount, err = ajmath.Add32(dbf.header.EntriesCount, 1)
-	return err
+	dbf.header.EntriesCount, err = safe.Add32(dbf.header.EntriesCount, 1)
+	if err != nil {
+		return err
+	}
+
+	if pi.IsFile() {
+		dbf.header.FileEntriesCount, err = safe.Add32(dbf.header.FileEntriesCount, 1)
+		if err != nil {
+			return err
+		}
+
+		if dbf.fileIndices != nil {
+			dbf.fileIndices = append(dbf.fileIndices, index)
+		}
+	}
+
+	return nil
 }
 
 // Read the path info object with the specified index.
@@ -251,13 +277,14 @@ func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (path.Info, error) {
 	}
 
 	offset := dbf.entryOffsets[idx]
-	_, err := dbf.reader.Seek(int64(offset), io.SeekStart)
+	_, err := dbf.file.Seek(int64(offset), io.SeekStart)
 	if err != nil {
 		return path.Info{}, fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
 	}
+	dbf.file.ResetReadBuffer()
 
 	entry := pathEntry{}
-	if err := entry.read(dbf.reader); err != nil {
+	if err := entry.read(dbf.file); err != nil {
 		return path.Info{}, fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
 	}
 
@@ -275,15 +302,16 @@ type ReadAllEntriesFn func(idx int, pi path.Info) error
 func (dbf *DatabaseFile) ReadAllEntries(fn ReadAllEntriesFn) error {
 	dbf.panicIfNotReading()
 
-	_, err := dbf.reader.Seek(int64(dbf.header.EntriesOffset), io.SeekStart)
+	_, err := dbf.file.Seek(int64(dbf.header.EntriesOffset), io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("failed to read all entries. %w", err)
 	}
+	dbf.file.ResetReadBuffer()
 
 	for idx := range dbf.header.EntriesCount {
 		entry := pathEntry{}
-		if err := entry.read(dbf.reader); err != nil {
-			offset, _ := dbf.currentReadOffset()
+		if err := entry.read(dbf.file); err != nil {
+			offset := dbf.file.Offset()
 			return fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
 		}
 
@@ -309,7 +337,7 @@ func (dbf *DatabaseFile) FinishEntries() error {
 	}
 
 	var err error
-	dbf.header.EntriesOffsetTableOffset, err = ajmath.Uint64ToUint32(dbf.currentWriteOffset())
+	dbf.header.EntriesOffsetTableOffset, err = safe.Uint64ToUint32(dbf.file.Offset())
 	if err != nil {
 		return fmt.Errorf("failed to finish writing the entries (offset). %w", err)
 	}
@@ -331,7 +359,9 @@ func (dbf *DatabaseFile) finishCreation() error {
 		panic("FinishEntries was never called")
 	}
 
-	//TODO: Check that if hash table/tree feature is used, then the offsets were updated
+	if dbf.createFeatures != dbf.header.Features {
+		panic(fmt.Sprintf("not all the expected features were created. expected = %d, actual = %d", dbf.createFeatures, dbf.header.Features))
+	}
 
 	if dbf.header.Features.HasHashTable() && (dbf.header.HashTableOffset == 0) {
 		panic("hash table was not written")
@@ -342,13 +372,15 @@ func (dbf *DatabaseFile) finishCreation() error {
 	if err != nil {
 		return fmt.Errorf("failed to finish creating the ajfs database. failed to seek to header offset. %w", err)
 	}
+	dbf.file.ResetWriteBuffer()
 
 	if err := dbf.header.write(dbf.file); err != nil {
 		return fmt.Errorf("failed to update the ajfs header. %w", err)
 	}
 
-	dbf.bufWriter = nil
-	dbf.writer = nil
+	if err := dbf.Flush(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -359,14 +391,15 @@ func (dbf *DatabaseFile) readEntryOffsets() error {
 		return nil
 	}
 
-	_, err := dbf.reader.Seek(int64(dbf.header.EntriesOffsetTableOffset), io.SeekStart)
+	_, err := dbf.file.Seek(int64(dbf.header.EntriesOffsetTableOffset), io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("failed to read the entry offset table. %w", err)
 	}
+	dbf.file.ResetReadBuffer()
 
 	// Check 1st sentinel
 	var s [4]byte
-	_, err = dbf.reader.Read(s[:])
+	_, err = dbf.file.Read(s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the entry offset table (1st sentinel). %w", err)
 	}
@@ -378,7 +411,7 @@ func (dbf *DatabaseFile) readEntryOffsets() error {
 
 	var data [4]byte // uint32
 	for i := range dbf.header.EntriesCount {
-		_, err := dbf.reader.Read(data[:])
+		_, err := dbf.file.Read(data[:])
 		if err != nil {
 			return fmt.Errorf("failed to read the entry offset table (near index %d). %w", i, err)
 		}
@@ -386,7 +419,7 @@ func (dbf *DatabaseFile) readEntryOffsets() error {
 		dbf.entryOffsets[i] = binary.LittleEndian.Uint32(data[:])
 	}
 
-	_, err = dbf.reader.Read(s[:])
+	_, err = dbf.file.Read(s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the entry offset table (2nd sentinel). %w", err)
 	}
@@ -404,7 +437,7 @@ func (dbf *DatabaseFile) writeEntryOffsets() error {
 	}
 
 	// 1st sentinel
-	_, err := dbf.writer.Write(sentinel[:])
+	_, err := dbf.file.Write(sentinel[:])
 	if err != nil {
 		return fmt.Errorf("failed to finish writing the entries (1st sentinel). %w", err)
 	}
@@ -413,14 +446,14 @@ func (dbf *DatabaseFile) writeEntryOffsets() error {
 
 	for idx, offset := range dbf.entryOffsets {
 		binary.LittleEndian.PutUint32(data, offset)
-		_, err := dbf.writer.Write(data)
+		_, err := dbf.file.Write(data)
 		if err != nil {
 			return fmt.Errorf("failed to write the entries offset table (index = %d). %w", idx, err)
 		}
 	}
 
 	// 2nd sentinel
-	_, err = dbf.writer.Write(sentinel[:])
+	_, err = dbf.file.Write(sentinel[:])
 	if err != nil {
 		return fmt.Errorf("failed to finish writing the entries (2nd sentinel). %w", err)
 	}
@@ -432,26 +465,16 @@ func (dbf *DatabaseFile) writeEntryOffsets() error {
 	return nil
 }
 
-// Current read position in the file
-func (dbf *DatabaseFile) currentReadOffset() (int64, error) {
-	return dbf.reader.Seek(0, io.SeekCurrent)
-}
-
-// Current write position in the file
-func (dbf *DatabaseFile) currentWriteOffset() uint64 {
-	return dbf.writer.Offset()
-}
-
 // Panic if the database was not opened for creation (as in file writing)
 func (dbf *DatabaseFile) panicIfNotWriting() {
-	if dbf.bufWriter == nil {
+	if !dbf.creating {
 		panic("database was not opened for writing")
 	}
 }
 
 // Panic if the database was not opened for reading
 func (dbf *DatabaseFile) panicIfNotReading() {
-	if dbf.reader == nil {
+	if dbf.creating {
 		panic("database was not opened for reading")
 	}
 }
@@ -483,6 +506,7 @@ func (s *prefixHeader) write(w io.Writer) error {
 
 type header struct {
 	EntriesCount             uint32 // The number of path objects. Based on inode max limit of 2^32
+	FileEntriesCount         uint32 // The number of path objects that are just files.
 	EntriesOffset            uint32 // The offset in bytes at which the path objects start. Based on limit of database file being max 4GB
 	EntriesOffsetTableOffset uint32 // The offset to the entries offset table
 
@@ -494,7 +518,7 @@ type header struct {
 	FeatureReserved [8]uint32 // 8x feature offsets reserved for future use without breaking backwards compatibility
 }
 
-func (s *header) read(r io.ReadSeeker) error {
+func (s *header) read(r io.Reader) error {
 	return binary.Read(r, binary.LittleEndian, s)
 }
 
@@ -514,7 +538,7 @@ type rootEntry struct {
 	path string
 }
 
-func (s *rootEntry) read(r ajio.MultiByteReader) error {
+func (s *rootEntry) read(r vardata.Reader) error {
 	path, _, err := varData.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("failed to read the root path. %w", err)
@@ -550,7 +574,7 @@ func (s *MetaEntry) init() {
 	s.CreatedAt = time.Now()
 }
 
-func (s *MetaEntry) read(r ajio.MultiByteReader) error {
+func (s *MetaEntry) read(r vardata.Reader) error {
 	os, _, err := varData.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("failed to read the operating system. %w", err)
@@ -615,7 +639,7 @@ type pathEntryHeader struct {
 	Mode fs.FileMode
 }
 
-func (s *pathEntry) read(r ajio.MultiByteReader) error {
+func (s *pathEntry) read(r vardata.Reader) error {
 	if err := binary.Read(r, binary.LittleEndian, &s.header); err != nil {
 		return fmt.Errorf("failed to read path entry header. %w", err)
 	}
@@ -667,16 +691,17 @@ func (s *pathEntry) write(w io.Writer) error {
 type FeatureFlags uint16
 
 const (
-	featureHashTable = 1 << iota // Contains the calculated file hash signatures for the path objects.
-	featureTree                  // Contains the cached file tree.
+	FeatureJustEntries = 0         // Contains no extra features. Only path info entries.
+	FeatureHashTable   = 1 << iota // Contains the calculated file hash signatures for the path objects.
+	FeatureTree                    // Contains the cached file tree.
 )
 
 func (f FeatureFlags) HasHashTable() bool {
-	return (f & featureHashTable) != 0
+	return (f & FeatureHashTable) != 0
 }
 
 func (f FeatureFlags) HasTree() bool {
-	return (f & featureTree) != 0
+	return (f & FeatureTree) != 0
 }
 
 //-----------------------------------------------------------------------------
@@ -718,7 +743,7 @@ var (
 var (
 	signature = [4]byte{0x41, 0x4A, 0x46, 0x53} // AJFS
 	sentinel  = [4]byte{0x41, 0x4A, 0x43, 0x43} // AJCC (as in interupt 3 0xCC :-)
-	varData   = ajio.NewVariableData()
+	varData   = vardata.NewVariableData()
 )
 
 const (
