@@ -1,5 +1,5 @@
-// Package scan is responsible for walking a file hierarchy and writing to an ajfs database.
-package scan
+// Package scanner is responsible for walking a file hierarchy and writing to an ajfs database.
+package scanner
 
 import (
 	"context"

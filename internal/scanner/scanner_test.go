@@ -1,4 +1,4 @@
-package scan_test
+package scanner_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
-	"github.com/andrejacobs/ajfs/internal/scan"
+	"github.com/andrejacobs/ajfs/internal/scanner"
 	"github.com/andrejacobs/go-aj/file"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ func TestScan(t *testing.T) {
 	require.NoError(t, err)
 
 	// Perform the scan
-	s := scan.NewScanner()
+	s := scanner.NewScanner()
 	require.NoError(t, s.Scan(context.Background(), dbf))
 
 	// Close database
@@ -75,7 +75,7 @@ func TestScanCancelled(t *testing.T) {
 	require.NoError(t, err)
 
 	// Perform the scan
-	s := scan.NewScanner()
+	s := scanner.NewScanner()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	err = s.Scan(ctx, dbf)
@@ -94,7 +94,7 @@ func TestScanCancelled(t *testing.T) {
 // 	require.NoError(t, err)
 
 // 	// Perform the scan
-// 	s := scan.NewScanner()
+// 	s := scanner.NewScanner()
 // 	require.NoError(t, s.Scan(context.Background(), dbf))
 
 // 	// Close database
