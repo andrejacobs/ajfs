@@ -49,7 +49,8 @@ Overview of the subcommands that will be available.
     -   [Optional] Calculate the file signature hashes.
         -   `--hash`: Start calculating hashes once the scan is finished. This can be interrupted and continued.
         -   `--algo`: The hashing algorithm to use. Valid values are `sha1`, `sha256` and `sha512`.
-        -   `--progress`: Show progress while calculating file hash signatures.
+    -   [Optional] Build the tree structure and cache it.
+    -   `--progress`: Show progress while calculating file hash signatures or building the tree.
     -   Store the information in a single file "database".
     -   Will not update an existing database. Use `update` command for this.
     -   Will not override an existing database.

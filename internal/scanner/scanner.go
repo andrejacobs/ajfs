@@ -18,12 +18,18 @@ type Scanner struct {
 	FileExcluder file.MatchPathFn // Determine which files should not be walked
 }
 
+// Create a new scanner.
 func NewScanner() Scanner {
-	fileExcluder := file.MatchAppleDSStore(file.NeverMatch)
+	fileExcluder := DefaultFileExcluder()
 	return Scanner{
 		DirExcluder:  file.NeverMatch,
 		FileExcluder: fileExcluder,
 	}
+}
+
+// Return the default file excluder.
+func DefaultFileExcluder() file.MatchPathFn {
+	return file.MatchAppleDSStore(file.NeverMatch)
 }
 
 // Scan starts the file hierarchy traversal and will write the found path info objects to the database.
