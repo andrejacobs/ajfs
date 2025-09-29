@@ -4,6 +4,7 @@ package scan
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/db"
@@ -34,7 +35,13 @@ func Run(cfg Config) error {
 	}
 
 	if exists {
-		return fmt.Errorf("failed to create the ajfs database because a file already exists at %q", cfg.DbPath)
+		if cfg.ForceOverride {
+			if err = os.Remove(cfg.DbPath); err != nil {
+				return fmt.Errorf("failed to remove existing file %q with --force. %w", cfg.DbPath, err)
+			}
+		} else {
+			return fmt.Errorf("failed to create the ajfs database because a file already exists at %q", cfg.DbPath)
+		}
 	}
 
 	features := db.FeatureJustEntries

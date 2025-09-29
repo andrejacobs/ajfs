@@ -30,6 +30,19 @@ func TestExistingFile(t *testing.T) {
 	assert.ErrorContains(t, err, "file already exists at")
 }
 
+func TestOverrideExistingFile(t *testing.T) {
+	tempFile, err := random.CreateTempFile("", "unit-testing", 1)
+	require.NoError(t, err)
+	defer os.Remove(tempFile)
+
+	cfg := initialConfig()
+	cfg.DbPath = tempFile
+	cfg.ForceOverride = true
+
+	err = scan.Run(cfg)
+	assert.NoError(t, err)
+}
+
 func TestScan(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
@@ -51,9 +64,29 @@ func TestScan(t *testing.T) {
 	assert.ElementsMatch(t, expPaths, paths)
 }
 
-//TODO: TestScanEmptyRoot dir
+func TestScanEmptyDir(t *testing.T) {
+	scanDir, err := os.MkdirTemp("", "test-empty")
+	require.NoError(t, err)
 
-//TODO: Force = true test
+	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	cfg := initialConfig()
+	cfg.DbPath = tempFile
+	cfg.Root = scanDir
+
+	err = scan.Run(cfg)
+	require.NoError(t, err)
+
+	paths, err := databasePaths(cfg)
+	require.NoError(t, err)
+	// Expect the root dir to be in the database and which is relative to itself "."
+	require.Len(t, paths, 1)
+	assert.Equal(t, ".", paths[0].Path)
+}
+
+//-----------------------------------------------------------------------------
 
 func initialConfig() scan.Config {
 	cfg := scan.Config{
