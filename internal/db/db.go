@@ -275,8 +275,6 @@ func (dbf *DatabaseFile) WriteEntry(pi *path.Info) error {
 
 // Read the path info object with the specified index.
 func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (path.Info, error) {
-	dbf.panicIfNotReading()
-
 	if idx >= int(dbf.header.EntriesCount) {
 		panic(fmt.Sprintf("invalid index %d, EntriesCount = %d", idx, dbf.header.EntriesCount))
 	}
@@ -305,8 +303,6 @@ type ReadAllEntriesFn func(idx int, pi path.Info) error
 // Read all the path info objects from the database and call the callback function.
 // If the callback function returns [SkipAll] then the reading process will be stopped and nil will be returned as the error.
 func (dbf *DatabaseFile) ReadAllEntries(fn ReadAllEntriesFn) error {
-	dbf.panicIfNotReading()
-
 	_, err := dbf.file.Seek(int64(dbf.header.EntriesOffset), io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("failed to read all entries. %w", err)
@@ -474,13 +470,6 @@ func (dbf *DatabaseFile) writeEntryOffsets() error {
 func (dbf *DatabaseFile) panicIfNotWriting() {
 	if !dbf.creating {
 		panic("database was not opened for writing")
-	}
-}
-
-// Panic if the database was not opened for reading
-func (dbf *DatabaseFile) panicIfNotReading() {
-	if dbf.creating {
-		panic("database was not opened for reading")
 	}
 }
 

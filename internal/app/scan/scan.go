@@ -65,7 +65,12 @@ func Run(cfg Config) error {
 		return err
 	}
 
-	//TODO: If hash, to it here
+	if cfg.CalculateHashes {
+		if err = calculateHashes(ctx, cfg, dbf); err != nil {
+			return err
+		}
+	}
+
 	//TODO: If tree, to it here
 
 	if err = dbf.Close(); err != nil {
@@ -73,5 +78,18 @@ func Run(cfg Config) error {
 	}
 
 	// TODO: Safe shutdown, cancel contex etc.
+	return nil
+}
+
+func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) error {
+	if err := dbf.StartHashTable(cfg.Algo); err != nil {
+		return err
+	}
+
+	if err := dbf.FinishHashTable(); err != nil {
+		return err
+	}
+
+	//file.Hash(ctx, path, algo.Hasher(), nil)
 	return nil
 }

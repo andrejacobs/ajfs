@@ -19,8 +19,6 @@ type Stats struct {
 
 // Calculate statistics on the database.
 func (dbf *DatabaseFile) CalculateStats() (Stats, error) {
-	dbf.panicIfNotReading()
-
 	result := Stats{}
 
 	err := dbf.ReadAllEntries(func(idx int, pi path.Info) error {

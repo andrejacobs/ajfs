@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/andrejacobs/go-aj/ajmath/safe"
 )
@@ -102,6 +103,10 @@ func (dbf *DatabaseFile) StartHashTable(algo ajhash.Algo) error {
 func (dbf *DatabaseFile) WriteHashEntry(idx int, hash []byte) error {
 	dbf.panicIfNotWriting()
 
+	if len(hash) != dbf.createHashTable.header.Algo.Size() {
+		panic(fmt.Sprintf("invalid hash size %d, expected size %d", len(hash), dbf.createHashTable.header.Algo.Size()))
+	}
+
 	safeIdx, err := safe.IntToUint32(idx)
 	if err != nil {
 		return fmt.Errorf("failed to write hash entry for index %d. %w", idx, err)
@@ -134,10 +139,48 @@ func (dbf *DatabaseFile) WriteHashEntry(idx int, hash []byte) error {
 	return nil
 }
 
+// Called by EntriesNeedHashing.
+// idx Is the index of the path info entry that need it's file signature hash to be calculated.
+// pi The path info entry in the database.
+// Call WriteHashEntry with the calculated hash.
+// Return [SkipAll] to stop processing.
+type NeedHashingFn func(idx int, pi path.Info) error
+
+// Look at the hash table and call the passed function for each entry that need the file signature has to be still calculated.
+func (dbf *DatabaseFile) EntriesNeedHashing(fn NeedHashingFn) error {
+	indices := make([]int, 0, 512)
+
+	err := dbf.ReadHashTableEntries(func(idx int, hash []byte) error {
+		if ajhash.AllZeroBytes(hash) {
+			indices = append(indices, idx)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	for _, idx := range indices {
+		pi, err := dbf.ReadEntryAtIndex(idx)
+		if err != nil {
+			return err
+		}
+
+		if err = fn(idx, pi); err != nil {
+			if err == SkipAll {
+				return nil
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Finish writing the hash table.
 func (dbf *DatabaseFile) FinishHashTable() error {
 	dbf.panicIfNotWriting()
-	//TODO: need a way for the finishCreation to check this was called or panic
 
 	if err := dbf.Flush(); err != nil {
 		return fmt.Errorf("failed to finish writing the hash table (flush). %w", err)
@@ -155,8 +198,6 @@ type ReadHashTableEntryFn func(idx int, hash []byte) error
 // Read all hash table entries from the database and call the callback function.
 // If the callback function returns [SkipAll] then the reading process will be stopped and nil will be returned as the error.
 func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
-	dbf.panicIfNotReading()
-
 	if !dbf.header.Features.HasHashTable() || (dbf.header.HashTableOffset == 0) {
 		panic("database contains no hash table")
 	}
