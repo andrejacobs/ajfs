@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -60,13 +61,17 @@ type DatabaseFile struct {
 // root is the file path that the database will represents and that will be used to scan the file hierarchy.
 // features indicate the expected features that will be present in the database.
 func CreateDatabase(path string, root string, features FeatureFlags) (*DatabaseFile, error) {
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the absolute root path from %q. %w", root, err)
+	}
+
 	dbf := &DatabaseFile{
 		path:           path,
 		creating:       true,
 		createFeatures: features,
 	}
 
-	var err error
 	dbf.file, err = trackedoffset.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the ajfs database file. path: %q. %w", path, err)
@@ -84,7 +89,7 @@ func CreateDatabase(path string, root string, features FeatureFlags) (*DatabaseF
 	}
 
 	// Root entry
-	dbf.root.path = root
+	dbf.root.path = absRoot
 	if err := dbf.root.write(dbf.file); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs root entry. path: %s. %w", path, err)
 	}

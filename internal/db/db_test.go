@@ -33,7 +33,7 @@ func TestCreateDatabase(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 
-	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
+	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
 	defer os.Remove(tempFile)
 	require.NoError(t, err)
 	require.NoError(t, dbf.Close())
@@ -64,7 +64,7 @@ func TestCreateDatabaseWhenExistingFileExists(t *testing.T) {
 	_ = f.Close()
 	defer os.Remove(f.Name())
 
-	_, err = db.CreateDatabase(f.Name(), "/test/", db.FeatureJustEntries)
+	_, err = db.CreateDatabase(f.Name(), "/test", db.FeatureJustEntries)
 	var expErr *fs.PathError
 	require.ErrorAs(t, err, &expErr)
 }
@@ -106,12 +106,26 @@ func TestOpenDatabaseWhenInvalidFile(t *testing.T) {
 	assert.ErrorContains(t, err, "not a supported ajfs file (invalid version")
 }
 
+func TestCreateDatabaseAbsRoot(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+
+	dbf, err := db.CreateDatabase(tempFile, "../", db.FeatureJustEntries)
+	defer os.Remove(tempFile)
+	require.NoError(t, err)
+	require.NoError(t, dbf.Close())
+
+	absPath, err := filepath.Abs("../")
+	require.NoError(t, err)
+	assert.Equal(t, absPath, dbf.RootPath())
+}
+
 func TestOpenDatabase(t *testing.T) {
 	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 
 	// Create a valid "empty" database
-	expRoot := "/test/"
+	expRoot := "/test"
 	dbf, err := db.CreateDatabase(tempFile, expRoot, db.FeatureJustEntries)
 	defer os.Remove(tempFile)
 	require.NoError(t, err)
@@ -139,7 +153,7 @@ func TestWritePathInfo(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database and write 2 path info objects
-	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
+	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	p1 := path.Info{
@@ -186,7 +200,7 @@ func TestReadAll(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database and write N path info objects
-	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
+	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	expCount := 10
@@ -249,7 +263,7 @@ func TestReadWritePanicConditions(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create new database
-	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
+	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
 	require.NoError(t, err)
 
 	// Not allowed to read

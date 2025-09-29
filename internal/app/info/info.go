@@ -1,4 +1,4 @@
-// Package scan provides the functionality for ajfs info command.
+// Package info provides the functionality for ajfs info command.
 package info
 
 import (

@@ -57,6 +57,9 @@ func TestInfo(t *testing.T) {
 	exp, err := expected(scanCfg.Root)
 	require.NoError(t, err)
 
+	absRoot, err := filepath.Abs(scanCfg.Root)
+	require.NoError(t, err)
+
 	expOut1 := fmt.Sprintf(`Database path: %s
 Version:       %d
 Root path:     %s
@@ -64,7 +67,7 @@ OS:            %s
 Architecture:  %s`,
 		tempFile,
 		1,
-		scanCfg.Root,
+		absRoot,
 		runtime.GOOS,
 		runtime.GOARCH)
 
@@ -90,6 +93,8 @@ Avg file size: %s`,
 	assert.Contains(t, outStr, expOut1)
 	assert.Contains(t, outStr, expOut2)
 	assert.Contains(t, outStr, expOut3)
+
+	assert.Equal(t, "", errBuffer.String())
 }
 
 //-----------------------------------------------------------------------------
