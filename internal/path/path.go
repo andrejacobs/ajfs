@@ -25,6 +25,7 @@ type Info struct {
 
 // Stringer implementation.
 func (p Info) String() string {
+	// See Header() to ensure these match if any changes are made
 	return fmt.Sprintf("{%x}, %v, %q, %v, %v", p.Id, p.Size, p.Path, p.Mode, p.ModTime)
 }
 
@@ -66,4 +67,17 @@ func InfoFromWalk(path string, entry fs.DirEntry) (Info, error) {
 		Mode:    fileInfo.Mode(),
 		ModTime: fileInfo.ModTime(),
 	}, nil
+}
+
+//-----------------------------------------------------------------------------
+
+// Header returns a comma seperated list of the expected columns that will be outputted by Info.String()
+func Header() string {
+	// See Infor.String() to ensure they match if any changes are made
+	return "Id, Size, Path, Mode, Modification time"
+}
+
+// Header returns a comma seperated list of the expected columns that will be outputted for paths with a file signature hash.
+func HeaderWithHash() string {
+	return "Id, Size, Path, Mode, Modification time, Hash"
 }
