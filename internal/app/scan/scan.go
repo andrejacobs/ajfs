@@ -5,9 +5,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/db"
+	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/andrejacobs/ajfs/internal/scanner"
 	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/andrejacobs/go-aj/file"
@@ -82,6 +84,7 @@ func Run(cfg Config) error {
 }
 
 func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) error {
+	// Write the initial hash table
 	if err := dbf.StartHashTable(cfg.Algo); err != nil {
 		return err
 	}
@@ -90,6 +93,21 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 		return err
 	}
 
-	//file.Hash(ctx, path, algo.Hasher(), nil)
+	err := dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {
+		path := filepath.Join(dbf.RootPath(), pi.Path)
+		hash, _, err := file.Hash(ctx, path, cfg.Algo.Hasher(), nil)
+		if err != nil {
+			return fmt.Errorf("failed to calculate the hash for %q. %w", path, err)
+		}
+		if err = dbf.WriteHashEntry(idx, hash); err != nil {
+			return fmt.Errorf("failed to write the hash for %q. %w", path, err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -15,6 +15,8 @@ type Config struct {
 	config.CommonConfig
 }
 
+//TODO: --verbose could output the columns (csv format), --hash could display hashes as well
+
 // Process the ajfs info command.
 func Run(cfg Config) error {
 

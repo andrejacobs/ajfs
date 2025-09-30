@@ -19,6 +19,9 @@ import (
 
 //TODO: need a util dbf.HashTableAlgo etc.
 
+// HashTable maps from path info index to the calculated file signature hash.
+type HashTable map[int][]byte
+
 //-----------------------------------------------------------------------------
 // DatabaseFile
 
@@ -260,6 +263,25 @@ func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
 	}
 
 	return nil
+}
+
+// Read the hash table.
+// Will only contain the entries for which a file signature hash was calculated.
+func (dbf *DatabaseFile) ReadHashTable() (HashTable, error) {
+	if !dbf.Features().HasHashTable() {
+		panic("database does not contain the hash table")
+	}
+
+	result := make(HashTable, 64)
+
+	err := dbf.ReadHashTableEntries(func(idx int, hash []byte) error {
+		if !ajhash.AllZeroBytes(hash) {
+			result[idx] = hash
+		}
+		return nil
+	})
+
+	return result, err
 }
 
 //-----------------------------------------------------------------------------

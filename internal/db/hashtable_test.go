@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -182,24 +181,20 @@ func TestWriteHashTable(t *testing.T) {
 
 			assert.True(t, dbf.Features().HasHashTable())
 
-			count := 0
-			fn := func(idx int, hash []byte) error {
-				count++
-				assert.Equal(t, algo.Size(), len(hash))
+			ht, err := dbf.ReadHashTable()
+			require.NoError(t, err)
+			assert.Len(t, ht, dbf.FileEntriesCount())
 
-				switch idx {
-				case 0:
-					assert.Equal(t, h1, hash)
-				case 2:
-					assert.Equal(t, h2, hash)
-				default:
-					assert.Fail(t, fmt.Sprintf("did not expect the index %d to be read", idx))
-				}
+			hash, ok := ht[0]
+			assert.True(t, ok)
+			assert.Equal(t, h1, hash)
 
-				return nil
-			}
-			assert.NoError(t, dbf.ReadHashTableEntries(fn))
-			assert.Equal(t, dbf.FileEntriesCount(), count)
+			hash, ok = ht[2]
+			assert.True(t, ok)
+			assert.Equal(t, h2, hash)
+
+			_, ok = ht[1]
+			assert.False(t, ok)
 		})
 	}
 }

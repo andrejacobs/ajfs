@@ -1,10 +1,15 @@
 package scan_test
 
 import (
+	"bufio"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
@@ -12,6 +17,7 @@ import (
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/andrejacobs/ajfs/internal/scanner"
+	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/andrejacobs/go-aj/file"
 	"github.com/andrejacobs/go-aj/random"
 	"github.com/stretchr/testify/assert"
@@ -86,6 +92,78 @@ func TestScanEmptyDir(t *testing.T) {
 	assert.Equal(t, ".", paths[0].Path)
 }
 
+func TestScanWithHashes(t *testing.T) {
+	testCases := []struct {
+		algo         ajhash.Algo
+		hashDeepFile string
+	}{
+		{
+			algo:         ajhash.AlgoSHA1,
+			hashDeepFile: "../../testdata/expected/scan.sha1",
+		},
+		{
+			algo:         ajhash.AlgoSHA256,
+			hashDeepFile: "../../testdata/expected/scan.sha256",
+		},
+		// Can't test SHA-512 atm because hashdeep doesn't support it
+	}
+	for _, tC := range testCases {
+		t.Run(tC.algo.String(), func(t *testing.T) {
+			algo := tC.algo
+
+			tempFile := filepath.Join(os.TempDir(), "unit-testing")
+			_ = os.Remove(tempFile)
+			defer os.Remove(tempFile)
+
+			cfg := initialConfig()
+			cfg.DbPath = tempFile
+			cfg.CalculateHashes = true
+			cfg.Algo = algo
+
+			err := scan.Run(cfg)
+			require.NoError(t, err)
+
+			// Validate
+			paths, err := databasePaths(cfg)
+			require.NoError(t, err)
+
+			expPaths, err := expectedPaths(cfg)
+			require.NoError(t, err)
+
+			assert.ElementsMatch(t, expPaths, paths)
+
+			expectedHashDeep, err := readHashDeep(tC.hashDeepFile)
+			require.NoError(t, err)
+
+			// Map from path to hash string
+			exp := make(map[string]string, len(expectedHashDeep))
+			for _, hd := range expectedHashDeep {
+				exp[hd.path] = hd.hash
+			}
+
+			dbf, err := db.OpenDatabase(cfg.DbPath)
+			require.NoError(t, err)
+			defer dbf.Close()
+
+			ht, err := dbf.ReadHashTable()
+			require.NoError(t, err)
+
+			result := make(map[string]string, len(ht))
+			for k, v := range ht {
+				pi, err := dbf.ReadEntryAtIndex(k)
+				require.NoError(t, err)
+				hash := hex.EncodeToString(v)
+				result[pi.Path] = hash
+			}
+
+			assert.Equal(t, exp, result)
+		})
+
+	}
+
+	//AJ### TODO: Need to confirm the hashes with known ones
+}
+
 //-----------------------------------------------------------------------------
 
 func initialConfig() scan.Config {
@@ -143,4 +221,53 @@ func databasePaths(cfg scan.Config) ([]path.Info, error) {
 	})
 
 	return result, err
+}
+
+type hashDeep struct {
+	fileSize int
+	hash     string
+	path     string
+}
+
+func readHashDeep(path string) ([]hashDeep, error) {
+	result := make([]hashDeep, 0, 32)
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		text := strings.TrimSpace(scanner.Text())
+		if text == "" {
+			continue
+		}
+		if strings.HasPrefix(text, "%%") {
+			continue
+		}
+		if strings.HasPrefix(text, "##") {
+			continue
+		}
+
+		entry := hashDeep{}
+
+		parts := strings.Split(text, ",")
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("failed to parse the line: %s", text)
+		}
+		entry.fileSize, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return nil, err
+		}
+		entry.hash = parts[1]
+		entry.path = strings.TrimPrefix(parts[2], "./")
+		// fmt.Printf("%v\n", entry.path)
+		result = append(result, entry)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
