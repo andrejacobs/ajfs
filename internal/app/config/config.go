@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"os"
 )
 
 // Config used by most of the ajfs commands.
@@ -16,7 +17,11 @@ type CommonConfig struct {
 	Stderr io.Writer // Writer used for standard error
 }
 
-//TODO: Some init func that sets defaults
+// Initialize with defaults.
+func (c *CommonConfig) Init() {
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+}
 
 // Write output to Stdout.
 func (c *CommonConfig) Println(a ...any) {

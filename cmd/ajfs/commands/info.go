@@ -1,8 +1,7 @@
 package commands
 
 import (
-	"fmt"
-
+	"github.com/andrejacobs/ajfs/internal/app/info"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +11,14 @@ var infoCmd = &cobra.Command{
 	Short: "Display information about a database",
 	Long:  `Display information about a database`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Hello world!")
+		cfg := info.Config{
+			CommonConfig: commonConfig,
+		}
+
+		if err := info.Run(cfg); err != nil {
+			exitOnError(err, 1)
+		}
+
 	},
 }
 
