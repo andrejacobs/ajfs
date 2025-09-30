@@ -9,15 +9,9 @@
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
-			"program": "${workspaceFolder}/main.go",
+			"program": "${workspaceFolder}/cmd/ajfs/main.go",
 			"console": "integratedTerminal",
-			"args": [
-				// "bench",
-				// "create",
-				// "--size=1,10",
-				// "--max-size=100",
-				// "/Users/andre/temp/bench"
-			]
+			"args": ["info"]
 		}
 	]
 }
