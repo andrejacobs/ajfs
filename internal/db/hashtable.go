@@ -213,7 +213,7 @@ func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
 
 	// Check 1st sentinel
 	var s [4]byte
-	_, err = dbf.file.Read(s[:])
+	_, err = io.ReadFull(dbf.file, s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the hash table (1st sentinel). %w", err)
 	}
@@ -254,7 +254,7 @@ func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
 	}
 
 	// Check 2nd sentinel
-	_, err = dbf.file.Read(s[:])
+	_, err = io.ReadFull(dbf.file, s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the hash table (2nd sentinel). %w", err)
 	}
@@ -313,7 +313,7 @@ func (s *hashEntry) read(r io.Reader) error {
 		return err
 	}
 
-	_, err := r.Read(s.Hash)
+	_, err := io.ReadFull(r, s.Hash)
 	return err
 }
 

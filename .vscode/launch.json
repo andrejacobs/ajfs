@@ -11,7 +11,14 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/cmd/ajfs/main.go",
 			"console": "integratedTerminal",
-			"args": ["info"]
+			"args": [
+				"scan",
+				"-f",
+				"--hash",
+				"--algo=sha1",
+				"/Users/andre/temp/debug.ajfs",
+				"/Users/andre/temp/Copy_Books"
+			]
 		}
 	]
 }

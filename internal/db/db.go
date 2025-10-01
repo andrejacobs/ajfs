@@ -400,7 +400,7 @@ func (dbf *DatabaseFile) readEntryOffsets() error {
 
 	// Check 1st sentinel
 	var s [4]byte
-	_, err = dbf.file.Read(s[:])
+	_, err = io.ReadFull(dbf.file, s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the entry offset table (1st sentinel). %w", err)
 	}
@@ -412,7 +412,7 @@ func (dbf *DatabaseFile) readEntryOffsets() error {
 
 	var data [4]byte // uint32
 	for i := range dbf.header.EntriesCount {
-		_, err := dbf.file.Read(data[:])
+		_, err := io.ReadFull(dbf.file, data[:])
 		if err != nil {
 			return fmt.Errorf("failed to read the entry offset table (near index %d). %w", i, err)
 		}
@@ -420,7 +420,8 @@ func (dbf *DatabaseFile) readEntryOffsets() error {
 		dbf.entryOffsets[i] = binary.LittleEndian.Uint32(data[:])
 	}
 
-	_, err = dbf.file.Read(s[:])
+	// Check 2nd sentinel
+	_, err = io.ReadFull(dbf.file, s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the entry offset table (2nd sentinel). %w", err)
 	}
