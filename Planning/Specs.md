@@ -62,9 +62,9 @@ Overview of the subcommands that will be available.
 -   `list`
 
     -   List out all the path entries in the database.
-    -   `--full`: Display the full path including the root path of when the database was created.
-    -   `--verbose`: Shows a header as the first line of output.
-    -   `--hash`: Also output the file signature hash if available.
+    -   `-f, --full`: Display the full path including the root path of when the database was created.
+    -   `-v, --verbose`: Shows a header as the first line of output.
+    -   `-h, --hash`: Also output the file signature hash if available.
     -   Example: `ajfs list` (uses ./db.ajfs) or `ajfs list /path/to/db`
 
 ### Global flags
