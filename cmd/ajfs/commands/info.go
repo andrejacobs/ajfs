@@ -10,10 +10,12 @@ var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Display information about a database",
 	Long:  `Display information about a database`,
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := info.Config{
 			CommonConfig: commonConfig,
 		}
+		cfg.DbPath = dbPathFromArgs(args)
 
 		if err := info.Run(cfg); err != nil {
 			exitOnError(err, 1)

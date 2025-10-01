@@ -42,6 +42,7 @@ Overview of the subcommands that will be available.
     -   path, version, root path, meta (os, arch), file size, creation date
     -   number of entries (files, directories)
     -   total size of all files, max file size, avg file size
+    -   Example: `ajfs info` (uses ./db.ajfs) or `ajfs info /path/to/db`
 
 -   `scan`
 
@@ -56,6 +57,7 @@ Overview of the subcommands that will be available.
     -   Will not override an existing database.
         -   `--force`: Override an existing database.
     -   See the path filtering section on how to control which directories and files will be walked.
+    -   Example: `ajfs scan /dir/to/scan` (creates ./db.ajfs) or `ajfs scan /path/to/db /path/to/scan`
 
 -   `list`
 
@@ -63,6 +65,7 @@ Overview of the subcommands that will be available.
     -   `--full`: Display the full path including the root path of when the database was created.
     -   `--verbose`: Shows a header as the first line of output.
     -   `--hash`: Also output the file signature hash if available.
+    -   Example: `ajfs list` (uses ./db.ajfs) or `ajfs list /path/to/db`
 
 ### Global flags
 
@@ -77,9 +80,6 @@ Overview of the subcommands that will be available.
 -   `-v, --verbose`
 
     -   Output verbose information
-
--   `--db`
-    -   Path to the database file. Default "./db.ajfs"
 
 ### Path filtering
 

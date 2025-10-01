@@ -34,14 +34,12 @@ func init() {
 	rootCmd.SetVersionTemplate(versionTemplate)
 
 	// Persistent flags that are available to every subcommand
-	rootCmd.PersistentFlags().StringVar(&dbPath, "db", defaultDBPath, "path to the database file.")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "output verbose information.")
 }
 
 // Run before any commands are run
 func initApp() {
 	commonConfig.Init()
-	commonConfig.DbPath = dbPath
 	commonConfig.Verbose = verbose
 }
 
@@ -51,12 +49,19 @@ func exitOnError(err error, code int) {
 	os.Exit(code)
 }
 
+// Database path from the args
+func dbPathFromArgs(args []string) string {
+	if len(args) > 0 {
+		return args[0]
+	}
+	return defaultDBPath
+}
+
 const (
 	defaultDBPath = "./db.ajfs"
 )
 
 var (
-	dbPath  string
 	verbose bool
 
 	commonConfig config.CommonConfig

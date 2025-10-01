@@ -10,17 +10,26 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "TODO",
 	Long:  `TODO`,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := scan.Config{
 			CommonConfig: commonConfig,
-			Root:         args[0],
+		}
+
+		switch len(args) {
+		case 1:
+			cfg.DbPath = defaultDBPath
+			cfg.Root = args[0]
+		case 2:
+			cfg.DbPath = args[0]
+			cfg.Root = args[1]
+		default:
+			panic("invalid args")
 		}
 
 		if err := scan.Run(cfg); err != nil {
 			exitOnError(err, 1)
 		}
-
 	},
 }
 
