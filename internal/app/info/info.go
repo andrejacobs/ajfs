@@ -39,6 +39,19 @@ func Run(cfg Config) error {
 	cfg.Println(fmt.Sprintf("Created at:    %s", dbf.Meta().CreatedAt))
 	cfg.Println(fmt.Sprintf("Entries:       %d", dbf.EntriesCount()))
 	cfg.Println(fmt.Sprintf("File size:     %s", human.Bytes(uint64(fileInfo.Size()))))
+	cfg.Println(fmt.Sprintf("Features:      0x%x", dbf.Features()))
+
+	if dbf.Features().HasHashTable() {
+		cfg.Println("  Hash table:  yes")
+	} else {
+		cfg.Println("  Hash table:  no")
+	}
+
+	if dbf.Features().HasTree() {
+		cfg.Println("  Cached Tree: yes")
+	} else {
+		cfg.Println("  Cached Tree: no")
+	}
 
 	cfg.Println("\nCalculating statistics...")
 
@@ -52,6 +65,23 @@ func Run(cfg Config) error {
 	cfg.Println(fmt.Sprintf("Total size:    %s [all files toghether]", human.Bytes(stats.TotalFileSize)))
 	cfg.Println(fmt.Sprintf("Max file size: %s [single biggest file]", human.Bytes(stats.MaxFileSize)))
 	cfg.Println(fmt.Sprintf("Avg file size: %s", human.Bytes(stats.AvgFileSize)))
+
+	// Hash table
+	if dbf.Features().HasHashTable() {
+		cfg.Println("\nCalculating Hash table statistics...")
+
+		stats, err := dbf.CalculateHashTableStats()
+		if err != nil {
+			return fmt.Errorf("failed to calculate hash table statistics. %w", err)
+		}
+
+		cfg.Println(fmt.Sprintf("Hashed count:    %d", stats.HashedCount))
+		cfg.Println(fmt.Sprintf("Pending count:   %d", stats.PendingCount))
+
+		cfg.Println(fmt.Sprintf("Duplicate files: %d", stats.DupesCount))
+		cfg.Println(fmt.Sprintf("  Total size:    %s [space taken up by all duplicates]", human.Bytes(stats.TotalDupeSize)))
+		cfg.Println(fmt.Sprintf("  Save size:     %s [space that could be freed]", human.Bytes(stats.SaveDupeSize)))
+	}
 
 	return nil
 }
