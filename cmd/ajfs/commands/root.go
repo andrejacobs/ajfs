@@ -34,7 +34,7 @@ func init() {
 	rootCmd.SetVersionTemplate(versionTemplate)
 
 	// Persistent flags that are available to every subcommand
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "output verbose information.")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Output verbose information.")
 }
 
 // Run before any commands are run

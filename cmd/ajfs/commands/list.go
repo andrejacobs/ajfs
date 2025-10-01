@@ -8,8 +8,8 @@ import (
 // ajfs list
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Display the database path entries.",
-	Long:  `Display the database path entries.`,
+	Short: "Display the database path entries",
+	Long:  `Display the database path entries`,
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := list.Config{
@@ -28,8 +28,8 @@ var listCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	listCmd.Flags().BoolVarP(&listDisplayFullPaths, "full", "f", false, "Display full paths for entries. Default is false.")
-	listCmd.Flags().BoolVarP(&listDisplayHashes, "hash", "s", false, "Display file signature hashes if available. Default is false.")
+	listCmd.Flags().BoolVarP(&listDisplayFullPaths, "full", "f", false, "Display full paths for entries")
+	listCmd.Flags().BoolVarP(&listDisplayHashes, "hash", "s", false, "Display file signature hashes if available")
 }
 
 var (
