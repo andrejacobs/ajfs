@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 
@@ -282,6 +283,87 @@ func (dbf *DatabaseFile) ReadHashTable() (HashTable, error) {
 	})
 
 	return result, err
+}
+
+// Duplicate hashes is a map from the hash (as hex encoded string) to all the indices of path info entries
+// that share the same file signature hash.
+type DuplicateHashes map[string][]uint32
+
+// Find all the hashes that are duplicates with the indices to those path info entries.
+func (dbf *DatabaseFile) FindDuplicateHashes() (DuplicateHashes, error) {
+	if !dbf.Features().HasHashTable() {
+		panic("database does not contain the hash table")
+	}
+
+	ht, err := dbf.ReadHashTable()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(DuplicateHashes, 64)
+
+	for idx, hash := range ht {
+		hashStr := hex.EncodeToString(hash)
+
+		var dupes []uint32
+		var exists bool
+		dupes, exists = result[hashStr]
+		if !exists {
+			dupes = make([]uint32, 0, 4)
+		}
+		dupes = append(dupes, uint32(idx))
+		result[hashStr] = dupes
+	}
+
+	// Delete all entries that have only one entry (i.e. non dupe)
+	for k, v := range result {
+		if len(v) < 2 {
+			// Deemed to be safe https://go.dev/doc/effective_go#for to delete from a map while spinning through it.
+			delete(result, k)
+		}
+	}
+
+	return result, nil
+}
+
+// FindDuplicatesFn will be called by FindDuplicates for each duplicate file that was found.
+// group Each of the same duplicates will belong to the same group.
+// idx Is the index of the entry.
+// pi Is the path info object.
+// hash Is the file signature hash (as a hex encoded string).
+// Return [SkipAll] to stop reading all the entries.
+type FindDuplicatesFn func(group int, idx int, pi path.Info, hash string) error
+
+// Find duplicate file entries that share the same file signature hash.
+func (dbf *DatabaseFile) FindDuplicates(fn FindDuplicatesFn) error {
+	if !dbf.Features().HasHashTable() {
+		panic("database does not contain the hash table")
+	}
+
+	dupes, err := dbf.FindDuplicateHashes()
+	if err != nil {
+		return err
+	}
+
+	group := 0
+	for hashStr, indices := range dupes {
+		for _, idx := range indices {
+			pi, err := dbf.ReadEntryAtIndex(int(idx))
+			if err != nil {
+				return err
+			}
+
+			if err = fn(group, int(idx), pi, hashStr); err != nil {
+				if err == SkipAll {
+					return nil
+				}
+				return err
+			}
+		}
+		group++
+	}
+
+	return nil
 }
 
 //-----------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"io/fs"
 	"os"
@@ -314,4 +315,113 @@ func TestEntriesNeedHashing(t *testing.T) {
 
 	assert.Len(t, rcvIdx, 0)
 	assert.Len(t, rcvPi, 0)
+}
+
+func TestFindDuplicatesPanics(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	// Empty database
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
+	require.NoError(t, err)
+	assert.NoError(t, dbf.Close())
+
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	assert.Panics(t, func() { _, _ = dbf.FindDuplicateHashes() })
+	assert.Panics(t, func() {
+		_ = dbf.FindDuplicates(func(group int, idx int, pi path.Info, hash string) error { return nil })
+	})
+}
+
+func TestFindDuplicates(t *testing.T) {
+	algo := ajhash.AlgoSHA1
+
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureHashTable)
+	require.NoError(t, err)
+
+	p1 := path.Info{
+		Id:      path.IdFromPath("a.txt"),
+		Path:    "a.txt",
+		Size:    uint64(42),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p1))
+
+	p2 := path.Info{
+		Id:      path.IdFromPath("some/dir"),
+		Path:    "some/dir",
+		Size:    uint64(142),
+		Mode:    0644 | fs.ModeDir,
+		ModTime: time.Now().Add(-20 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p2))
+
+	p3 := path.Info{
+		Id:      path.IdFromPath("c.txt"),
+		Path:    "c.txt",
+		Size:    uint64(442),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p3))
+
+	// Write a duplicate
+	require.NoError(t, dbf.WriteEntry(&p1))
+
+	require.NoError(t, dbf.FinishEntries())
+
+	// Start initial hash table with empty hashes
+	assert.NoError(t, dbf.StartHashTable(algo))
+	assert.NoError(t, dbf.FinishHashTable())
+
+	// Hashes
+	h1 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h1))
+	dbf.WriteHashEntry(0, h1)
+
+	h3 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h3))
+	dbf.WriteHashEntry(2, h3)
+
+	dbf.WriteHashEntry(3, h1)
+
+	assert.NoError(t, dbf.Close())
+
+	// Find duplicates
+
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	dupes, err := dbf.FindDuplicateHashes()
+	require.NoError(t, err)
+
+	assert.Len(t, dupes, 1)
+	indices, ok := dupes[hex.EncodeToString(h1)]
+	assert.True(t, ok)
+	expIndices := []uint32{0, 3}
+	assert.ElementsMatch(t, expIndices, indices)
+
+	err = dbf.FindDuplicates(func(group int, idx int, pi path.Info, hash string) error {
+		assert.Equal(t, 0, group)
+		switch idx {
+		case 0:
+			assert.True(t, p1.Equals(&pi))
+		case 3:
+			assert.True(t, p1.Equals(&pi))
+		default:
+			assert.Fail(t, "not a duplicate!")
+		}
+		return nil
+	})
+	require.NoError(t, err)
 }
