@@ -83,7 +83,19 @@ Overview of the subcommands that will be available.
 
 ### Path filtering
 
--   TODO
+Some commands can perform path filtering. Filtering either checks whether a file or directory should be included
+or if it should be excluded. An include filter will always be performed first and thus skip any exclude filters.
+
+You can include multiple filters on the CLI (e.g. `-i someting -i another -e notThis`)
+
+-   `-i, --include {pattern}`
+-   `-e, --exclude {pattern}`
+
+Pattern is a regular expression that can be optionally prefixed with `f:` for file or `d:` for directory.
+For example to include all files that match the extension .pdf and exclude any directories that end with temp, you
+could use this on the CLI `-i "f:\.pdf$" -e "d:temp$"`.
+
+See https://pkg.go.dev/regexp/syntax for the syntax.
 
 ## Example usage
 
