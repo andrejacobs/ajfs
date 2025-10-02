@@ -94,6 +94,7 @@ You can include multiple filters on the CLI (e.g. `-i someting -i another -e not
 Pattern is a regular expression that can be optionally prefixed with `f:` for file or `d:` for directory.
 For example to include all files that match the extension .pdf and exclude any directories that end with temp, you
 could use this on the CLI `-i "f:\.pdf$" -e "d:temp$"`.
+If the prefix (f: or d:) is not specified then the regular expression will be applied to both files and directories.
 
 See https://pkg.go.dev/regexp/syntax for the syntax.
 

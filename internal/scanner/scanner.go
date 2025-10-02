@@ -14,6 +14,9 @@ import (
 
 // Scanner is used to walk a file hierarchy, perform filtering and then to write to an ajfs database.
 type Scanner struct {
+	DirIncluder  file.MatchPathFn // Determine which directories should be walked
+	FileIncluder file.MatchPathFn // Determine which files should be walked
+
 	DirExcluder  file.MatchPathFn // Determine which directories should not be walked
 	FileExcluder file.MatchPathFn // Determine which files should not be walked
 }
@@ -22,20 +25,24 @@ type Scanner struct {
 func NewScanner() Scanner {
 	fileExcluder := DefaultFileExcluder()
 	return Scanner{
-		DirExcluder:  file.NeverMatch,
+		DirIncluder:  file.MatchAlways,
+		FileIncluder: file.MatchAlways,
+		DirExcluder:  file.MatchNever,
 		FileExcluder: fileExcluder,
 	}
 }
 
 // Return the default file excluder.
 func DefaultFileExcluder() file.MatchPathFn {
-	return file.MatchAppleDSStore(file.NeverMatch)
+	return file.MatchAppleDSStore(file.MatchNever)
 }
 
 // Scan starts the file hierarchy traversal and will write the found path info objects to the database.
 // dbf should be a newly created database [db.CreateDatabase].
 func (s Scanner) Scan(ctx context.Context, dbf *db.DatabaseFile) error {
 	w := file.NewWalker()
+	w.DirIncluder = s.DirIncluder
+	w.FileIncluder = s.FileIncluder
 	w.FileExcluder = s.FileExcluder
 	w.DirExcluder = s.DirExcluder
 
