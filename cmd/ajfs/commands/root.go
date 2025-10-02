@@ -66,16 +66,3 @@ var (
 
 	commonConfig config.CommonConfig
 )
-
-//-----------------------------------------------------------------------------
-
-var (
-	IncludePathRegex []string // Regexes for path inclusion filtering
-	ExcludePathRegex []string // Regexes for path exclusion filtering
-)
-
-// Add the path filtering flags to the cobra command.
-func AddPathFilteringFlags(c *cobra.Command) {
-	c.Flags().StringArrayVarP(&IncludePathRegex, "include", "i", nil, "Include path regex filter")
-	c.Flags().StringArrayVarP(&ExcludePathRegex, "exclude", "e", nil, "Exclude path regex filter")
-}

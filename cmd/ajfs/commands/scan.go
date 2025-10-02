@@ -55,7 +55,7 @@ func init() {
 	scanCmd.Flags().BoolVarP(&scanCalculateHashes, "hash", "s", false, "Calculate file signature hashes")
 	scanCmd.Flags().StringVarP(&scanHashAlgo, "algo", "a", "sha256", "Hashing algorithm to use. Valid values are 'sha1', 'sha256' and 'sha512'.")
 
-	AddPathFilteringFlags(scanCmd)
+	addPathFilteringFlags(scanCmd)
 }
 
 var (
