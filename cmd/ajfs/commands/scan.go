@@ -25,6 +25,7 @@ var scanCmd = &cobra.Command{
 			CommonConfig:  commonConfig,
 			FilterConfig:  *filterCfg,
 			ForceOverride: scanForceOverride,
+			DryRun:        scanDryRun,
 		}
 
 		switch len(args) {
@@ -59,7 +60,8 @@ func init() {
 
 	scanCmd.Flags().BoolVarP(&scanForceOverride, "force", "f", false, "Override any existing database")
 	scanCmd.Flags().BoolVarP(&scanCalculateHashes, "hash", "s", false, "Calculate file signature hashes")
-	scanCmd.Flags().StringVarP(&scanHashAlgo, "algo", "a", "sha256", "Hashing algorithm to use. Valid values are 'sha1', 'sha256' and 'sha512'.")
+	scanCmd.Flags().BoolVar(&scanDryRun, "dry-run", false, "Only display files and directories that would be stored in the database")
+	scanCmd.Flags().StringVarP(&scanHashAlgo, "algo", "a", "sha256", "Hashing algorithm to use. Valid values are 'sha1', 'sha256' and 'sha512'")
 
 	addPathFilteringFlags(scanCmd)
 }
@@ -68,6 +70,7 @@ var (
 	scanForceOverride   bool
 	scanCalculateHashes bool
 	scanHashAlgo        string
+	scanDryRun          bool
 )
 
 // Determine the hashing algorithm to use based on the flag that was passed

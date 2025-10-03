@@ -4,6 +4,7 @@ package scan
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -28,10 +29,15 @@ type Config struct {
 	Algo            ajhash.Algo // Algorithm to use for calculating the hashes.
 
 	BuildTree bool // Build and cache the tree.
+	DryRun    bool // Only display files and directories that would have been stored in the database.
 }
 
 // Process the ajfs scan command.
 func Run(cfg Config) error {
+	if cfg.DryRun {
+		return dryRun(cfg)
+	}
+
 	exists, err := file.FileExists(cfg.DbPath)
 	if err != nil {
 		return fmt.Errorf("failed to create the ajfs database. %w", err)
@@ -113,6 +119,35 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func dryRun(cfg Config) error {
+	w := file.NewWalker()
+	w.DirIncluder = cfg.DirIncluder
+	w.FileIncluder = cfg.FileIncluder
+	w.FileExcluder = cfg.FileExcluder
+	w.DirExcluder = cfg.DirExcluder
+
+	fn := func(rcvPath string, d fs.DirEntry, rcvErr error) error {
+		if rcvErr != nil {
+			return rcvErr
+		}
+
+		relPath, err := filepath.Rel(cfg.Root, rcvPath)
+		if err != nil {
+			return err
+		}
+
+		cfg.Println(relPath)
+
+		return nil
+	}
+
+	if err := w.Walk(cfg.Root, fn); err != nil {
+		return fmt.Errorf("failed to scan %q. %w", cfg.Root, err)
 	}
 
 	return nil

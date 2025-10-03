@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ import (
 
 func TestScanAndList(t *testing.T) {
 	root := filepath.Join(testDataPath, "scan")
-	cmd := exec.Command(execPath, "scan", dbPath, root)
+	cmd := exec.Command(execPath, "scan", "--force", dbPath, root)
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err)
 	assert.Empty(t, out)
@@ -26,6 +27,64 @@ func TestScanAndList(t *testing.T) {
 
 	expected, err := expectedScanListing()
 	require.NoError(t, err)
+
+	result, err := splitInput(out)
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t, expected, result)
+}
+
+func TestScanIncludeFileFiltering(t *testing.T) {
+	root := filepath.Join(testDataPath, "scan")
+	cmd := exec.Command(execPath, "scan", "--force", "-i", "f:blank\\.txt$", "-i", "f:3\\.txt$", dbPath, root)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err)
+	assert.Empty(t, out)
+
+	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	out, err = cmd.CombinedOutput()
+	require.NoError(t, err)
+
+	temp, err := expectedScanListing()
+	require.NoError(t, err)
+
+	expected := make([]string, 0, len(temp))
+	for _, s := range temp {
+		if strings.HasSuffix(s, ".txt") {
+			if strings.HasSuffix(s, "blank.txt") || strings.HasSuffix(s, "3.txt") {
+				expected = append(expected, s)
+			}
+		} else {
+			expected = append(expected, s)
+		}
+	}
+
+	result, err := splitInput(out)
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t, expected, result)
+}
+
+func TestScanIncludeDirFiltering(t *testing.T) {
+	root := filepath.Join(testDataPath, "scan")
+	cmd := exec.Command(execPath, "scan", "--force", "-i", "d:b", dbPath, root)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err)
+	assert.Empty(t, out)
+
+	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	out, err = cmd.CombinedOutput()
+	require.NoError(t, err)
+
+	temp, err := expectedScanListing()
+	require.NoError(t, err)
+
+	expected := make([]string, 0, len(temp))
+	for _, s := range temp {
+		if strings.HasPrefix(s, "b") || s == "." || s == "1.txt" {
+			expected = append(expected, s)
+		}
+	}
 
 	result, err := splitInput(out)
 	require.NoError(t, err)

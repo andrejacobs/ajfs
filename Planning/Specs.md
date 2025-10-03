@@ -47,16 +47,17 @@ Overview of the subcommands that will be available.
 -   `scan`
 
     -   Used to walk a file hierarchy and store the found paths in a new ajfs database file.
-    -   [Optional] Calculate the file signature hashes.
+    -   [Optional feature] Calculate the file signature hashes.
         -   `-s, --hash`: Start calculating hashes once the scan is finished. This can be interrupted and continued.
         -   `-a, --algo`: The hashing algorithm to use. Valid values are `sha1`, `sha256` and `sha512`.
-    -   [Optional] Build the tree structure and cache it.
+    -   [Optional feature] Build the tree structure and cache it.
     -   `-p, --progress`: Show progress while calculating file hash signatures or building the tree.
     -   Store the information in a single file "database".
     -   Will not update an existing database. Use `update` command for this.
     -   Will not override an existing database.
         -   `--force`: Override an existing database.
     -   See the path filtering section on how to control which directories and files will be walked.
+    -   `--dry-run`: Instead of creating the database, this will walk the hierarchy and display the files and directories that would have been stored.
     -   Example: `ajfs scan /dir/to/scan` (creates ./db.ajfs) or `ajfs scan /path/to/db /path/to/scan`
 
 -   `list`
