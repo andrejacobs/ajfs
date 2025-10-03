@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "Generating expected hashes..."
 mkdir -p expected
 cd scan
 # hashdeep -c md5 -l -r ./ | sed '/\.DS_Store/d' > ../expected/scan.md5
