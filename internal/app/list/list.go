@@ -17,6 +17,7 @@ type Config struct {
 
 	DisplayFullPaths bool // If true then each path entry will be prefixed with the root path of the database.
 	DisplayHashes    bool // Display file signature hashes if available.
+	DisplayMinimal   bool // Display only the paths.
 }
 
 // Process the ajfs list command.
@@ -26,6 +27,13 @@ func Run(cfg Config) error {
 		return err
 	}
 	defer dbf.Close()
+
+	if cfg.DisplayMinimal {
+		if err = displayOnlyMinimal(cfg, dbf); err != nil {
+			return err
+		}
+		return nil
+	}
 
 	if cfg.CommonConfig.Verbose {
 		if dbf.Features().HasHashTable() {
@@ -59,6 +67,19 @@ func Run(cfg Config) error {
 		} else {
 			cfg.Println(pi)
 		}
+		return nil
+	})
+
+	return err
+}
+
+func displayOnlyMinimal(cfg Config, dbf *db.DatabaseFile) error {
+	err := dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+		if cfg.DisplayFullPaths {
+			pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+		}
+
+		cfg.Println(pi.Path)
 		return nil
 	})
 

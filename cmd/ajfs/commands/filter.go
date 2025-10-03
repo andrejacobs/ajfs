@@ -47,7 +47,7 @@ func parseFilterConfig() (*config.FilterConfig, error) {
 		return nil, fmt.Errorf("failed to parse the exclude filtering flags. %w", err)
 	}
 
-	result.FileExcluder = exclF
+	result.FileExcluder = file.MatchAppleDSStore(exclF)
 	result.DirExcluder = exclD
 	return result, nil
 }

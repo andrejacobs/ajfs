@@ -6,4 +6,9 @@ go run generate.go -- ./
 ./generate-expected-hashes.sh
 
 echo "Generate expected ./scan path list..."
-find ./scan ! -name '.DS_Store' > ./expected/scan.txt
+cd ./scan && find . ! -name '.DS_Store' > ../expected/scan.txt
+if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i '' 's|^\./||' ../expected/scan.txt
+else
+    sed -i 's|^\./||' ../expected/scan.txt
+fi

@@ -16,6 +16,7 @@ var listCmd = &cobra.Command{
 			CommonConfig:     commonConfig,
 			DisplayFullPaths: listDisplayFullPaths,
 			DisplayHashes:    listDisplayHashes,
+			DisplayMinimal:   listDisplayMinimal,
 		}
 		cfg.DbPath = dbPathFromArgs(args)
 
@@ -30,9 +31,11 @@ func init() {
 
 	listCmd.Flags().BoolVarP(&listDisplayFullPaths, "full", "f", false, "Display full paths for entries")
 	listCmd.Flags().BoolVarP(&listDisplayHashes, "hash", "s", false, "Display file signature hashes if available")
+	listCmd.Flags().BoolVarP(&listDisplayMinimal, "minimal", "m", false, "Display only the paths")
 }
 
 var (
 	listDisplayFullPaths bool
 	listDisplayHashes    bool
+	listDisplayMinimal   bool
 )
