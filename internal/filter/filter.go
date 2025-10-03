@@ -42,19 +42,39 @@ func ParsePathRegex(input []string) ([]string, []string) {
 	return fileResult, dirResult
 }
 
-// Parse the slice of strings (same as ParsePathRegex) and return the path matcher function
-// to be used.
-func ParsePathRegexToMatchPathFn(input []string) (file.MatchPathFn, file.MatchPathFn, error) {
+// Parse the slice of strings (same as ParsePathRegex) and return the path matcher function to be used.
+// include determines if the matchers will be used for includer or exclude filtering.
+func ParsePathRegexToMatchPathFn(input []string, include bool) (file.MatchPathFn, file.MatchPathFn, error) {
 	files, dirs := ParsePathRegex(input)
 
-	fileFn, err := file.MatchRegex(files, file.MatchNever)
-	if err != nil {
-		return nil, nil, err
+	var err error
+	var fileFn file.MatchPathFn
+	var dirFn file.MatchPathFn
+
+	if len(files) > 0 {
+		fileFn, err = file.MatchRegex(files, file.MatchNever)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if include {
+			fileFn = file.MatchAlways
+		} else {
+			fileFn = file.MatchNever
+		}
 	}
 
-	dirFn, err := file.MatchRegex(dirs, file.MatchNever)
-	if err != nil {
-		return nil, nil, err
+	if len(dirs) > 0 {
+		dirFn, err = file.MatchRegex(dirs, file.MatchNever)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if include {
+			dirFn = file.MatchAlways
+		} else {
+			dirFn = file.MatchNever
+		}
 	}
 
 	return fileFn, dirFn, nil

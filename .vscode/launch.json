@@ -14,8 +14,10 @@
 			"args": [
 				"scan",
 				"-f",
-				"--hash",
-				"--algo=sha1",
+				"-i",
+				"f:.pdf$",
+				// "--hash",
+				// "--algo=sha1",
 				"/Users/andre/temp/debug.ajfs",
 				"/Users/andre/temp/Copy_Books"
 			]

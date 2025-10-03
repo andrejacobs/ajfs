@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/andrejacobs/go-aj/file"
 )
 
 // Config used by most of the ajfs commands.
@@ -38,4 +40,15 @@ func (c *CommonConfig) VerbosePrintln(a ...any) {
 // Write output to Stderr.
 func (c *CommonConfig) Errorln(a ...any) {
 	fmt.Fprintln(c.Stderr, a...)
+}
+
+//-----------------------------------------------------------------------------
+
+// Config used to filter paths.
+type FilterConfig struct {
+	DirIncluder  file.MatchPathFn // Determine which directories should be walked
+	FileIncluder file.MatchPathFn // Determine which files should be walked
+
+	DirExcluder  file.MatchPathFn // Determine which directories should not be walked
+	FileExcluder file.MatchPathFn // Determine which files should not be walked
 }

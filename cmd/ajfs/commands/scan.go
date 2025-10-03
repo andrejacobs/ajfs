@@ -16,8 +16,14 @@ var scanCmd = &cobra.Command{
 	Long:  `TODO`,
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
+		filterCfg, err := parseFilterConfig()
+		if err != nil {
+			exitOnError(err, 1)
+		}
+
 		cfg := scan.Config{
 			CommonConfig:  commonConfig,
+			FilterConfig:  *filterCfg,
 			ForceOverride: scanForceOverride,
 		}
 

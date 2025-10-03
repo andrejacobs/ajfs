@@ -21,7 +21,7 @@ func TestParsePathRegex(t *testing.T) {
 func TestParsePathRegexToMatchPathFn(t *testing.T) {
 	input := []string{"f:file1", "f:file2", "d:dir1", "d:dir2", "both", ""}
 
-	fileFn, dirFn, err := filter.ParsePathRegexToMatchPathFn(input)
+	fileFn, dirFn, err := filter.ParsePathRegexToMatchPathFn(input, false)
 	require.NoError(t, err)
 
 	r, err := fileFn("a/file1", fakeDirEntry{})

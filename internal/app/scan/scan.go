@@ -18,6 +18,7 @@ import (
 // Config for the ajfs scan command.
 type Config struct {
 	config.CommonConfig
+	config.FilterConfig
 
 	Root string // The path to be scanned.
 
@@ -63,6 +64,11 @@ func Run(cfg Config) error {
 
 	// Perform the scan
 	s := scanner.NewScanner()
+	s.FileIncluder = cfg.FileIncluder
+	s.DirIncluder = cfg.DirIncluder
+	s.FileExcluder = cfg.FileExcluder
+	s.DirExcluder = cfg.DirExcluder
+
 	if err = s.Scan(ctx, dbf); err != nil {
 		return err
 	}
