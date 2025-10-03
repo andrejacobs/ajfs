@@ -44,8 +44,18 @@ func ParsePathRegex(input []string) ([]string, []string) {
 
 // Parse the slice of strings (same as ParsePathRegex) and return the path matcher function
 // to be used.
-func ParsePathRegexToMatchPathFn(input []string) (file.MatchPathFn, file.MatchPathFn) {
+func ParsePathRegexToMatchPathFn(input []string) (file.MatchPathFn, file.MatchPathFn, error) {
 	files, dirs := ParsePathRegex(input)
-	return file.MatchRegex(files, file.MatchNever),
-		file.MatchRegex(dirs, file.MatchNever)
+
+	fileFn, err := file.MatchRegex(files, file.MatchNever)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dirFn, err := file.MatchRegex(dirs, file.MatchNever)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return fileFn, dirFn, nil
 }
