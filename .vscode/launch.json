@@ -13,13 +13,10 @@
 			"console": "integratedTerminal",
 			"args": [
 				"scan",
-				"-f",
-				"-i",
-				"f:.pdf$",
-				// "--hash",
-				// "--algo=sha1",
-				"/Users/andre/temp/debug.ajfs",
-				"/Users/andre/temp/Copy_Books"
+				"--dry-run",
+				"-e",
+				"d:a",
+				"../../internal/testdata/scan"
 			]
 		}
 	]

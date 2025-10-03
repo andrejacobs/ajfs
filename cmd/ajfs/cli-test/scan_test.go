@@ -92,6 +92,75 @@ func TestScanIncludeDirFiltering(t *testing.T) {
 	assert.ElementsMatch(t, expected, result)
 }
 
+func TestScanExcludeFileFiltering(t *testing.T) {
+	root := filepath.Join(testDataPath, "scan")
+	cmd := exec.Command(execPath, "scan", "--force", "-e", "f:blank\\.txt$", "-e", "f:same-as-", dbPath, root)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err)
+	assert.Empty(t, out)
+
+	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	out, err = cmd.CombinedOutput()
+	require.NoError(t, err)
+
+	temp, err := expectedScanListing()
+	require.NoError(t, err)
+
+	expected := make([]string, 0, len(temp))
+	for _, s := range temp {
+		if !strings.Contains(s, "blank.txt") && !strings.Contains(s, "same-as-") {
+			expected = append(expected, s)
+		}
+	}
+
+	result, err := splitInput(out)
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t, expected, result)
+}
+
+func TestScanExcludeDirFiltering(t *testing.T) {
+	root := filepath.Join(testDataPath, "scan")
+	cmd := exec.Command(execPath, "scan", "--force", "-e", "d:a", "-e", "d:b", dbPath, root)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err)
+	assert.Empty(t, out)
+
+	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	out, err = cmd.CombinedOutput()
+	require.NoError(t, err)
+
+	temp, err := expectedScanListing()
+	require.NoError(t, err)
+
+	expected := make([]string, 0, len(temp))
+	for _, s := range temp {
+		if strings.HasPrefix(s, "c") || s == "." || s == "1.txt" || s == "blank.txt" {
+			expected = append(expected, s)
+		}
+	}
+
+	result, err := splitInput(out)
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t, expected, result)
+}
+
+func TestScanDryRun(t *testing.T) {
+	root := filepath.Join(testDataPath, "scan")
+	cmd := exec.Command(execPath, "scan", "--dry-run", root)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err)
+
+	result, err := splitInput(out)
+	require.NoError(t, err)
+
+	expected, err := expectedScanListing()
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t, expected, result)
+}
+
 func expectedScanListing() ([]string, error) {
 	f, err := os.Open(filepath.Join(testDataPath, "expected/scan.txt"))
 	if err != nil {
