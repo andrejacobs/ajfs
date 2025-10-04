@@ -53,6 +53,14 @@ func Run(cfg Config) error {
 		cfg.Println("  Cached Tree: no")
 	}
 
+	cfg.Println("\nVerifying checksum...")
+	if err = dbf.VerifyChecksums(); err != nil {
+		cfg.Errorln("Invalid checksum!")
+		return err
+	} else {
+		cfg.Println("  Valid checksum")
+	}
+
 	cfg.Println("\nCalculating statistics...")
 
 	stats, err := dbf.CalculateStats()

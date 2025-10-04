@@ -3,7 +3,10 @@ package db
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"hash"
+	"hash/crc32"
 	"io"
 	"io/fs"
 	"os"
@@ -19,12 +22,15 @@ import (
 
 // The underlying file format for the ajfs database:
 //   Uses little endian
+//   [c] means will be included in the file checksum
+//   Feature will be checksummed individually
+//
 // prefix header
 // header
-// root
-// meta
-// entries
-// entry offset table
+// root [c]
+// meta [c]
+// entries [c]
+// entry offset table [c]
 // [optional] hash table
 // [optional] tree
 // [optional] future features (without breaking existing databases)
@@ -34,6 +40,7 @@ import (
 // NOTE: The order of operations during the creation process is very important:
 // - CreateDatabase
 // - n * Write
+// - [features]
 // - Finish
 // - Close
 type DatabaseFile struct {
@@ -51,6 +58,9 @@ type DatabaseFile struct {
 	creating       bool
 	createFeatures FeatureFlags
 	fileIndices    []uint32 // indices of path info entries that are files
+
+	checksumHasher hash.Hash32
+	checksumWriter io.Writer
 
 	createHashTable createHashTable
 }
@@ -77,6 +87,9 @@ func CreateDatabase(path string, root string, features FeatureFlags) (*DatabaseF
 		return nil, fmt.Errorf("failed to create the ajfs database file. path: %q. %w", path, err)
 	}
 
+	dbf.checksumHasher = crc32.NewIEEE()
+	dbf.checksumWriter = io.MultiWriter(dbf.file, dbf.checksumHasher)
+
 	// Write prefix
 	dbf.prefixHeader.init()
 	if err := dbf.prefixHeader.write(dbf.file); err != nil {
@@ -90,13 +103,13 @@ func CreateDatabase(path string, root string, features FeatureFlags) (*DatabaseF
 
 	// Root entry
 	dbf.root.path = absRoot
-	if err := dbf.root.write(dbf.file); err != nil {
+	if err := dbf.root.write(dbf.checksumWriter); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs root entry. path: %s. %w", path, err)
 	}
 
 	// Meta entry
 	dbf.meta.init()
-	if err := dbf.meta.write(dbf.file); err != nil {
+	if err := dbf.meta.write(dbf.checksumWriter); err != nil {
 		return nil, fmt.Errorf("failed to write the ajfs meta entry. path: %q. %w", path, err)
 	}
 
@@ -250,7 +263,7 @@ func (dbf *DatabaseFile) WriteEntry(pi *path.Info) error {
 	index := dbf.header.EntriesCount
 
 	entry := pathEntryFromPathInfo(pi)
-	if err := entry.write(dbf.file); err != nil {
+	if err := entry.write(dbf.checksumWriter); err != nil {
 		return err
 	}
 
@@ -347,6 +360,37 @@ func (dbf *DatabaseFile) FinishEntries() error {
 		return fmt.Errorf("failed to finish writing the entries (offset table). %w", err)
 	}
 
+	dbf.header.FeaturesOffset, err = safe.Uint64ToUint32(dbf.file.Offset())
+	if err != nil {
+		return fmt.Errorf("failed to finish writing the entries (features offset). %w", err)
+	}
+
+	return nil
+}
+
+var ErrInvalidChecksum = errors.New("ajfs database file does not match the stored checksum")
+
+// Check the database file integrity and return [ErrInvalidChecksum] if the checksum does not match.
+func (dbf *DatabaseFile) VerifyChecksums() error {
+	offset := headerOffset() + headerSize()
+	_, err := dbf.file.Seek(offset, io.SeekStart)
+	if err != nil {
+		return err
+	}
+	dbf.file.ResetReadBuffer()
+
+	count := int64(dbf.header.FeaturesOffset) - offset
+
+	hasher := crc32.NewIEEE()
+	_, err = io.CopyN(hasher, dbf.file, count)
+	if err != nil {
+		return fmt.Errorf("failed to verify checksum. %w", err)
+	}
+
+	if hasher.Sum32() != dbf.header.Checksum {
+		return ErrInvalidChecksum
+	}
+
 	return nil
 }
 
@@ -367,6 +411,8 @@ func (dbf *DatabaseFile) finishCreation() error {
 	if dbf.header.Features.HasHashTable() && (dbf.header.HashTableOffset == 0) {
 		panic("hash table was not written")
 	}
+
+	dbf.header.Checksum = dbf.checksumHasher.Sum32()
 
 	// Update the header
 	_, err := dbf.file.Seek(headerOffset(), io.SeekStart)
@@ -439,7 +485,7 @@ func (dbf *DatabaseFile) writeEntryOffsets() error {
 	}
 
 	// 1st sentinel
-	_, err := dbf.file.Write(sentinel[:])
+	_, err := dbf.checksumWriter.Write(sentinel[:])
 	if err != nil {
 		return fmt.Errorf("failed to finish writing the entries (1st sentinel). %w", err)
 	}
@@ -448,14 +494,14 @@ func (dbf *DatabaseFile) writeEntryOffsets() error {
 
 	for idx, offset := range dbf.entryOffsets {
 		binary.LittleEndian.PutUint32(data, offset)
-		_, err := dbf.file.Write(data)
+		_, err := dbf.checksumWriter.Write(data)
 		if err != nil {
 			return fmt.Errorf("failed to write the entries offset table (index = %d). %w", idx, err)
 		}
 	}
 
 	// 2nd sentinel
-	_, err = dbf.file.Write(sentinel[:])
+	_, err = dbf.checksumWriter.Write(sentinel[:])
 	if err != nil {
 		return fmt.Errorf("failed to finish writing the entries (2nd sentinel). %w", err)
 	}
@@ -500,12 +546,14 @@ func (s *prefixHeader) write(w io.Writer) error {
 // Header (version 1)
 
 type header struct {
+	Checksum                 uint32 // Checksum used to check file integrity.
 	EntriesCount             uint32 // The number of path objects. Based on inode max limit of 2^32
 	FileEntriesCount         uint32 // The number of path objects that are just files.
 	EntriesOffset            uint32 // The offset in bytes at which the path objects start. Based on limit of database file being max 4GB
 	EntriesOffsetTableOffset uint32 // The offset to the entries offset table
 
-	Features FeatureFlags // Feature flags
+	Features       FeatureFlags // Feature flags
+	FeaturesOffset uint32       // Start of features
 
 	HashTableOffset uint32 // The start of the hash table
 	TreeOffset      uint32 // The start of the tree
@@ -523,6 +571,10 @@ func (s *header) write(w io.Writer) error {
 
 func headerOffset() int64 {
 	return int64(binary.Size(prefixHeader{}))
+}
+
+func headerSize() int64 {
+	return int64(binary.Size(header{}))
 }
 
 //-----------------------------------------------------------------------------

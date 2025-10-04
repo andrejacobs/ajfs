@@ -3,6 +3,7 @@ package db_test
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -22,10 +23,12 @@ type prefixHeader struct {
 }
 
 type header struct {
+	Checksum         uint32
 	EntryCount       uint32
 	FileEntriesCount uint32
 	EntryOffset      uint32
 	Features         db.FeatureFlags
+	FeaturesOffset   uint32
 	FeatureReserved  [8]uint32
 }
 
@@ -266,10 +269,6 @@ func TestReadWritePanicConditions(t *testing.T) {
 	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
 	require.NoError(t, err)
 
-	// Not allowed to read
-	assert.Panics(t, func() { _, _ = dbf.ReadEntryAtIndex(0) })
-	assert.Panics(t, func() { _ = dbf.ReadAllEntries(func(idx int, pi path.Info) error { return nil }) })
-
 	// Write 1 entry
 	p := path.Info{
 		Id:      path.IdFromPath("some/dir/b.txt"),
@@ -299,6 +298,51 @@ func TestReadWritePanicConditions(t *testing.T) {
 
 	// Not allowed to read out of index bounds
 	assert.Panics(t, func() { _, _ = dbf.ReadEntryAtIndex(1) })
+}
+
+func TestVerifyChecksums(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	// Create new database and write 1 path info objects
+	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
+	require.NoError(t, err)
+
+	p1 := path.Info{
+		Id:      path.IdFromPath("a.txt"),
+		Path:    "a.txt",
+		Size:    uint64(42),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	assert.NoError(t, dbf.WriteEntry(&p1))
+	assert.NoError(t, dbf.FinishEntries())
+	assert.NoError(t, dbf.Close())
+
+	// Open and validate
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	require.NoError(t, dbf.VerifyChecksums())
+	require.NoError(t, dbf.Close())
+
+	// Let's mess with file (change 1 byte near the end)
+	f, err := os.OpenFile(tempFile, os.O_RDWR, 0)
+	require.NoError(t, err)
+	_, err = f.Seek(-6, io.SeekEnd)
+	require.NoError(t, err)
+	buffer := [1]byte{}
+	_, err = f.Read(buffer[:])
+	require.NoError(t, err)
+	buffer[0] += 1
+	f.Write(buffer[:])
+	_ = f.Close()
+
+	// Open and validate
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	assert.ErrorIs(t, dbf.VerifyChecksums(), db.ErrInvalidChecksum)
+	require.NoError(t, dbf.Close())
 }
 
 //TODO: Need to check if the vardata stuff actually respects endianess

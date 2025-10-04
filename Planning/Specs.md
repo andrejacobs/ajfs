@@ -106,3 +106,18 @@ See https://pkg.go.dev/regexp/syntax for the syntax.
 -   Help: `ajfs --help`
 -   Help on a specific command: `ajfs scan --help`
 -   List out the database entries: `ajfs list --full`
+
+## Miscelaneous
+
+Checksum algorithm chosen: CRC32
+Why?
+
+-   I just need a simple check to see if the file has been corrupted in some way.
+-   The go stdlib comes with an implementation. So trusted to be maintained and well written implementation and platform support.
+-   No extra 3rd party dependency.
+
+Alternatives looked at:
+
+-   https://xxhash.com/
+-   https://github.com/cespare/xxhash only implements xxh64. Used by 70k+ and notable projects.
+-   CRC32 gives really good performance and is hard to beat by some implementations. Has hardware support etc.

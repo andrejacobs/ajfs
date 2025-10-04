@@ -40,6 +40,10 @@ func DefaultFileExcluder() file.MatchPathFn {
 // Scan starts the file hierarchy traversal and will write the found path info objects to the database.
 // dbf should be a newly created database [db.CreateDatabase].
 func (s Scanner) Scan(ctx context.Context, dbf *db.DatabaseFile) error {
+	if s.FileExcluder == nil {
+		s.FileExcluder = DefaultFileExcluder()
+	}
+
 	w := file.NewWalker()
 	w.DirIncluder = s.DirIncluder
 	w.FileIncluder = s.FileIncluder
