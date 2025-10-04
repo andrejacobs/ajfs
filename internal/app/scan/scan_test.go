@@ -160,8 +160,6 @@ func TestScanWithHashes(t *testing.T) {
 		})
 
 	}
-
-	//AJ### TODO: Need to confirm the hashes with known ones
 }
 
 //-----------------------------------------------------------------------------

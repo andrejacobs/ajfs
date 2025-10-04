@@ -38,6 +38,8 @@ func Run(cfg Config) error {
 		return dryRun(cfg)
 	}
 
+	cfg.VerbosePrintln(fmt.Sprintf("Scan root path %q", cfg.Root))
+
 	exists, err := file.FileExists(cfg.DbPath)
 	if err != nil {
 		return fmt.Errorf("failed to create the ajfs database. %w", err)
@@ -45,6 +47,7 @@ func Run(cfg Config) error {
 
 	if exists {
 		if cfg.ForceOverride {
+			cfg.VerbosePrintln(fmt.Sprintf("Removing database file %q because --force is specified", cfg.DbPath))
 			if err = os.Remove(cfg.DbPath); err != nil {
 				return fmt.Errorf("failed to remove existing file %q with --force. %w", cfg.DbPath, err)
 			}
@@ -56,11 +59,14 @@ func Run(cfg Config) error {
 	features := db.FeatureJustEntries
 	if cfg.CalculateHashes {
 		features |= db.FeatureHashTable
+		cfg.VerbosePrintln("Will be creating a hash table")
 	}
 	if cfg.BuildTree {
 		features |= db.FeatureTree
+		cfg.VerbosePrintln("Will be caching the tree structure")
 	}
 
+	cfg.VerbosePrintln(fmt.Sprintf("Creating database file at %q", cfg.DbPath))
 	dbf, err := db.CreateDatabase(cfg.DbPath, cfg.Root, db.FeatureFlags(features))
 	if err != nil {
 		return err
@@ -75,6 +81,7 @@ func Run(cfg Config) error {
 	s.FileExcluder = cfg.FileExcluder
 	s.DirExcluder = cfg.DirExcluder
 
+	cfg.VerbosePrintln("Scanning ...")
 	if err = s.Scan(ctx, dbf); err != nil {
 		return err
 	}
@@ -91,12 +98,18 @@ func Run(cfg Config) error {
 		return err
 	}
 
+	cfg.VerbosePrintln("Done!")
+
 	// TODO: Safe shutdown, cancel contex etc.
 	return nil
 }
 
 func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) error {
+	cfg.VerbosePrintln("Calculating file signature hashes ...")
+	cfg.VerbosePrintln(fmt.Sprintf("  Algorithm: %s", cfg.Algo))
+
 	// Write the initial hash table
+	cfg.VerbosePrintln("Creating initial hash table ...")
 	if err := dbf.StartHashTable(cfg.Algo); err != nil {
 		return err
 	}
@@ -106,6 +119,7 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 	}
 
 	err := dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {
+		cfg.VerbosePrintln(fmt.Sprintf("Hashing %q", pi.Path))
 		path := filepath.Join(dbf.RootPath(), pi.Path)
 		hash, _, err := file.Hash(ctx, path, cfg.Algo.Hasher(), nil)
 		if err != nil {
@@ -125,6 +139,8 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 }
 
 func dryRun(cfg Config) error {
+	cfg.VerbosePrintln(fmt.Sprintf("[DRY-RUN] Scan root path %q", cfg.Root))
+
 	w := file.NewWalker()
 	w.DirIncluder = cfg.DirIncluder
 	w.FileIncluder = cfg.FileIncluder

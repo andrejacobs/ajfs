@@ -42,6 +42,7 @@ Overview of the subcommands that will be available.
     -   path, version, root path, meta (os, arch), file size, creation date
     -   number of entries (files, directories)
     -   total size of all files, max file size, avg file size
+    -   Will also check the file integrity against the stored checksum.
     -   Example: `ajfs info` (uses ./db.ajfs) or `ajfs info /path/to/db`
 
 -   `scan`
