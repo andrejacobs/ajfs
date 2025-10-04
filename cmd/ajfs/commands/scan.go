@@ -13,7 +13,7 @@ import (
 var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "TODO",
-	Long:  `TODO`,
+	Long:  `TODO`, // Make sure to mention what happens when you SIGTERM. Not ok during scanning, Is ok at hashing
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		filterCfg, err := parseFilterConfig()

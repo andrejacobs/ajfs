@@ -209,6 +209,27 @@ func (dbf *DatabaseFile) Close() error {
 	return nil
 }
 
+// Called when the app has to shutdown before the database could be created.
+// This will remove the database file.
+func (dbf *DatabaseFile) Interrupted() error {
+	if dbf.file == nil {
+		return nil
+	}
+
+	if err := dbf.file.Close(); err != nil {
+		return err
+	}
+
+	if err := os.Remove(dbf.path); err != nil {
+		return err
+	}
+
+	dbf.file = nil
+	dbf.entryOffsets = nil
+	dbf.fileIndices = nil
+	return nil
+}
+
 // Ensure unwritten data is written to the file on disk.
 func (dbf *DatabaseFile) Flush() error {
 	dbf.panicIfNotWriting()

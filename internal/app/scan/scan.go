@@ -3,10 +3,13 @@ package scan
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/db"
@@ -73,7 +76,24 @@ func Run(cfg Config) error {
 		return err
 	}
 
-	ctx := context.Background() // TODO: Hookup to a safe shutdown one
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Hook into listening for the SIGINT (Ctrl+C) and SIGTERM signals
+	signalCh := make(chan os.Signal, 1)
+	interruptedCh := make(chan bool, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	safeToShutdown := false
+
+	go func() {
+		rcv := <-signalCh
+		cfg.VerbosePrintln(fmt.Sprintf("\nReceived signal: %s", rcv))
+
+		cancel()
+
+		interruptedCh <- true
+	}()
 
 	// Perform the scan
 	s := scanner.NewScanner()
@@ -84,16 +104,35 @@ func Run(cfg Config) error {
 
 	cfg.VerbosePrintln("Scanning ...")
 	if err = s.Scan(ctx, dbf); err != nil {
-		return err
+		if !errors.Is(err, context.Canceled) {
+			return err
+		}
+	} else {
+		safeToShutdown = true
 	}
 
-	if cfg.CalculateHashes {
+	if cfg.CalculateHashes && (ctx.Err() == nil) {
 		if err = calculateHashes(ctx, cfg, dbf); err != nil {
-			return err
+			if !errors.Is(err, context.Canceled) {
+				return err
+			}
 		}
 	}
 
-	//TODO: If tree, to it here
+	//TODO: If tree, to it here | calculating the tree might not be safe to shutdown, so need to think about it then
+
+	select {
+	case <-interruptedCh:
+		if !safeToShutdown {
+			cfg.Errorln("\nApp was interrupted and the ajfs database file is incomplete. File will be deleted.")
+			if err = dbf.Interrupted(); err != nil {
+				return err
+			}
+			return nil
+		}
+		cfg.VerbosePrintln("App was interrupted, however the ajfs database file is still valid.")
+	default:
+	}
 
 	if err = dbf.Close(); err != nil {
 		return err
@@ -101,7 +140,6 @@ func Run(cfg Config) error {
 
 	cfg.VerbosePrintln("Done!")
 
-	// TODO: Safe shutdown, cancel contex etc.
 	return nil
 }
 
