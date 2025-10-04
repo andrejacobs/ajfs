@@ -14,6 +14,7 @@ import (
 	"github.com/andrejacobs/ajfs/internal/scanner"
 	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/andrejacobs/go-aj/file"
+	"github.com/schollz/progressbar/v3"
 )
 
 // Config for the ajfs scan command.
@@ -118,16 +119,38 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 		return err
 	}
 
+	var progress *progressbar.ProgressBar
+	count := 0
+	totalCount := 0
+
+	if cfg.Progress {
+		cfg.VerbosePrintln("Calculating progress information ...")
+		stats, err := dbf.CalculateStats()
+		if err != nil {
+			return err
+		}
+
+		progress = progressbar.DefaultBytes(int64(stats.TotalFileSize))
+		totalCount = int(stats.FileCount)
+	}
+
 	err := dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {
 		cfg.VerbosePrintln(fmt.Sprintf("Hashing %q", pi.Path))
+
+		if progress != nil {
+			progress.Describe(fmt.Sprintf("[%d/%d]", count+1, totalCount))
+		}
+
 		path := filepath.Join(dbf.RootPath(), pi.Path)
-		hash, _, err := file.Hash(ctx, path, cfg.Algo.Hasher(), nil)
+		hash, _, err := file.Hash(ctx, path, cfg.Algo.Hasher(), progress)
 		if err != nil {
 			return fmt.Errorf("failed to calculate the hash for %q. %w", path, err)
 		}
 		if err = dbf.WriteHashEntry(idx, hash); err != nil {
 			return fmt.Errorf("failed to write the hash for %q. %w", path, err)
 		}
+
+		count++
 		return nil
 	})
 
