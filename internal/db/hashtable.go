@@ -366,6 +366,35 @@ func (dbf *DatabaseFile) FindDuplicates(fn FindDuplicatesFn) error {
 	return nil
 }
 
+// ReadAllEntriesWithHashesFn will be called by ReadAllEntriesWithHashes for each entry that was read from the database.
+// idx Is the index of the entry.
+// pi Is the path info object.
+// hash Is the file signature hash.
+// Return [SkipAll] to stop reading all the entries.
+type ReadAllEntriesWithHashesFn func(idx int, pi path.Info, hash []byte) error
+
+// Read all the path info objects along with their file signature hash from the database and call the callback function.
+// If the callback function returns [SkipAll] then the reading process will be stopped and nil will be returned as the error.
+func (dbf *DatabaseFile) ReadAllEntriesWithHashes(fn ReadAllEntriesWithHashesFn) error {
+	if !dbf.Features().HasHashTable() {
+		panic("database does not contain the hash table")
+	}
+
+	hashTable, err := dbf.ReadHashTable()
+	if err != nil {
+		return err
+	}
+
+	err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+		hash, ok := hashTable[idx]
+		if !ok {
+			return nil
+		}
+		return fn(idx, pi, hash)
+	})
+	return err
+}
+
 //-----------------------------------------------------------------------------
 // Header
 

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/db"
@@ -43,34 +44,28 @@ func Run(cfg Config) error {
 		}
 	}
 
-	var hashTable db.HashTable
-
 	if cfg.DisplayHashes && dbf.Features().HasHashTable() {
-		hashTable, err = dbf.ReadHashTable()
-		if err != nil {
-			return err
-		}
-	}
-
-	err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
-		if cfg.DisplayFullPaths {
-			pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
-		}
-
-		if hashTable != nil {
-			hash, ok := hashTable[idx]
-			var hashStr string
-			if ok {
-				hashStr = hex.EncodeToString(hash)
+		err = dbf.ReadAllEntriesWithHashes(func(idx int, pi path.Info, hash []byte) error {
+			if cfg.DisplayFullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
 			}
-			cfg.Println(fmt.Sprintf("{%x}, %v, %q, %v, %v, %s", pi.Id, pi.Size, pi.Path, pi.Mode, pi.ModTime, hashStr))
-		} else {
-			cfg.Println(pi)
-		}
-		return nil
-	})
 
-	return err
+			hashStr := hex.EncodeToString(hash)
+			cfg.Println(fmt.Sprintf("{%x}, %v, %q, %v, %v, %s", pi.Id, pi.Size, pi.Path, pi.Mode, pi.ModTime.Format(time.RFC3339Nano), hashStr))
+			return nil
+		})
+		return err
+	} else {
+		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+			if cfg.DisplayFullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			}
+
+			cfg.Println(pi)
+			return nil
+		})
+		return err
+	}
 }
 
 func displayOnlyMinimal(cfg Config, dbf *db.DatabaseFile) error {

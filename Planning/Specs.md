@@ -36,15 +36,6 @@ Overview of the subcommands that will be available.
 
 ### Core features
 
--   `info`
-
-    -   Display information about a database.
-    -   path, version, root path, meta (os, arch), file size, creation date
-    -   number of entries (files, directories)
-    -   total size of all files, max file size, avg file size
-    -   Will also check the file integrity against the stored checksum.
-    -   Example: `ajfs info` (uses ./db.ajfs) or `ajfs info /path/to/db`
-
 -   `scan`
 
     -   Used to walk a file hierarchy and store the found paths in a new ajfs database file.
@@ -59,7 +50,27 @@ Overview of the subcommands that will be available.
         -   `--force`: Override an existing database.
     -   See the path filtering section on how to control which directories and files will be walked.
     -   `--dry-run`: Instead of creating the database, this will walk the hierarchy and display the files and directories that would have been stored.
+    -   Can be safely interrupted (SIGINT Ctrl+C / SIGTERM) while the file signature hashes are being calculated
+        given that this process could take hours on a big data set. Use `resume` to resume calculating hashes.
     -   Example: `ajfs scan /dir/to/scan` (creates ./db.ajfs) or `ajfs scan /path/to/db /path/to/scan`
+
+-   `resume`
+
+    -   Resume calculating the file signature hashes if a previous scan was safely interrupted.
+
+-   `update`
+
+    -   Perform a scan and update an existing database.
+    -   It will only recalculate file signature hashes for things that have changed or been added.
+
+-   `info`
+
+    -   Display information about a database.
+    -   path, version, root path, meta (os, arch), file size, creation date
+    -   number of entries (files, directories)
+    -   total size of all files, max file size, avg file size
+    -   Will also check the file integrity against the stored checksum.
+    -   Example: `ajfs info` (uses ./db.ajfs) or `ajfs info /path/to/db`
 
 -   `list`
 
@@ -69,6 +80,16 @@ Overview of the subcommands that will be available.
     -   `-s, --hash`: Also output the file signature hash if available.
     -   `-m, --minimal`: Display only the path. Similar to what `find .` would produce.
     -   Example: `ajfs list` (uses ./db.ajfs) or `ajfs list /path/to/db`
+
+-   `export`
+
+    -   Export a database to different formats.
+    -   `--format=csv` Export to a CSV format. The default option.
+    -   `--format=json` Export to a JSON format.
+    -   `--format=hashdeep` Export to a format compatible with hashdeep.
+    -   Will not override any existing files.
+    -   Example: `ajfs export /path/export.csv` (uses ./db.ajfs) or
+        `ajfs export /path/database.ajfs /path/export.csv`
 
 ### Global flags
 

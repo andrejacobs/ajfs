@@ -425,3 +425,70 @@ func TestFindDuplicates(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestReadAllEntriesWithHashes(t *testing.T) {
+	algo := ajhash.AlgoSHA1
+
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureHashTable)
+	require.NoError(t, err)
+
+	p1 := path.Info{
+		Id:      path.IdFromPath("a.txt"),
+		Path:    "a.txt",
+		Size:    uint64(42),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p1))
+
+	p2 := path.Info{
+		Id:      path.IdFromPath("some/dir"),
+		Path:    "some/dir",
+		Size:    uint64(142),
+		Mode:    0644 | fs.ModeDir,
+		ModTime: time.Now().Add(-20 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p2))
+
+	p3 := path.Info{
+		Id:      path.IdFromPath("c.txt"),
+		Path:    "c.txt",
+		Size:    uint64(442),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p3))
+
+	require.NoError(t, dbf.FinishEntries())
+	assert.NoError(t, dbf.StartHashTable(algo))
+	assert.NoError(t, dbf.FinishHashTable())
+
+	// Hashes
+	h1 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h1))
+	dbf.WriteHashEntry(0, h1)
+
+	h3 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h3))
+	dbf.WriteHashEntry(2, h3)
+
+	assert.NoError(t, dbf.Close())
+
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	result := make([][]byte, 0, 2)
+	err = dbf.ReadAllEntriesWithHashes(func(idx int, pi path.Info, hash []byte) error {
+		result = append(result, hash)
+		return nil
+	})
+	require.NoError(t, err)
+
+	expected := [][]byte{h1, h3}
+	assert.Equal(t, expected, result)
+}

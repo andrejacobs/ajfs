@@ -26,7 +26,7 @@ type Info struct {
 // Stringer implementation.
 func (p Info) String() string {
 	// See Header() to ensure these match if any changes are made
-	return fmt.Sprintf("{%x}, %v, %q, %v, %v", p.Id, p.Size, p.Path, p.Mode, p.ModTime)
+	return fmt.Sprintf("{%x}, %v, %q, %v, %v", p.Id, p.Size, p.Path, p.Mode, p.ModTime.Format(time.RFC3339Nano))
 }
 
 // Return true if the path is a directory.
