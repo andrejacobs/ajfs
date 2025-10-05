@@ -3,6 +3,7 @@ package export
 
 import (
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
@@ -49,14 +50,55 @@ func exportCSV(cfg Config) error {
 
 	csvWriter := csv.NewWriter(outFile)
 
+	// With a hash table
 	if dbf.Features().HasHashTable() {
-		//TODO: get info about the hashing algo
-		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "TODO", "IsDir", "Path"})
+		algo, err := dbf.HashTableAlgo()
+		if err != nil {
+			return err
+		}
+
+		hashTable, err := dbf.ReadHashTable()
+		if err != nil {
+			return err
+		}
+
+		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Hash (" + algo.String() + ")", "Path"})
+
+		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+			var hashStr string
+			if !pi.IsDir() {
+				hash, ok := hashTable[idx]
+
+				if ok {
+					hashStr = hex.EncodeToString(hash)
+				}
+			}
+
+			err := csvWriter.Write([]string{
+				fmt.Sprintf("%x", pi.Id),
+				fmt.Sprintf("%d", pi.Size),
+				pi.Mode.String(),
+				pi.ModTime.Format(time.RFC3339Nano),
+				fmt.Sprintf("%t", pi.IsDir()),
+				hashStr,
+				pi.Path,
+			})
+			if err != nil {
+				return err
+			}
+
+			csvWriter.Flush()
+			return csvWriter.Error()
+		})
+		if err != nil {
+			return fmt.Errorf("failed to export to file %q. %w", cfg.ExportPath, err)
+		}
 	} else {
+		// Without a hash table
 		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Path"})
 
 		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
-			csvWriter.Write([]string{
+			err := csvWriter.Write([]string{
 				fmt.Sprintf("%x", pi.Id),
 				fmt.Sprintf("%d", pi.Size),
 				pi.Mode.String(),
@@ -64,16 +106,21 @@ func exportCSV(cfg Config) error {
 				fmt.Sprintf("%t", pi.IsDir()),
 				pi.Path,
 			})
-			return nil
+			if err != nil {
+				return err
+			}
+
+			csvWriter.Flush()
+			return csvWriter.Error()
 		})
 		if err != nil {
 			return fmt.Errorf("failed to export to file %q. %w", cfg.ExportPath, err)
 		}
+	}
 
-		csvWriter.Flush()
-		if err = csvWriter.Error(); err != nil {
-			return fmt.Errorf("failed to export to file %q. %w", cfg.ExportPath, err)
-		}
+	csvWriter.Flush()
+	if err = csvWriter.Error(); err != nil {
+		return fmt.Errorf("failed to export to file %q. %w", cfg.ExportPath, err)
 	}
 	return nil
 }

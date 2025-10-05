@@ -202,34 +202,9 @@ type ReadHashTableEntryFn func(idx int, hash []byte) error
 // Read all hash table entries from the database and call the callback function.
 // If the callback function returns [SkipAll] then the reading process will be stopped and nil will be returned as the error.
 func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
-	if !dbf.header.Features.HasHashTable() || (dbf.header.HashTableOffset == 0) {
-		panic("database contains no hash table")
-	}
-
-	_, err := dbf.file.Seek(int64(dbf.header.HashTableOffset), io.SeekStart)
+	header, err := dbf.readHashTableHeader()
 	if err != nil {
-		return fmt.Errorf("failed to read hash table entries. %w", err)
-	}
-	dbf.file.ResetReadBuffer()
-
-	// Check 1st sentinel
-	var s [4]byte
-	_, err = io.ReadFull(dbf.file, s[:])
-	if err != nil {
-		return fmt.Errorf("failed to read the hash table (1st sentinel). %w", err)
-	}
-	if s != hashTableSentinel {
-		return fmt.Errorf("failed to read the hash table (1st sentinel %q does not match %q)", s, hashTableSentinel)
-	}
-
-	// Read the header
-	header := hashTableHeader{}
-	if err := header.read(dbf.file); err != nil {
-		return fmt.Errorf("failed to read the hash table header. %w", err)
-	}
-
-	if dbf.header.FileEntriesCount != header.EntriesCount {
-		return fmt.Errorf("the number of hash table entries %d does not match the number of file path entries %d in the database", header.EntriesCount, dbf.header.FileEntriesCount)
+		return err
 	}
 
 	// Read the hash entries
@@ -255,6 +230,7 @@ func (dbf *DatabaseFile) ReadHashTableEntries(fn ReadHashTableEntryFn) error {
 	}
 
 	// Check 2nd sentinel
+	var s [4]byte
 	_, err = io.ReadFull(dbf.file, s[:])
 	if err != nil {
 		return fmt.Errorf("failed to read the hash table (2nd sentinel). %w", err)
@@ -393,6 +369,50 @@ func (dbf *DatabaseFile) ReadAllEntriesWithHashes(fn ReadAllEntriesWithHashesFn)
 		return fn(idx, pi, hash)
 	})
 	return err
+}
+
+// Read the hash table header and return the hashing algorithm used.
+func (dbf *DatabaseFile) HashTableAlgo() (ajhash.Algo, error) {
+	header, err := dbf.readHashTableHeader()
+	if err != nil {
+		return ajhash.AlgoSHA1, err
+	}
+	return header.Algo, nil
+}
+
+// Read the hash table header and do basic validation
+func (dbf *DatabaseFile) readHashTableHeader() (hashTableHeader, error) {
+	if !dbf.header.Features.HasHashTable() || (dbf.header.HashTableOffset == 0) {
+		panic("database contains no hash table")
+	}
+
+	_, err := dbf.file.Seek(int64(dbf.header.HashTableOffset), io.SeekStart)
+	if err != nil {
+		return hashTableHeader{}, fmt.Errorf("failed to read hash table entries. %w", err)
+	}
+	dbf.file.ResetReadBuffer()
+
+	// Check 1st sentinel
+	var s [4]byte
+	_, err = io.ReadFull(dbf.file, s[:])
+	if err != nil {
+		return hashTableHeader{}, fmt.Errorf("failed to read the hash table (1st sentinel). %w", err)
+	}
+	if s != hashTableSentinel {
+		return hashTableHeader{}, fmt.Errorf("failed to read the hash table (1st sentinel %q does not match %q)", s, hashTableSentinel)
+	}
+
+	// Read the header
+	header := hashTableHeader{}
+	if err := header.read(dbf.file); err != nil {
+		return header, fmt.Errorf("failed to read the hash table header. %w", err)
+	}
+
+	if dbf.header.FileEntriesCount != header.EntriesCount {
+		return header, fmt.Errorf("the number of hash table entries %d does not match the number of file path entries %d in the database", header.EntriesCount, dbf.header.FileEntriesCount)
+	}
+
+	return header, nil
 }
 
 //-----------------------------------------------------------------------------

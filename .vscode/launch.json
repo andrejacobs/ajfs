@@ -12,11 +12,9 @@
 			"program": "${workspaceFolder}/cmd/ajfs/main.go",
 			"console": "integratedTerminal",
 			"args": [
-				"scan",
-				"--dry-run",
-				"-e",
-				"d:a",
-				"../../internal/testdata/scan"
+				"export",
+				"${workspaceFolder}/db.ajfs",
+				"/Users/andre/temp/test.csv"
 			]
 		}
 	]

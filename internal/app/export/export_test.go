@@ -3,6 +3,7 @@ package export_test
 import (
 	"bufio"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/fs"
@@ -67,6 +68,58 @@ func TestExportCSV(t *testing.T) {
 
 	simpleDiff(t, expectedF.Name(), tempExportFile)
 }
+
+func TestExportWithHashesCSV(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.csv")
+	_ = os.Remove(tempExportFile)
+	defer os.Remove(tempExportFile)
+
+	expected := expectedDatabase(t, tempFile, true)
+	expectedF, err := os.CreateTemp("", "unit-test.ajfs.expected.csv")
+	require.NoError(t, err)
+	defer os.Remove(expectedF.Name())
+
+	csvWriter := csv.NewWriter(expectedF)
+	csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Hash (" + ajhash.AlgoSHA1.String() + ")", "Path"})
+
+	for _, exp := range expected {
+		hashStr := hex.EncodeToString(exp.hash)
+
+		csvWriter.Write([]string{
+			fmt.Sprintf("%x", exp.pi.Id),
+			fmt.Sprintf("%d", exp.pi.Size),
+			exp.pi.Mode.String(),
+			exp.pi.ModTime.Format(time.RFC3339Nano),
+			fmt.Sprintf("%t", exp.pi.IsDir()),
+			hashStr,
+			exp.pi.Path,
+		})
+	}
+
+	csvWriter.Flush()
+	require.NoError(t, csvWriter.Error())
+	require.NoError(t, expectedF.Close())
+
+	cfg := export.Config{
+		CommonConfig: config.CommonConfig{
+			DbPath: tempFile,
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		Format:     export.FormatCSV,
+		ExportPath: tempExportFile,
+	}
+
+	require.NoError(t, export.Run(cfg))
+
+	simpleDiff(t, expectedF.Name(), tempExportFile)
+}
+
+//-----------------------------------------------------------------------------
 
 type expectedEntry struct {
 	pi   path.Info
@@ -162,6 +215,14 @@ func expectedDatabase(t *testing.T, dbPath string, hashes bool) []expectedEntry 
 }
 
 func simpleDiff(t *testing.T, fileA string, fileB string) {
+	li, err := os.Stat(fileA)
+	require.NoError(t, err)
+
+	ri, err := os.Stat(fileB)
+	require.NoError(t, err)
+
+	require.Equal(t, li.Size(), ri.Size())
+
 	l, err := os.Open(fileA)
 	require.NoError(t, err)
 	defer l.Close()
