@@ -36,7 +36,7 @@ func TestExportCSV(t *testing.T) {
 	defer os.Remove(expectedF.Name())
 
 	csvWriter := csv.NewWriter(expectedF)
-	csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "Path"})
+	csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Path"})
 
 	for _, exp := range expected {
 		csvWriter.Write([]string{
@@ -44,6 +44,7 @@ func TestExportCSV(t *testing.T) {
 			fmt.Sprintf("%d", exp.pi.Size),
 			exp.pi.Mode.String(),
 			exp.pi.ModTime.Format(time.RFC3339Nano),
+			fmt.Sprintf("%t", exp.pi.IsDir()),
 			exp.pi.Path,
 		})
 	}

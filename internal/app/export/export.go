@@ -51,9 +51,9 @@ func exportCSV(cfg Config) error {
 
 	if dbf.Features().HasHashTable() {
 		//TODO: get info about the hashing algo
-		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "TODO", "Path"})
+		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "TODO", "IsDir", "Path"})
 	} else {
-		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "Path"})
+		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Path"})
 
 		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
 			csvWriter.Write([]string{
@@ -61,6 +61,7 @@ func exportCSV(cfg Config) error {
 				fmt.Sprintf("%d", pi.Size),
 				pi.Mode.String(),
 				pi.ModTime.Format(time.RFC3339Nano),
+				fmt.Sprintf("%t", pi.IsDir()),
 				pi.Path,
 			})
 			return nil
