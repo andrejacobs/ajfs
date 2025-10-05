@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -111,6 +112,196 @@ func TestExportWithHashesCSV(t *testing.T) {
 			Stderr: io.Discard,
 		},
 		Format:     export.FormatCSV,
+		ExportPath: tempExportFile,
+	}
+
+	require.NoError(t, export.Run(cfg))
+
+	simpleDiff(t, expectedF.Name(), tempExportFile)
+}
+
+//-----------------------------------------------------------------------------
+
+type JsonEntry struct {
+	Id   string `json:"id"`
+	Path string `json:"path"`
+
+	Size    uint64      `json:"size"`
+	Mode    fs.FileMode `json:"mode"`
+	ModeStr string      `json:"modeStr"`
+	ModTime time.Time   `json:"modTime"`
+
+	Hash string `json:"hash,omitempty"`
+}
+
+type JsonDatabase struct {
+	Version          int             `json:"version"`
+	DbPath           string          `json:"dbPath"`
+	Root             string          `json:"root"`
+	Features         db.FeatureFlags `json:"features"`
+	EntriesCount     int             `json:"entriesCount"`
+	FileEntriesCount int             `json:"fileCount"`
+	Meta             db.MetaEntry    `json:"meta"`
+	HashTableAlgo    string          `json:"hashTableAlgo,omitempty"`
+}
+
+func TestExportJSON(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.json")
+	_ = os.Remove(tempExportFile)
+	defer os.Remove(tempExportFile)
+
+	expectedDatabase(t, tempFile, false)
+
+	dbf, err := db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+
+	jsonDb := JsonDatabase{
+		Version:          dbf.Version(),
+		DbPath:           dbf.Path(),
+		Root:             dbf.RootPath(),
+		Features:         dbf.Features(),
+		EntriesCount:     dbf.EntriesCount(),
+		FileEntriesCount: dbf.FileEntriesCount(),
+		Meta:             dbf.Meta(),
+	}
+
+	entries := make([]JsonEntry, 0, dbf.EntriesCount())
+
+	err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+		entry := JsonEntry{
+			Id:      hex.EncodeToString(pi.Id[:]),
+			Path:    pi.Path,
+			Size:    pi.Size,
+			Mode:    pi.Mode,
+			ModeStr: pi.Mode.String(),
+			ModTime: pi.ModTime,
+		}
+		entries = append(entries, entry)
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, dbf.Close())
+
+	expectedF, err := os.CreateTemp("", "unit-test.ajfs.expected.json")
+	require.NoError(t, err)
+	defer os.Remove(expectedF.Name())
+
+	encoder := json.NewEncoder(expectedF)
+	encoder.SetIndent("", "\t")
+
+	actual := struct {
+		Database JsonDatabase `json:"database"`
+		Entries  []JsonEntry  `json:"entries"`
+	}{
+		Database: jsonDb,
+		Entries:  entries,
+	}
+
+	require.NoError(t, encoder.Encode(&actual))
+	require.NoError(t, expectedF.Close())
+
+	cfg := export.Config{
+		CommonConfig: config.CommonConfig{
+			DbPath: tempFile,
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		Format:     export.FormatJSON,
+		ExportPath: tempExportFile,
+	}
+
+	require.NoError(t, export.Run(cfg))
+
+	simpleDiff(t, expectedF.Name(), tempExportFile)
+}
+
+func TestExportWithHashesJSON(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.json")
+	_ = os.Remove(tempExportFile)
+	defer os.Remove(tempExportFile)
+
+	expectedDatabase(t, tempFile, true)
+
+	dbf, err := db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+
+	algo, err := dbf.HashTableAlgo()
+	require.NoError(t, err)
+
+	jsonDb := JsonDatabase{
+		Version:          dbf.Version(),
+		DbPath:           dbf.Path(),
+		Root:             dbf.RootPath(),
+		Features:         dbf.Features(),
+		EntriesCount:     dbf.EntriesCount(),
+		FileEntriesCount: dbf.FileEntriesCount(),
+		Meta:             dbf.Meta(),
+		HashTableAlgo:    algo.String(),
+	}
+
+	entries := make([]JsonEntry, 0, dbf.EntriesCount())
+
+	hashTable, err := dbf.ReadHashTable()
+	require.NoError(t, err)
+
+	err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+		var hashStr string
+		if !pi.IsDir() {
+			hash, ok := hashTable[idx]
+
+			if ok {
+				hashStr = hex.EncodeToString(hash)
+			}
+		}
+
+		entry := JsonEntry{
+			Id:      hex.EncodeToString(pi.Id[:]),
+			Path:    pi.Path,
+			Size:    pi.Size,
+			Mode:    pi.Mode,
+			ModeStr: pi.Mode.String(),
+			ModTime: pi.ModTime,
+			Hash:    hashStr,
+		}
+		entries = append(entries, entry)
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, dbf.Close())
+
+	expectedF, err := os.CreateTemp("", "unit-test.ajfs.expected.json")
+	require.NoError(t, err)
+	defer os.Remove(expectedF.Name())
+
+	encoder := json.NewEncoder(expectedF)
+	encoder.SetIndent("", "\t")
+
+	actual := struct {
+		Database JsonDatabase `json:"database"`
+		Entries  []JsonEntry  `json:"entries"`
+	}{
+		Database: jsonDb,
+		Entries:  entries,
+	}
+
+	require.NoError(t, encoder.Encode(&actual))
+	require.NoError(t, expectedF.Close())
+
+	cfg := export.Config{
+		CommonConfig: config.CommonConfig{
+			DbPath: tempFile,
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		Format:     export.FormatJSON,
 		ExportPath: tempExportFile,
 	}
 
