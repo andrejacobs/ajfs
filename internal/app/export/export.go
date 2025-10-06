@@ -163,7 +163,10 @@ func exportJSON(cfg Config) error {
 	f := bufio.NewWriter(outFile)
 
 	// Write the header
-	fmt.Fprintf(f, "{\n\t\"database\": ")
+	_, err = fmt.Fprintf(f, "{\n\t\"database\": ")
+	if err != nil {
+		return fmt.Errorf("failed to create the export file %q. %w", cfg.ExportPath, err)
+	}
 
 	var hashAlgo string
 	if dbf.Features().HasHashTable() {
@@ -204,7 +207,10 @@ func exportJSON(cfg Config) error {
 		return fmt.Errorf("failed to export json. writing of header failed. %w", err)
 	}
 
-	fmt.Fprintf(f, ",\n\t\"entries\": [\n\t\t")
+	_, err = fmt.Fprintf(f, ",\n\t\"entries\": [\n\t\t")
+	if err != nil {
+		return fmt.Errorf("failed to create the export file %q. %w", cfg.ExportPath, err)
+	}
 
 	// With a hash table
 	if dbf.Features().HasHashTable() {
@@ -246,7 +252,10 @@ func exportJSON(cfg Config) error {
 
 			count++
 			if count < expectedCount {
-				fmt.Fprintf(f, ",\n\t\t")
+				_, err = fmt.Fprintf(f, ",\n\t\t")
+				if err != nil {
+					return fmt.Errorf("failed to export json. writing entry (index = %d) failed. %w", idx, err)
+				}
 			}
 
 			if err = f.Flush(); err != nil {
@@ -285,7 +294,10 @@ func exportJSON(cfg Config) error {
 
 			count++
 			if count < expectedCount {
-				fmt.Fprintf(f, ",\n\t\t")
+				_, err = fmt.Fprintf(f, ",\n\t\t")
+				if err != nil {
+					return fmt.Errorf("failed to export json. writing entry (index = %d) failed. %w", idx, err)
+				}
 			}
 
 			if err = f.Flush(); err != nil {
@@ -301,7 +313,11 @@ func exportJSON(cfg Config) error {
 	}
 
 	// Finish up
-	fmt.Fprintf(f, "\n\t]\n}\n")
+	_, err = fmt.Fprintf(f, "\n\t]\n}\n")
+	if err != nil {
+		return fmt.Errorf("failed to create the export file %q. %w", cfg.ExportPath, err)
+	}
+
 	if err := f.Flush(); err != nil {
 		return fmt.Errorf("failed to create the export file %q. %w", cfg.ExportPath, err)
 	}
