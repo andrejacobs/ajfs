@@ -10,11 +10,14 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/app/export"
+	"github.com/andrejacobs/ajfs/internal/app/scan"
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/andrejacobs/go-aj/ajhash"
@@ -312,6 +315,73 @@ func TestExportWithHashesJSON(t *testing.T) {
 
 //-----------------------------------------------------------------------------
 
+func TestExportHashdeep(t *testing.T) {
+	testCases := []struct {
+		algo         ajhash.Algo
+		hashDeepFile string
+	}{
+		{
+			algo:         ajhash.AlgoSHA1,
+			hashDeepFile: "../../testdata/expected/scan.sha1",
+		},
+		{
+			algo:         ajhash.AlgoSHA256,
+			hashDeepFile: "../../testdata/expected/scan.sha256",
+		},
+		// Can't test SHA-512 atm because hashdeep doesn't support it
+	}
+	for _, tC := range testCases {
+		t.Run(tC.algo.String(), func(t *testing.T) {
+			algo := tC.algo
+
+			tempFile := filepath.Join(os.TempDir(), "unit-testing")
+			_ = os.Remove(tempFile)
+			defer os.Remove(tempFile)
+
+			cfg := scan.Config{
+				CommonConfig: config.CommonConfig{
+					DbPath: tempFile,
+					Stdout: io.Discard,
+					Stderr: io.Discard,
+				},
+				Root:            "../../testdata/scan",
+				CalculateHashes: true,
+				Algo:            algo,
+			}
+
+			err := scan.Run(cfg)
+			require.NoError(t, err)
+
+			tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.hashdeep")
+			_ = os.Remove(tempExportFile)
+			defer os.Remove(tempExportFile)
+
+			exportCfg := export.Config{
+				CommonConfig: config.CommonConfig{
+					DbPath: tempFile,
+					Stdout: io.Discard,
+					Stderr: io.Discard,
+				},
+				Format:     export.FormatHashdeep,
+				ExportPath: tempExportFile,
+			}
+
+			require.NoError(t, export.Run(exportCfg))
+
+			// Validate
+			expectedHashDeep, err := readHashDeep(tC.hashDeepFile)
+			require.NoError(t, err)
+
+			exportedHashDeep, err := readHashDeep(tempExportFile)
+			require.NoError(t, err)
+
+			assert.ElementsMatch(t, expectedHashDeep, exportedHashDeep)
+		})
+	}
+}
+
+//-----------------------------------------------------------------------------
+
 type expectedEntry struct {
 	pi   path.Info
 	hash []byte
@@ -441,4 +511,53 @@ func simpleDiff(t *testing.T, fileA string, fileB string) {
 			break
 		}
 	}
+}
+
+type hashDeep struct {
+	fileSize int
+	hash     string
+	path     string
+}
+
+func readHashDeep(path string) ([]hashDeep, error) {
+	result := make([]hashDeep, 0, 32)
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		text := strings.TrimSpace(scanner.Text())
+		if text == "" {
+			continue
+		}
+		if strings.HasPrefix(text, "%%") {
+			continue
+		}
+		if strings.HasPrefix(text, "##") {
+			continue
+		}
+
+		entry := hashDeep{}
+
+		parts := strings.Split(text, ",")
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("failed to parse the line: %s", text)
+		}
+		entry.fileSize, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return nil, err
+		}
+		entry.hash = parts[1]
+		entry.path = strings.TrimPrefix(parts[2], "./")
+		// fmt.Printf("%v\n", entry.path)
+		result = append(result, entry)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
