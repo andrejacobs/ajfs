@@ -34,6 +34,8 @@ type Config struct {
 
 	BuildTree bool // Build and cache the tree.
 	DryRun    bool // Only display files and directories that would have been stored in the database.
+
+	InitOnly bool // Used for testing. The initial database will be created without long running processes (hashing).
 }
 
 // Process the ajfs scan command.
@@ -155,6 +157,11 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 
 	if err := dbf.FinishHashTable(); err != nil {
 		return err
+	}
+
+	if cfg.InitOnly {
+		cfg.VerbosePrintln("Skipping calculation because of InitOnly")
+		return nil
 	}
 
 	var progress *progressbar.ProgressBar

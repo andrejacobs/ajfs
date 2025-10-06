@@ -57,6 +57,8 @@ Overview of the subcommands that will be available.
 -   `resume`
 
     -   Resume calculating the file signature hashes if a previous scan was safely interrupted.
+    -   The ajfs database must have a hash table for resume to work.
+    -   `-p, --progress`: Show progress while calculating file hash signatures.
 
 -   `update`
 

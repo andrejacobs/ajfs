@@ -415,6 +415,51 @@ func (dbf *DatabaseFile) readHashTableHeader() (hashTableHeader, error) {
 	return header, nil
 }
 
+// Get the database ready to resume calculating the file signature hashes
+func (dbf *DatabaseFile) resumeHashTable() error {
+
+	header, err := dbf.readHashTableHeader()
+	if err != nil {
+		return err
+	}
+
+	dbf.createHashTable = createHashTable{
+		header:  header,
+		offsets: make(map[uint32]uint32, dbf.header.FileEntriesCount),
+	}
+
+	buffer := header.Algo.Buffer()
+
+	// Read the hash entries and construct the offset map
+	for i := range header.EntriesCount {
+		offset, err := safe.Uint64ToUint32(dbf.file.Offset())
+		if err != nil {
+			return fmt.Errorf("failed to read the hash table entry at index %d. %w", i, err)
+		}
+
+		entry := hashEntry{
+			Hash: buffer,
+		}
+		if err := entry.read(dbf.file); err != nil {
+			return fmt.Errorf("failed to read the hash table entry at index %d. %w", i, err)
+		}
+
+		dbf.createHashTable.offsets[entry.Index] = offset
+	}
+
+	// Check 2nd sentinel
+	var s [4]byte
+	_, err = io.ReadFull(dbf.file, s[:])
+	if err != nil {
+		return fmt.Errorf("failed to read the hash table (2nd sentinel). %w", err)
+	}
+	if s != hashTableSentinel {
+		return fmt.Errorf("failed to read the hash table (2nd sentinel %q does not match %q)", s, hashTableSentinel)
+	}
+
+	return nil
+}
+
 //-----------------------------------------------------------------------------
 // Header
 

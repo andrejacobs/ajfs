@@ -62,7 +62,8 @@ const (
 )
 
 var (
-	verbose bool
+	verbose      bool
+	showProgress bool
 
 	commonConfig config.CommonConfig
 )

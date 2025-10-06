@@ -63,6 +63,7 @@ type DatabaseFile struct {
 	checksumWriter io.Writer
 
 	createHashTable createHashTable
+	resuming        bool
 }
 
 // Create a new file
@@ -132,7 +133,7 @@ func CreateDatabase(path string, root string, features FeatureFlags) (*DatabaseF
 	return dbf, nil
 }
 
-// Open an existing database file and check the signature is valid and the version is supported.
+// Open an existing database file (as read-only) and check the signature is valid and the version is supported.
 func OpenDatabase(path string) (*DatabaseFile, error) {
 	dbf := &DatabaseFile{
 		path: path,
@@ -144,38 +145,74 @@ func OpenDatabase(path string) (*DatabaseFile, error) {
 		return nil, fmt.Errorf("failed to open the ajfs database file. path: %q. %w", path, err)
 	}
 
+	if err = dbf.readHeadersAndVerify(); err != nil {
+		return nil, err
+	}
+
+	return dbf, nil
+}
+
+// Open an existing database file (read-write) to resume processing of extra features.
+func ResumeDatabase(path string) (*DatabaseFile, error) {
+	dbf := &DatabaseFile{
+		path:     path,
+		resuming: true,
+	}
+
+	var err error
+	dbf.file, err = trackedoffset.OpenFile(path, os.O_RDWR|os.O_EXCL, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open the ajfs database file. path: %q. %w", path, err)
+	}
+
+	if err = dbf.readHeadersAndVerify(); err != nil {
+		return nil, err
+	}
+
+	dbf.creating = true
+
+	if dbf.Features().HasHashTable() {
+		if err = dbf.resumeHashTable(); err != nil {
+			return nil, err
+		}
+	}
+
+	return dbf, nil
+}
+
+func (dbf *DatabaseFile) readHeadersAndVerify() error {
 	// Check the signature and version
 	if err := dbf.prefixHeader.read(dbf.file); err != nil {
-		return nil, fmt.Errorf("error reading the ajfs prefix header. path: %q. %w", path, err)
+		return fmt.Errorf("error reading the ajfs prefix header. path: %q. %w", dbf.path, err)
 	}
 	if dbf.prefixHeader.Signature != signature {
-		return nil, fmt.Errorf("not a valid ajfs file (invalid signature %q, expected %q). path: %q", dbf.prefixHeader.Signature, signature, path)
+		return fmt.Errorf("not a valid ajfs file (invalid signature %q, expected %q). path: %q", dbf.prefixHeader.Signature, signature, dbf.path)
 	}
 	if dbf.prefixHeader.Version > currentVersion {
-		return nil, fmt.Errorf("not a supported ajfs file (invalid version %d, expected <= %d). path: %q", dbf.prefixHeader.Version, currentVersion, path)
+		return fmt.Errorf("not a supported ajfs file (invalid version %d, expected <= %d). path: %q", dbf.prefixHeader.Version, currentVersion, dbf.path)
 	}
 
 	// Read the header
 	if err := dbf.header.read(dbf.file); err != nil {
-		return nil, fmt.Errorf("failed to read the ajfs header. path: %q. %w", path, err)
+		return fmt.Errorf("failed to read the ajfs header. path: %q. %w", dbf.path, err)
 	}
 
 	// Read the root info
 	if err := dbf.root.read(dbf.file); err != nil {
-		return nil, fmt.Errorf("failed to read the ajfs root entry. path: %q. %w", path, err)
+		return fmt.Errorf("failed to read the ajfs root entry. path: %q. %w", dbf.path, err)
 	}
 
 	// Read the meta info
 	if err := dbf.meta.read(dbf.file); err != nil {
-		return nil, fmt.Errorf("failed to read the ajfs meta entry. path: %q. %w", path, err)
+		return fmt.Errorf("failed to read the ajfs meta entry. path: %q. %w", dbf.path, err)
 	}
 
 	// Read the entry offset table
 	if err := dbf.readEntryOffsets(); err != nil {
-		return nil, fmt.Errorf("failed to read the ajfs entry offset table. path: %q. %w", path, err)
+		return fmt.Errorf("failed to read the ajfs entry offset table. path: %q. %w", dbf.path, err)
 	}
 
-	return dbf, nil
+	return nil
 }
 
 // Sync pending writes and close the file
@@ -189,8 +226,10 @@ func (dbf *DatabaseFile) Close() error {
 			return err
 		}
 
-		if err := dbf.finishCreation(); err != nil {
-			return err
+		if !dbf.resuming {
+			if err := dbf.finishCreation(); err != nil {
+				return err
+			}
 		}
 
 		if err := dbf.file.Sync(); err != nil {

@@ -21,7 +21,7 @@ var scanCmd = &cobra.Command{
 			exitOnError(err, 1)
 		}
 
-		commonConfig.Progress = scanShowProgress
+		commonConfig.Progress = showProgress
 
 		cfg := scan.Config{
 			CommonConfig:  commonConfig,
@@ -64,7 +64,7 @@ func init() {
 	scanCmd.Flags().BoolVarP(&scanCalculateHashes, "hash", "s", false, "Calculate file signature hashes")
 	scanCmd.Flags().BoolVar(&scanDryRun, "dry-run", false, "Only display files and directories that would be stored in the database")
 	scanCmd.Flags().StringVarP(&scanHashAlgo, "algo", "a", "sha256", "Hashing algorithm to use. Valid values are 'sha1', 'sha256' and 'sha512'")
-	scanCmd.Flags().BoolVarP(&scanShowProgress, "progress", "p", false, "Display progress information")
+	scanCmd.Flags().BoolVarP(&showProgress, "progress", "p", false, "Display progress information")
 
 	addPathFilteringFlags(scanCmd)
 }
@@ -74,7 +74,6 @@ var (
 	scanCalculateHashes bool
 	scanHashAlgo        string
 	scanDryRun          bool
-	scanShowProgress    bool
 )
 
 // Determine the hashing algorithm to use based on the flag that was passed

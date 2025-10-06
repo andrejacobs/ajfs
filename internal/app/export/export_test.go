@@ -1,7 +1,6 @@
 package export_test
 
 import (
-	"bufio"
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
@@ -10,8 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +17,7 @@ import (
 	"github.com/andrejacobs/ajfs/internal/app/scan"
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
+	"github.com/andrejacobs/ajfs/internal/testshared"
 	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/andrejacobs/go-aj/random"
 	"github.com/stretchr/testify/assert"
@@ -70,7 +68,7 @@ func TestExportCSV(t *testing.T) {
 
 	require.NoError(t, export.Run(cfg))
 
-	simpleDiff(t, expectedF.Name(), tempExportFile)
+	testshared.SimpleDiff(t, expectedF.Name(), tempExportFile)
 }
 
 func TestExportWithHashesCSV(t *testing.T) {
@@ -120,7 +118,7 @@ func TestExportWithHashesCSV(t *testing.T) {
 
 	require.NoError(t, export.Run(cfg))
 
-	simpleDiff(t, expectedF.Name(), tempExportFile)
+	testshared.SimpleDiff(t, expectedF.Name(), tempExportFile)
 }
 
 //-----------------------------------------------------------------------------
@@ -219,7 +217,7 @@ func TestExportJSON(t *testing.T) {
 
 	require.NoError(t, export.Run(cfg))
 
-	simpleDiff(t, expectedF.Name(), tempExportFile)
+	testshared.SimpleDiff(t, expectedF.Name(), tempExportFile)
 }
 
 func TestExportWithHashesJSON(t *testing.T) {
@@ -310,7 +308,7 @@ func TestExportWithHashesJSON(t *testing.T) {
 
 	require.NoError(t, export.Run(cfg))
 
-	simpleDiff(t, expectedF.Name(), tempExportFile)
+	testshared.SimpleDiff(t, expectedF.Name(), tempExportFile)
 }
 
 //-----------------------------------------------------------------------------
@@ -369,10 +367,10 @@ func TestExportHashdeep(t *testing.T) {
 			require.NoError(t, export.Run(exportCfg))
 
 			// Validate
-			expectedHashDeep, err := readHashDeep(tC.hashDeepFile)
+			expectedHashDeep, err := testshared.ReadHashDeepFile(tC.hashDeepFile)
 			require.NoError(t, err)
 
-			exportedHashDeep, err := readHashDeep(tempExportFile)
+			exportedHashDeep, err := testshared.ReadHashDeepFile(tempExportFile)
 			require.NoError(t, err)
 
 			assert.ElementsMatch(t, expectedHashDeep, exportedHashDeep)
@@ -473,91 +471,4 @@ func expectedDatabase(t *testing.T, dbPath string, hashes bool) []expectedEntry 
 			pi: p3,
 		},
 	}
-}
-
-func simpleDiff(t *testing.T, fileA string, fileB string) {
-	li, err := os.Stat(fileA)
-	require.NoError(t, err)
-
-	ri, err := os.Stat(fileB)
-	require.NoError(t, err)
-
-	require.Equal(t, li.Size(), ri.Size())
-
-	l, err := os.Open(fileA)
-	require.NoError(t, err)
-	defer l.Close()
-
-	r, err := os.Open(fileB)
-	require.NoError(t, err)
-	defer r.Close()
-
-	ls := bufio.NewScanner(l)
-	rs := bufio.NewScanner(r)
-
-	line := 0
-	for {
-		if ls.Scan() && rs.Scan() {
-			line++
-			require.NoError(t, ls.Err())
-			require.NoError(t, rs.Err())
-
-			assert.Equal(t, ls.Text(), rs.Text(), fmt.Sprintf("line: %d", line))
-
-		} else {
-			if ls.Err() != nil || rs.Err() != nil {
-				require.Fail(t, fmt.Sprintf("failed to read from both left and right side. line: %d", line))
-			}
-			break
-		}
-	}
-}
-
-type hashDeep struct {
-	fileSize int
-	hash     string
-	path     string
-}
-
-func readHashDeep(path string) ([]hashDeep, error) {
-	result := make([]hashDeep, 0, 32)
-
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		text := strings.TrimSpace(scanner.Text())
-		if text == "" {
-			continue
-		}
-		if strings.HasPrefix(text, "%%") {
-			continue
-		}
-		if strings.HasPrefix(text, "##") {
-			continue
-		}
-
-		entry := hashDeep{}
-
-		parts := strings.Split(text, ",")
-		if len(parts) != 3 {
-			return nil, fmt.Errorf("failed to parse the line: %s", text)
-		}
-		entry.fileSize, err = strconv.Atoi(parts[0])
-		if err != nil {
-			return nil, err
-		}
-		entry.hash = parts[1]
-		entry.path = strings.TrimPrefix(parts[2], "./")
-		// fmt.Printf("%v\n", entry.path)
-		result = append(result, entry)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }

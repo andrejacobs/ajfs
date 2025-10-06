@@ -1,15 +1,11 @@
 package scan_test
 
 import (
-	"bufio"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
@@ -17,6 +13,7 @@ import (
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/andrejacobs/ajfs/internal/scanner"
+	"github.com/andrejacobs/ajfs/internal/testshared"
 	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/andrejacobs/go-aj/file"
 	"github.com/andrejacobs/go-aj/random"
@@ -132,13 +129,13 @@ func TestScanWithHashes(t *testing.T) {
 
 			assert.ElementsMatch(t, expPaths, paths)
 
-			expectedHashDeep, err := readHashDeep(tC.hashDeepFile)
+			expectedHashDeep, err := testshared.ReadHashDeepFile(tC.hashDeepFile)
 			require.NoError(t, err)
 
 			// Map from path to hash string
 			exp := make(map[string]string, len(expectedHashDeep))
 			for _, hd := range expectedHashDeep {
-				exp[hd.path] = hd.hash
+				exp[hd.Path] = hd.Hash
 			}
 
 			dbf, err := db.OpenDatabase(cfg.DbPath)
@@ -159,6 +156,52 @@ func TestScanWithHashes(t *testing.T) {
 			assert.Equal(t, exp, result)
 		})
 
+	}
+}
+
+func TestScanInitOnly(t *testing.T) {
+	testCases := []struct {
+		algo ajhash.Algo
+	}{
+		{
+			algo: ajhash.AlgoSHA1,
+		},
+		{
+			algo: ajhash.AlgoSHA256,
+		},
+		{
+			algo: ajhash.AlgoSHA512,
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.algo.String(), func(t *testing.T) {
+			tempFile := filepath.Join(os.TempDir(), "unit-testing")
+			_ = os.Remove(tempFile)
+			defer os.Remove(tempFile)
+
+			cfg := initialConfig()
+			cfg.DbPath = tempFile
+			cfg.CalculateHashes = true
+			cfg.Algo = tC.algo
+			cfg.InitOnly = true
+
+			err := scan.Run(cfg)
+			require.NoError(t, err)
+
+			// Verify
+			dbf, err := db.OpenDatabase(tempFile)
+			require.NoError(t, err)
+			defer dbf.Close()
+
+			require.True(t, dbf.Features().HasHashTable())
+			algo, err := dbf.HashTableAlgo()
+			require.NoError(t, err)
+			assert.Equal(t, tC.algo, algo)
+
+			ht, err := dbf.ReadHashTable()
+			require.NoError(t, err)
+			assert.Empty(t, ht)
+		})
 	}
 }
 
@@ -219,53 +262,4 @@ func databasePaths(cfg scan.Config) ([]path.Info, error) {
 	})
 
 	return result, err
-}
-
-type hashDeep struct {
-	fileSize int
-	hash     string
-	path     string
-}
-
-func readHashDeep(path string) ([]hashDeep, error) {
-	result := make([]hashDeep, 0, 32)
-
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		text := strings.TrimSpace(scanner.Text())
-		if text == "" {
-			continue
-		}
-		if strings.HasPrefix(text, "%%") {
-			continue
-		}
-		if strings.HasPrefix(text, "##") {
-			continue
-		}
-
-		entry := hashDeep{}
-
-		parts := strings.Split(text, ",")
-		if len(parts) != 3 {
-			return nil, fmt.Errorf("failed to parse the line: %s", text)
-		}
-		entry.fileSize, err = strconv.Atoi(parts[0])
-		if err != nil {
-			return nil, err
-		}
-		entry.hash = parts[1]
-		entry.path = strings.TrimPrefix(parts[2], "./")
-		// fmt.Printf("%v\n", entry.path)
-		result = append(result, entry)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
