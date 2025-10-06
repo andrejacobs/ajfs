@@ -386,7 +386,7 @@ func exportHashdeep(cfg Config) error {
 
 	err = dbf.ReadAllEntriesWithHashes(func(idx int, pi path.Info, hash []byte) error {
 		hashStr := hex.EncodeToString(hash)
-		_, err := fmt.Fprintf(f, "%d,%s,%s\n", pi.Size, hashStr, pi.Path)
+		_, err := fmt.Fprintf(f, "%d,%s,./%s\n", pi.Size, hashStr, pi.Path)
 		return err
 	})
 	if err != nil {

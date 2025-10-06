@@ -41,6 +41,11 @@ func Run(cfg Config) error {
 
 	if dbf.Features().HasHashTable() {
 		cfg.Println("  Hash table:  yes")
+		algo, err := dbf.HashTableAlgo()
+		if err != nil {
+			return err
+		}
+		cfg.Println("    Algo:      " + algo.String())
 	} else {
 		cfg.Println("  Hash table:  no")
 	}
