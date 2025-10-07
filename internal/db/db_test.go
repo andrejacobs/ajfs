@@ -367,4 +367,49 @@ func TestVerifyChecksums(t *testing.T) {
 	require.NoError(t, dbf.Close())
 }
 
+func TestBuildIdToInfoMap(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	// Create new database and write N path info objects
+	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
+	require.NoError(t, err)
+
+	expCount := 5
+	expTime := time.Now().Add(-10 * time.Minute)
+
+	for i := range expCount {
+		filePath := fmt.Sprintf("/some/path/%d.txt", i)
+		p := path.Info{
+			Id:      path.IdFromPath(filePath),
+			Path:    filePath,
+			Size:    uint64(i),
+			Mode:    0740,
+			ModTime: expTime,
+		}
+		require.NoError(t, dbf.WriteEntry(&p))
+	}
+
+	require.NoError(t, dbf.FinishEntries())
+	require.NoError(t, dbf.Close())
+
+	// Open, read and validate
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+	assert.Equal(t, expCount, dbf.EntriesCount())
+
+	result, err := dbf.BuildIdToInfoMap()
+	require.NoError(t, err)
+	assert.Len(t, result, expCount)
+
+	for i := range expCount {
+		filePath := fmt.Sprintf("/some/path/%d.txt", i)
+		v, ok := result[path.IdFromPath(filePath)]
+		assert.True(t, ok)
+		assert.Equal(t, filePath, v.Path)
+	}
+}
+
 //TODO: Need to check if the vardata stuff actually respects endianess

@@ -95,6 +95,18 @@ Overview of the subcommands that will be available.
     -   Example: `ajfs export /path/export.csv` (uses ./db.ajfs) or
         `ajfs export /path/database.ajfs /path/export.csv`
 
+-   `diff`
+
+    -   Used to describe the differences between two databases.
+    -   Can also be used to describe what has changed between the database version and the current file system state.
+    -   A diff between a database and the current file system state will ignore comparing hashes. Since hashing could be a long running task.
+        The same functionality can be achieved by creating a new scan followed by a diff against two databases.
+    -   Example:
+        -   `ajfs diff` compares ./db.ajfs and the root path that created the database.
+        -   `ajfs diff /path/to/db.ajfs` compares the specific database and the root path that created it.
+        -   `ajfs diff /path/to/lhs.ajfs /path/to/rhs.ajfs` compare two databases.
+        -   `ajfs diff /path/to/lhs.ajfs /path/to/dirs` compare a database against a directory.
+
 ### Global flags
 
 -   `-h, --help`

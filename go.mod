@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/andrejacobs/go-collection v0.0.0-20240323181054-7a2a8a2ffe40 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect

@@ -494,6 +494,26 @@ func (dbf *DatabaseFile) VerifyChecksums() error {
 }
 
 //-----------------------------------------------------------------------------
+// Helpers
+
+// Map from a path's identifier to the path info entry.
+type IdToInfoMap map[path.Id]path.Info
+
+func (dbf *DatabaseFile) BuildIdToInfoMap() (IdToInfoMap, error) {
+	result := make(IdToInfoMap, dbf.EntriesCount())
+
+	err := dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+		result[pi.Id] = pi
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+//-----------------------------------------------------------------------------
 
 // Update the header
 func (dbf *DatabaseFile) finishCreation() error {

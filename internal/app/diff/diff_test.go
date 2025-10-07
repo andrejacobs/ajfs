@@ -1,0 +1,215 @@
+package diff_test
+
+import (
+	"io"
+	"os"
+	"path/filepath"
+	"slices"
+	"testing"
+
+	"github.com/andrejacobs/ajfs/internal/app/config"
+	"github.com/andrejacobs/ajfs/internal/app/diff"
+	"github.com/andrejacobs/ajfs/internal/app/scan"
+	"github.com/andrejacobs/ajfs/internal/path"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func Test(t *testing.T) {
+	testCases := []struct {
+		typ   diff.Type
+		path  string
+		isDir bool
+		flags diff.ChangedFlags
+		exp   string
+	}{
+		{
+			typ:   diff.TypeLeftOnly,
+			path:  "a.txt",
+			isDir: false,
+			flags: 0,
+			exp:   "f---- a.txt",
+		},
+		{
+			typ:   diff.TypeRightOnly,
+			path:  "a.txt",
+			isDir: false,
+			flags: 0,
+			exp:   "f++++ a.txt",
+		},
+		{
+			typ:   diff.TypeLeftOnly,
+			path:  "dirA",
+			isDir: true,
+			flags: 0,
+			exp:   "d---- dirA",
+		},
+		{
+			typ:   diff.TypeRightOnly,
+			path:  "dirA",
+			isDir: true,
+			flags: 0,
+			exp:   "d++++ dirA",
+		},
+		{
+			typ:   diff.TypeChanged,
+			path:  "a.txt",
+			isDir: false,
+			flags: diff.ChangedSize,
+			exp:   "f~s~~ a.txt",
+		},
+		{
+			typ:   diff.TypeChanged,
+			path:  "a.txt",
+			isDir: false,
+			flags: diff.ChangedMode,
+			exp:   "fm~~~ a.txt",
+		},
+		{
+			typ:   diff.TypeChanged,
+			path:  "a.txt",
+			isDir: false,
+			flags: diff.ChangedModTime,
+			exp:   "f~~l~ a.txt",
+		},
+		{
+			typ:   diff.TypeChanged,
+			path:  "a.txt",
+			isDir: false,
+			flags: diff.ChangedHash,
+			exp:   "f~~~x a.txt",
+		},
+		{
+			typ:   diff.TypeChanged,
+			path:  "a.txt",
+			isDir: false,
+			flags: diff.ChangedSize | diff.ChangedMode | diff.ChangedModTime | diff.ChangedHash,
+			exp:   "fmslx a.txt",
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.exp, func(t *testing.T) {
+			d := diff.Diff{
+				Type:    tC.typ,
+				Id:      path.IdFromPath(tC.path),
+				Path:    tC.path,
+				IsDir:   tC.isDir,
+				Changed: tC.flags,
+			}
+			assert.Equal(t, tC.exp, d.String())
+		})
+	}
+}
+
+func TestDiffCompare(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/b"
+	require.NoError(t, scan.Run(cfg))
+
+	lhs := make([]string, 0, 10)
+	rhs := make([]string, 0, 10)
+	changed := make([]string, 0, 10)
+
+	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
+		switch d.Type {
+		case diff.TypeLeftOnly:
+			lhs = append(lhs, d.String())
+		case diff.TypeRightOnly:
+			rhs = append(rhs, d.String())
+		case diff.TypeChanged:
+			changed = append(changed, d.String())
+		case diff.TypeNothing:
+			// nothing changed
+		default:
+			require.Fail(t, "invalid type")
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	expectedLHSOnly := []string{
+		"d---- quick",
+		"f---- quick/1.txt",
+		"f---- quick/2.txt",
+		"d---- dir1",
+		"d---- dir1/lhs-only",
+	}
+
+	expectedRHSOnly := []string{
+		"d++++ fox",
+		"f++++ fox/3.txt",
+		"d++++ hole",
+		"f++++ hole/4.txt",
+		"d++++ dir2",
+		"d++++ dir2/rhs-only",
+	}
+	expectedChanged := []string{
+		"d~sl~ .",
+		"d~~l~ both",
+		"f~s~~ both/6.txt",
+		"fm~~~ both/7.txt",
+		"f~~l~ both/8.txt",
+		"d~~l~ dir3",
+		"d~~l~ dir3/both",
+	}
+
+	slices.Sort(expectedLHSOnly)
+	slices.Sort(expectedRHSOnly)
+	slices.Sort(expectedChanged)
+	slices.Sort(lhs)
+	slices.Sort(rhs)
+	slices.Sort(changed)
+
+	assert.Equal(t, expectedLHSOnly, lhs)
+	assert.Equal(t, expectedRHSOnly, rhs)
+	assert.Equal(t, expectedChanged, changed)
+}
+
+func TestDiffCompareSame(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	err := diff.Compare(lhsPath, lhsPath, false, func(d diff.Diff) error {
+		switch d.Type {
+		case diff.TypeNothing:
+			// nothing changed
+		default:
+			require.Fail(t, "there should have been no differences")
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+//TODO: Test SkipAll
