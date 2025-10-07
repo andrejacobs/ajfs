@@ -195,6 +195,28 @@ func TestWritePathInfo(t *testing.T) {
 	c1, err := dbf.ReadEntryAtIndex(0)
 	require.NoError(t, err)
 	assert.True(t, p1.Equals(&c1))
+
+	c2, err = dbf.ReadEntryWithId(p2.Id)
+	require.NoError(t, err)
+	assert.True(t, p2.Equals(&c2))
+
+	c1, err = dbf.ReadEntryWithId(p1.Id)
+	require.NoError(t, err)
+	assert.True(t, p1.Equals(&c1))
+
+	_, err = dbf.ReadEntryWithId(path.IdFromPath("does not exist"))
+	assert.ErrorIs(t, err, db.ErrNotFound)
+
+	v, err := dbf.FindEntryIndexAndOffset(p1.Id)
+	require.NoError(t, err)
+	assert.Equal(t, uint32(0), v.Index)
+
+	v, err = dbf.FindEntryIndexAndOffset(p2.Id)
+	require.NoError(t, err)
+	assert.Equal(t, uint32(1), v.Index)
+
+	_, err = dbf.FindEntryIndexAndOffset(path.IdFromPath("does not exist"))
+	assert.ErrorIs(t, err, db.ErrNotFound)
 }
 
 func TestReadAll(t *testing.T) {

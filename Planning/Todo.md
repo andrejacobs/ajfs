@@ -7,3 +7,6 @@
 -   [] Export needs verbose info
 -   [] Resume needs verbose info
 -   [] Could do with more testing on failure paths
+-   [] verbose and progress is a bit crazy. Perhaps when using progress, then don't output each file being hashed.
+-   [] Add elapsed time when using verbose
+-   [] Add a flag for printing out memory usage.

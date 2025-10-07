@@ -64,6 +64,8 @@ Overview of the subcommands that will be available.
 
     -   Perform a scan and update an existing database.
     -   It will only recalculate file signature hashes for things that have changed or been added.
+    -   `-p, --progress`: Show progress while calculating file hash signatures or building the tree.
+    -   See the path filtering section on how to control which directories and files will be walked.
 
 -   `info`
 

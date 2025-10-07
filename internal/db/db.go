@@ -30,7 +30,7 @@ import (
 // root [c]
 // meta [c]
 // entries [c]
-// entry offset table [c]
+// entry lookup table [c]
 // [optional] hash table
 // [optional] tree
 // [optional] future features (without breaking existing databases)
@@ -52,7 +52,8 @@ type DatabaseFile struct {
 	root         rootEntry
 	meta         MetaEntry
 
-	entryOffsets []uint32 // offset to where each path info entry is stored
+	entryLookups  []entryLookup
+	entryIdLookup map[path.Id]EntryIndexAndOffset
 
 	// only for creation
 	creating       bool
@@ -124,7 +125,7 @@ func CreateDatabase(path string, root string, features FeatureFlags) (*DatabaseF
 		return nil, fmt.Errorf("failed to set the ajfs EntriesOffset. %w", err)
 	}
 
-	dbf.entryOffsets = make([]uint32, 0, 4096)
+	dbf.entryLookups = make([]entryLookup, 0, 256)
 
 	if dbf.createFeatures.HasHashTable() {
 		dbf.fileIndices = make([]uint32, 0, 4096)
@@ -208,7 +209,7 @@ func (dbf *DatabaseFile) readHeadersAndVerify() error {
 	}
 
 	// Read the entry offset table
-	if err := dbf.readEntryOffsets(); err != nil {
+	if err := dbf.readEntryLookupTable(); err != nil {
 		return fmt.Errorf("failed to read the ajfs entry offset table. path: %q. %w", dbf.path, err)
 	}
 
@@ -242,7 +243,7 @@ func (dbf *DatabaseFile) Close() error {
 	}
 
 	dbf.file = nil
-	dbf.entryOffsets = nil
+	dbf.entryLookups = nil
 	dbf.fileIndices = nil
 
 	return nil
@@ -264,7 +265,7 @@ func (dbf *DatabaseFile) Interrupted() error {
 	}
 
 	dbf.file = nil
-	dbf.entryOffsets = nil
+	dbf.entryLookups = nil
 	dbf.fileIndices = nil
 	return nil
 }
@@ -318,7 +319,10 @@ func (dbf *DatabaseFile) WriteEntry(pi *path.Info) error {
 	if err != nil {
 		return err
 	}
-	dbf.entryOffsets = append(dbf.entryOffsets, offset)
+	dbf.entryLookups = append(dbf.entryLookups, entryLookup{
+		Id:     pi.Id,
+		Offset: offset,
+	})
 
 	index := dbf.header.EntriesCount
 
@@ -352,7 +356,7 @@ func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (path.Info, error) {
 		panic(fmt.Sprintf("invalid index %d, EntriesCount = %d", idx, dbf.header.EntriesCount))
 	}
 
-	offset := dbf.entryOffsets[idx]
+	offset := dbf.entryLookups[idx].Offset
 	_, err := dbf.file.Seek(int64(offset), io.SeekStart)
 	if err != nil {
 		return path.Info{}, fmt.Errorf("failed to read entry at index %d (offset %d). %w", idx, offset, err)
@@ -365,6 +369,41 @@ func (dbf *DatabaseFile) ReadEntryAtIndex(idx int) (path.Info, error) {
 	}
 
 	return pathInfoFromPathEntry(&entry), nil
+}
+
+// ErrNotFound is returned when a path entry could not be found in the database.
+var ErrNotFound = errors.New("path entry not found")
+
+// Read the path info object with the specified identifier.
+// Returns [ErrNotFound] if the entry does not exist.
+func (dbf *DatabaseFile) ReadEntryWithId(id path.Id) (path.Info, error) {
+	v, exist := dbf.entryIdLookup[id]
+	if !exist {
+		return path.Info{}, ErrNotFound
+	}
+
+	_, err := dbf.file.Seek(int64(v.Offset), io.SeekStart)
+	if err != nil {
+		return path.Info{}, fmt.Errorf("failed to read entry at offset %d (index = %d). %w", v.Offset, v.Index, err)
+	}
+	dbf.file.ResetReadBuffer()
+
+	entry := pathEntry{}
+	if err := entry.read(dbf.file); err != nil {
+		return path.Info{}, fmt.Errorf("failed to read entry at offset %d (index = %d). %w", v.Offset, v.Index, err)
+	}
+
+	return pathInfoFromPathEntry(&entry), nil
+}
+
+// Lookup the index and offset for a path entry with the specified identifier.
+// Returns [ErrNotFound] if the entry does not exist.
+func (dbf *DatabaseFile) FindEntryIndexAndOffset(id path.Id) (EntryIndexAndOffset, error) {
+	v, exist := dbf.entryIdLookup[id]
+	if !exist {
+		return EntryIndexAndOffset{}, ErrNotFound
+	}
+	return v, nil
 }
 
 // ReadAllEntriesFn will be called by ReadAllEntries for each entry that was read from the database.
@@ -411,12 +450,12 @@ func (dbf *DatabaseFile) FinishEntries() error {
 	}
 
 	var err error
-	dbf.header.EntriesOffsetTableOffset, err = safe.Uint64ToUint32(dbf.file.Offset())
+	dbf.header.EntriesLookupTableOffset, err = safe.Uint64ToUint32(dbf.file.Offset())
 	if err != nil {
 		return fmt.Errorf("failed to finish writing the entries (offset). %w", err)
 	}
 
-	if err := dbf.writeEntryOffsets(); err != nil {
+	if err := dbf.writeEntryLookupTable(); err != nil {
 		return fmt.Errorf("failed to finish writing the entries (offset table). %w", err)
 	}
 
@@ -460,7 +499,7 @@ func (dbf *DatabaseFile) VerifyChecksums() error {
 func (dbf *DatabaseFile) finishCreation() error {
 	dbf.panicIfNotWriting()
 
-	if (dbf.header.EntriesCount > 0) && (dbf.header.EntriesOffsetTableOffset == 0) {
+	if (dbf.header.EntriesCount > 0) && (dbf.header.EntriesLookupTableOffset == 0) {
 		panic("FinishEntries was never called")
 	}
 
@@ -493,14 +532,14 @@ func (dbf *DatabaseFile) finishCreation() error {
 }
 
 // Read the entry offset table
-func (dbf *DatabaseFile) readEntryOffsets() error {
+func (dbf *DatabaseFile) readEntryLookupTable() error {
 	if dbf.header.EntriesCount == 0 {
 		return nil
 	}
 
-	_, err := dbf.file.Seek(int64(dbf.header.EntriesOffsetTableOffset), io.SeekStart)
+	_, err := dbf.file.Seek(int64(dbf.header.EntriesLookupTableOffset), io.SeekStart)
 	if err != nil {
-		return fmt.Errorf("failed to read the entry offset table. %w", err)
+		return fmt.Errorf("failed to read the entry lookup table. %w", err)
 	}
 	dbf.file.ResetReadBuffer()
 
@@ -508,38 +547,43 @@ func (dbf *DatabaseFile) readEntryOffsets() error {
 	var s [4]byte
 	_, err = io.ReadFull(dbf.file, s[:])
 	if err != nil {
-		return fmt.Errorf("failed to read the entry offset table (1st sentinel). %w", err)
+		return fmt.Errorf("failed to read the entry lookup table (1st sentinel). %w", err)
 	}
 	if s != sentinel {
-		return fmt.Errorf("failed to read the entry offset table (1st sentinel %q does not match %q)", s, sentinel)
+		return fmt.Errorf("failed to read the entry lookup table (1st sentinel %q does not match %q)", s, sentinel)
 	}
 
-	dbf.entryOffsets = make([]uint32, dbf.header.EntriesCount)
+	dbf.entryLookups = make([]entryLookup, dbf.header.EntriesCount)
+	dbf.entryIdLookup = make(map[path.Id]EntryIndexAndOffset, dbf.header.EntriesCount)
 
-	var data [4]byte // uint32
 	for i := range dbf.header.EntriesCount {
-		_, err := io.ReadFull(dbf.file, data[:])
+		entry := &dbf.entryLookups[i]
+
+		err := entry.read(dbf.file)
 		if err != nil {
-			return fmt.Errorf("failed to read the entry offset table (near index %d). %w", i, err)
+			return fmt.Errorf("failed to read the entry lookup table (near index %d). %w", i, err)
 		}
 
-		dbf.entryOffsets[i] = binary.LittleEndian.Uint32(data[:])
+		dbf.entryIdLookup[entry.Id] = EntryIndexAndOffset{
+			Index:  i,
+			Offset: entry.Offset,
+		}
 	}
 
 	// Check 2nd sentinel
 	_, err = io.ReadFull(dbf.file, s[:])
 	if err != nil {
-		return fmt.Errorf("failed to read the entry offset table (2nd sentinel). %w", err)
+		return fmt.Errorf("failed to read the entry lookup table (2nd sentinel). %w", err)
 	}
 	if s != sentinel {
-		return fmt.Errorf("failed to read the entry offset table (2nd sentinel %q does not match %q)", s, sentinel)
+		return fmt.Errorf("failed to read the entry lookup table (2nd sentinel %q does not match %q)", s, sentinel)
 	}
 
 	return nil
 }
 
-// Write the entry offset table
-func (dbf *DatabaseFile) writeEntryOffsets() error {
+// Write the entry lookup table
+func (dbf *DatabaseFile) writeEntryLookupTable() error {
 	if dbf.header.EntriesCount == 0 {
 		return nil
 	}
@@ -550,24 +594,21 @@ func (dbf *DatabaseFile) writeEntryOffsets() error {
 		return fmt.Errorf("failed to finish writing the entries (1st sentinel). %w", err)
 	}
 
-	data := make([]byte, 4) // uint32
-
-	for idx, offset := range dbf.entryOffsets {
-		binary.LittleEndian.PutUint32(data, offset)
-		_, err := dbf.checksumWriter.Write(data)
+	for idx, entryLU := range dbf.entryLookups {
+		err := entryLU.write(dbf.checksumWriter)
 		if err != nil {
-			return fmt.Errorf("failed to write the entries offset table (index = %d). %w", idx, err)
+			return fmt.Errorf("failed to write the entries lookup table (index = %d). %w", idx, err)
 		}
 	}
 
 	// 2nd sentinel
 	_, err = dbf.checksumWriter.Write(sentinel[:])
 	if err != nil {
-		return fmt.Errorf("failed to finish writing the entries (2nd sentinel). %w", err)
+		return fmt.Errorf("failed to finish writing the entrie lookup table (2nd sentinel). %w", err)
 	}
 
 	if err := dbf.Flush(); err != nil {
-		return fmt.Errorf("failed to finish writing the entries (flush). %w", err)
+		return fmt.Errorf("failed to finish writing the entrie lookup table (flush). %w", err)
 	}
 
 	return nil
@@ -610,7 +651,7 @@ type header struct {
 	EntriesCount             uint32 // The number of path objects. Based on inode max limit of 2^32
 	FileEntriesCount         uint32 // The number of path objects that are just files.
 	EntriesOffset            uint32 // The offset in bytes at which the path objects start. Based on limit of database file being max 4GB
-	EntriesOffsetTableOffset uint32 // The offset to the entries offset table
+	EntriesLookupTableOffset uint32 // The offset to the entries lookup table
 
 	Features       FeatureFlags // Feature flags
 	FeaturesOffset uint32       // Start of features
@@ -790,6 +831,34 @@ func (s *pathEntry) write(w io.Writer) error {
 	}
 
 	return nil
+}
+
+//-----------------------------------------------------------------------------
+// Entry lookup table
+
+type entryLookup struct {
+	Id     path.Id // The unique identifier
+	Offset uint32  // Offset in the file where the entry can be found
+}
+
+func (s *entryLookup) read(r vardata.Reader) error {
+	if err := binary.Read(r, binary.LittleEndian, s); err != nil {
+		return fmt.Errorf("failed to read entry lookup. %w", err)
+	}
+
+	return nil
+}
+
+func (s *entryLookup) write(w io.Writer) error {
+	if err := binary.Write(w, binary.LittleEndian, s); err != nil {
+		return fmt.Errorf("failed to write entry lookup. %w", err)
+	}
+	return nil
+}
+
+type EntryIndexAndOffset struct {
+	Index  uint32 // Index of the path info entry.
+	Offset uint32 // Offset in the file where the entry can be found
 }
 
 //-----------------------------------------------------------------------------

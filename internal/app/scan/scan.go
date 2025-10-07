@@ -35,7 +35,7 @@ type Config struct {
 	BuildTree bool // Build and cache the tree.
 	DryRun    bool // Only display files and directories that would have been stored in the database.
 
-	InitOnly bool // Used for testing. The initial database will be created without long running processes (hashing).
+	InitOnly bool // The initial database will be created without long running processes (hashing).
 }
 
 // Process the ajfs scan command.
