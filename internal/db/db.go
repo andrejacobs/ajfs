@@ -499,6 +499,7 @@ func (dbf *DatabaseFile) VerifyChecksums() error {
 // Map from a path's identifier to the path info entry.
 type IdToInfoMap map[path.Id]path.Info
 
+// Build a map from a path's identifier to the path info entry.
 func (dbf *DatabaseFile) BuildIdToInfoMap() (IdToInfoMap, error) {
 	result := make(IdToInfoMap, dbf.EntriesCount())
 

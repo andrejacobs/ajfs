@@ -492,3 +492,63 @@ func TestReadAllEntriesWithHashes(t *testing.T) {
 	expected := [][]byte{h1, h3}
 	assert.Equal(t, expected, result)
 }
+
+func TestBuildIdToHashMap(t *testing.T) {
+	algo := ajhash.AlgoSHA1
+
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureHashTable)
+	require.NoError(t, err)
+
+	p1 := path.Info{
+		Id:      path.IdFromPath("a.txt"),
+		Path:    "a.txt",
+		Size:    uint64(42),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p1))
+
+	p3 := path.Info{
+		Id:      path.IdFromPath("c.txt"),
+		Path:    "c.txt",
+		Size:    uint64(442),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p3))
+
+	require.NoError(t, dbf.FinishEntries())
+	assert.NoError(t, dbf.StartHashTable(algo))
+	assert.NoError(t, dbf.FinishHashTable())
+
+	// Hashes
+	h1 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h1))
+	require.NoError(t, dbf.WriteHashEntry(0, h1))
+
+	h3 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h3))
+	require.NoError(t, dbf.WriteHashEntry(1, h3))
+
+	assert.NoError(t, dbf.Close())
+
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	hm, err := dbf.BuildIdToHashMap()
+	require.NoError(t, err)
+	assert.Len(t, hm, 2)
+
+	v, ok := hm[p1.Id]
+	assert.True(t, ok)
+	assert.Equal(t, h1, v)
+
+	v, ok = hm[p3.Id]
+	assert.True(t, ok)
+	assert.Equal(t, h3, v)
+}

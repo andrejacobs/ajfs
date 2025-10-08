@@ -3,6 +3,7 @@ package diff
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
@@ -255,5 +256,48 @@ func compare(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, fn Compar
 }
 
 func compareWithHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, fn CompareFn) error {
+	// Must be using the same hash algorithm
+	lhsAlgo, err := lhs.HashTableAlgo()
+	if err != nil {
+		return fmt.Errorf("failed to get the left hand side hashing algorithm. %w", err)
+	}
+
+	rhsAlgo, err := rhs.HashTableAlgo()
+	if err != nil {
+		return fmt.Errorf("failed to get the right hand side hashing algorithm. %w", err)
+	}
+
+	if lhsAlgo != rhsAlgo {
+		return fmt.Errorf("can't compare the hashes because they are using two different hashing algorithms. lhs: %q vs rhs: %q", lhsAlgo, rhsAlgo)
+	}
+
+	lhsMap, err := lhs.BuildIdToHashMap()
+	if err != nil {
+		return fmt.Errorf("failed to build the left hand side hash map. %w", err)
+	}
+
+	rhsMap, err := rhs.BuildIdToHashMap()
+	if err != nil {
+		return fmt.Errorf("failed to build the right hand side hash map. %w", err)
+	}
+
+	err = compare(lhs, rhs, onlyLHS, func(d Diff) error {
+		// Check if the hashes are different if this diff is for a file (!dir)
+		// and the diff thus far indicates nothing or meta has changed
+		if !d.IsDir && ((d.Type == TypeNothing) || (d.Type == TypeChanged)) {
+			lhsHash, lExists := lhsMap[d.Id]
+			rhsHash, rExists := rhsMap[d.Id]
+
+			if (lExists && rExists) && !slices.Equal(lhsHash, rhsHash) {
+				d.Type = TypeChanged
+				d.Changed |= ChangedHash
+			}
+		}
+		return fn(d)
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

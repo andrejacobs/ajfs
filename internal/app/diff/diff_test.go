@@ -11,6 +11,7 @@ import (
 	"github.com/andrejacobs/ajfs/internal/app/diff"
 	"github.com/andrejacobs/ajfs/internal/app/scan"
 	"github.com/andrejacobs/ajfs/internal/path"
+	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -182,6 +183,90 @@ func TestDiffCompare(t *testing.T) {
 	assert.Equal(t, expectedLHSOnly, lhs)
 	assert.Equal(t, expectedRHSOnly, rhs)
 	assert.Equal(t, expectedChanged, changed)
+}
+
+func TestDiffCompareWithHashes(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root:            "../../testdata/diff/c",
+		CalculateHashes: true,
+		Algo:            ajhash.AlgoSHA1,
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/d"
+	require.NoError(t, scan.Run(cfg))
+
+	changed := make([]string, 0, 10)
+
+	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
+		switch d.Type {
+		case diff.TypeChanged:
+			changed = append(changed, d.String())
+		case diff.TypeNothing:
+			// nothing changed
+		default:
+			require.Fail(t, "invalid type")
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	expectedChanged := []string{
+		"d~~l~ .",
+		"f~~~x changed.txt",
+	}
+	slices.Sort(expectedChanged)
+	slices.Sort(changed)
+
+	assert.Equal(t, expectedChanged, changed)
+}
+
+func TestDiffCompareWithDifferentHashes(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root:            "../../testdata/diff/c",
+		CalculateHashes: true,
+		Algo:            ajhash.AlgoSHA1,
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/d"
+	cfg.Algo = ajhash.AlgoSHA256
+	require.NoError(t, scan.Run(cfg))
+
+	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
+		require.Fail(t, "should not get here")
+		return nil
+	})
+	require.ErrorContains(t, err, "using two different hashing algorithms")
 }
 
 func TestDiffCompareSame(t *testing.T) {

@@ -461,6 +461,27 @@ func (dbf *DatabaseFile) resumeHashTable() error {
 }
 
 //-----------------------------------------------------------------------------
+// Helpers
+
+// Map from a path's identifier to the file signature hash.
+type IdToHashMap map[path.Id][]byte
+
+// Build a map from a path's identifier to the file signature hash.
+func (dbf *DatabaseFile) BuildIdToHashMap() (IdToHashMap, error) {
+	result := make(IdToHashMap, dbf.EntriesCount())
+
+	err := dbf.ReadAllEntriesWithHashes(func(idx int, pi path.Info, hash []byte) error {
+		result[pi.Id] = hash
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+//-----------------------------------------------------------------------------
 // Header
 
 type hashTableHeader struct {
