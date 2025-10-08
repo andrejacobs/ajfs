@@ -12,9 +12,10 @@
 			"program": "${workspaceFolder}/cmd/ajfs/main.go",
 			"console": "integratedTerminal",
 			"args": [
-				"export",
-				"${workspaceFolder}/db.ajfs",
-				"/Users/andre/temp/test.csv"
+				"diff",
+				"${workspaceFolder}/db.ajfs"
+				// "${workspaceFolder}/internal/testdata/diff/a",
+				// "${workspaceFolder}/internal/testdata/diff/b"
 			]
 		}
 	]

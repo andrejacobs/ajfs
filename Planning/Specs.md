@@ -101,11 +101,13 @@ Overview of the subcommands that will be available.
     -   Can also be used to describe what has changed between the database version and the current file system state.
     -   A diff between a database and the current file system state will ignore comparing hashes. Since hashing could be a long running task.
         The same functionality can be achieved by creating a new scan followed by a diff against two databases.
+    -   If two databases are specified but have two different hashing algorithms, then hashes will not be compared.
     -   Example:
         -   `ajfs diff` compares ./db.ajfs and the root path that created the database.
         -   `ajfs diff /path/to/db.ajfs` compares the specific database and the root path that created it.
         -   `ajfs diff /path/to/lhs.ajfs /path/to/rhs.ajfs` compare two databases.
         -   `ajfs diff /path/to/lhs.ajfs /path/to/dirs` compare a database against a directory.
+        -   `ajfs diff /path/a /path/b` compare two file systems.
 
 ### Global flags
 

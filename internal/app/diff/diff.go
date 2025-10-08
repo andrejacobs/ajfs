@@ -3,12 +3,16 @@ package diff
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
+	"github.com/andrejacobs/ajfs/internal/app/scan"
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
+	"github.com/andrejacobs/go-aj/file"
 	"github.com/andrejacobs/go-collection/collection"
 )
 
@@ -19,12 +23,62 @@ import (
 type Config struct {
 	config.CommonConfig
 
+	LhsPath string
 	RhsPath string
+
+	Fn CompareFn
 }
 
 // Process the ajfs diff command.
 func Run(cfg Config) error {
-	return fmt.Errorf("TODO")
+	if cfg.Fn == nil {
+		panic("expected a compare function")
+	}
+
+	lhsExists, err := file.FileExists(cfg.LhsPath)
+	if err != nil {
+		return err
+	}
+	if !lhsExists {
+		cfg.VerbosePrintln(fmt.Sprintf("Creating temporary database for LHS: %q", cfg.LhsPath))
+		dbPath, err := makeTempDatabase(cfg, cfg.LhsPath)
+		if err != nil {
+			return fmt.Errorf("failed to create temporary database for left hand side. %w", err)
+		}
+		cfg.LhsPath = dbPath
+		defer os.Remove(dbPath)
+	}
+
+	if cfg.RhsPath == "" {
+		lhs, err := db.OpenDatabase(cfg.LhsPath)
+		if err != nil {
+			return fmt.Errorf("failed to open the left hand side database %q. %w", cfg.LhsPath, err)
+		}
+		cfg.RhsPath = lhs.RootPath()
+		lhs.Close()
+	}
+
+	rhsExists, err := file.FileExists(cfg.RhsPath)
+	if err != nil {
+		return err
+	}
+	if !rhsExists {
+		cfg.VerbosePrintln(fmt.Sprintf("Creating temporary database for RHS: %q", cfg.RhsPath))
+		dbPath, err := makeTempDatabase(cfg, cfg.RhsPath)
+		if err != nil {
+			return fmt.Errorf("failed to create temporary database for right hand side. %w", err)
+		}
+		cfg.RhsPath = dbPath
+		defer os.Remove(dbPath)
+	}
+
+	cfg.VerbosePrintln("Checking differences ...")
+	err = Compare(cfg.LhsPath, cfg.RhsPath, false, cfg.Fn)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //-----------------------------------------------------------------------------
@@ -256,7 +310,6 @@ func compare(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, fn Compar
 }
 
 func compareWithHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, fn CompareFn) error {
-	// Must be using the same hash algorithm
 	lhsAlgo, err := lhs.HashTableAlgo()
 	if err != nil {
 		return fmt.Errorf("failed to get the left hand side hashing algorithm. %w", err)
@@ -268,7 +321,8 @@ func compareWithHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool,
 	}
 
 	if lhsAlgo != rhsAlgo {
-		return fmt.Errorf("can't compare the hashes because they are using two different hashing algorithms. lhs: %q vs rhs: %q", lhsAlgo, rhsAlgo)
+		// Can't compare hashes so just do normal compare
+		return compare(lhs, rhs, onlyLHS, fn)
 	}
 
 	lhsMap, err := lhs.BuildIdToHashMap()
@@ -300,4 +354,24 @@ func compareWithHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool,
 	}
 
 	return nil
+}
+
+// Create a temporary database by scanning the path.
+// Returns the path of the temporary database.
+func makeTempDatabase(cfg Config, path string) (string, error) {
+	dbPath := filepath.Join(os.TempDir(), filepath.Base(path)+".ajfs")
+
+	scanCfg := scan.Config{
+		CommonConfig: cfg.CommonConfig,
+		Root:         path,
+	}
+	scanCfg.DbPath = dbPath
+	scanCfg.ForceOverride = true
+
+	err := scan.Run(scanCfg)
+	if err != nil {
+		return "", err
+	}
+
+	return dbPath, nil
 }

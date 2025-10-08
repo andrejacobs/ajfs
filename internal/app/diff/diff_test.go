@@ -236,39 +236,6 @@ func TestDiffCompareWithHashes(t *testing.T) {
 	assert.Equal(t, expectedChanged, changed)
 }
 
-func TestDiffCompareWithDifferentHashes(t *testing.T) {
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
-	_ = os.Remove(lhsPath)
-	defer os.Remove(lhsPath)
-
-	cfg := scan.Config{
-		CommonConfig: config.CommonConfig{
-			Stdout: io.Discard,
-			Stderr: io.Discard,
-			DbPath: lhsPath,
-		},
-		Root:            "../../testdata/diff/c",
-		CalculateHashes: true,
-		Algo:            ajhash.AlgoSHA1,
-	}
-	require.NoError(t, scan.Run(cfg))
-
-	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
-	_ = os.Remove(rhsPath)
-	defer os.Remove(rhsPath)
-
-	cfg.DbPath = rhsPath
-	cfg.Root = "../../testdata/diff/d"
-	cfg.Algo = ajhash.AlgoSHA256
-	require.NoError(t, scan.Run(cfg))
-
-	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
-		require.Fail(t, "should not get here")
-		return nil
-	})
-	require.ErrorContains(t, err, "using two different hashing algorithms")
-}
-
 func TestDiffCompareSame(t *testing.T) {
 	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
@@ -297,4 +264,291 @@ func TestDiffCompareSame(t *testing.T) {
 	require.NoError(t, err)
 }
 
-//TODO: Test SkipAll
+func TestRunTwoDirs(t *testing.T) {
+
+	lhs := make([]string, 0, 10)
+	rhs := make([]string, 0, 10)
+	changed := make([]string, 0, 10)
+
+	fn := func(d diff.Diff) error {
+		switch d.Type {
+		case diff.TypeLeftOnly:
+			lhs = append(lhs, d.String())
+		case diff.TypeRightOnly:
+			rhs = append(rhs, d.String())
+		case diff.TypeChanged:
+			changed = append(changed, d.String())
+		case diff.TypeNothing:
+			// nothing changed
+		default:
+			require.Fail(t, "invalid type")
+		}
+
+		return nil
+	}
+
+	cfg := diff.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		LhsPath: "../../testdata/diff/a",
+		RhsPath: "../../testdata/diff/b",
+		Fn:      fn,
+	}
+
+	err := diff.Run(cfg)
+	require.NoError(t, err)
+
+	expectedLHSOnly := []string{
+		"d---- quick",
+		"f---- quick/1.txt",
+		"f---- quick/2.txt",
+		"d---- dir1",
+		"d---- dir1/lhs-only",
+	}
+
+	expectedRHSOnly := []string{
+		"d++++ fox",
+		"f++++ fox/3.txt",
+		"d++++ hole",
+		"f++++ hole/4.txt",
+		"d++++ dir2",
+		"d++++ dir2/rhs-only",
+	}
+	expectedChanged := []string{
+		"d~sl~ .",
+		"d~~l~ both",
+		"f~s~~ both/6.txt",
+		"fm~~~ both/7.txt",
+		"f~~l~ both/8.txt",
+		"d~~l~ dir3",
+		"d~~l~ dir3/both",
+	}
+
+	slices.Sort(expectedLHSOnly)
+	slices.Sort(expectedRHSOnly)
+	slices.Sort(expectedChanged)
+	slices.Sort(lhs)
+	slices.Sort(rhs)
+	slices.Sort(changed)
+
+	assert.Equal(t, expectedLHSOnly, lhs)
+	assert.Equal(t, expectedRHSOnly, rhs)
+	assert.Equal(t, expectedChanged, changed)
+}
+
+func TestRunTwoDatabases(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(scanCfg))
+
+	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	scanCfg.DbPath = rhsPath
+	scanCfg.Root = "../../testdata/diff/b"
+	require.NoError(t, scan.Run(scanCfg))
+
+	lhs := make([]string, 0, 10)
+	rhs := make([]string, 0, 10)
+	changed := make([]string, 0, 10)
+
+	fn := func(d diff.Diff) error {
+		switch d.Type {
+		case diff.TypeLeftOnly:
+			lhs = append(lhs, d.String())
+		case diff.TypeRightOnly:
+			rhs = append(rhs, d.String())
+		case diff.TypeChanged:
+			changed = append(changed, d.String())
+		case diff.TypeNothing:
+			// nothing changed
+		default:
+			require.Fail(t, "invalid type")
+		}
+
+		return nil
+	}
+
+	cfg := diff.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		LhsPath: lhsPath,
+		RhsPath: rhsPath,
+		Fn:      fn,
+	}
+
+	err := diff.Run(cfg)
+	require.NoError(t, err)
+
+	expectedLHSOnly := []string{
+		"d---- quick",
+		"f---- quick/1.txt",
+		"f---- quick/2.txt",
+		"d---- dir1",
+		"d---- dir1/lhs-only",
+	}
+
+	expectedRHSOnly := []string{
+		"d++++ fox",
+		"f++++ fox/3.txt",
+		"d++++ hole",
+		"f++++ hole/4.txt",
+		"d++++ dir2",
+		"d++++ dir2/rhs-only",
+	}
+	expectedChanged := []string{
+		"d~sl~ .",
+		"d~~l~ both",
+		"f~s~~ both/6.txt",
+		"fm~~~ both/7.txt",
+		"f~~l~ both/8.txt",
+		"d~~l~ dir3",
+		"d~~l~ dir3/both",
+	}
+
+	slices.Sort(expectedLHSOnly)
+	slices.Sort(expectedRHSOnly)
+	slices.Sort(expectedChanged)
+	slices.Sort(lhs)
+	slices.Sort(rhs)
+	slices.Sort(changed)
+
+	assert.Equal(t, expectedLHSOnly, lhs)
+	assert.Equal(t, expectedRHSOnly, rhs)
+	assert.Equal(t, expectedChanged, changed)
+}
+
+func TestRunSingleDatabases(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(scanCfg))
+
+	fn := func(d diff.Diff) error {
+		switch d.Type {
+		case diff.TypeNothing:
+			// nothing changed
+		default:
+			require.Fail(t, "there should have been no differences")
+		}
+
+		return nil
+	}
+
+	cfg := diff.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		LhsPath: lhsPath,
+		Fn:      fn,
+	}
+
+	err := diff.Run(cfg)
+	require.NoError(t, err)
+}
+
+func TestSkipAll(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(scanCfg))
+
+	count := 0
+	fn := func(d diff.Diff) error {
+		count++
+		return diff.SkipAll
+	}
+
+	cfg := diff.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		LhsPath: lhsPath,
+		Fn:      fn,
+	}
+
+	err := diff.Run(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, count)
+}
+
+func TestRunTwoDatabasesWithDifferentHashAlgos(t *testing.T) {
+	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root:            "../../testdata/diff/a",
+		CalculateHashes: true,
+		Algo:            ajhash.AlgoSHA1,
+	}
+	require.NoError(t, scan.Run(scanCfg))
+
+	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	scanCfg.DbPath = rhsPath
+	scanCfg.Root = "../../testdata/diff/b"
+	scanCfg.Algo = ajhash.AlgoSHA256
+	require.NoError(t, scan.Run(scanCfg))
+
+	fn := func(d diff.Diff) error {
+		require.False(t, d.Changed.HashChanged())
+		return nil
+	}
+
+	cfg := diff.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		LhsPath: lhsPath,
+		RhsPath: rhsPath,
+		Fn:      fn,
+	}
+
+	err := diff.Run(cfg)
+	require.NoError(t, err)
+}
