@@ -6,6 +6,7 @@ import (
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/app/diff"
 	"github.com/andrejacobs/ajfs/internal/db"
+	"github.com/andrejacobs/go-aj/human"
 	"github.com/andrejacobs/go-collection/collection"
 )
 
@@ -27,24 +28,28 @@ func Run(cfg Config) error {
 		panic("expected a compare function")
 	}
 
-	return tosync(cfg.LhsPath, cfg.RhsPath, cfg.OnlyHashes, cfg.Fn)
+	return tosync(cfg)
 }
 
-func tosync(lhsPath string, rhsPath string, onlyHashes bool, fn diff.CompareFn) error {
-	lhs, err := db.OpenDatabase(lhsPath)
+func tosync(cfg Config) error {
+	cfg.VerbosePrintln("Checking which files would need to be synced")
+	cfg.VerbosePrintln(fmt.Sprintf("  from LHS: %q", cfg.LhsPath))
+	cfg.VerbosePrintln(fmt.Sprintf("    to RHS: %q\n", cfg.RhsPath))
+
+	lhs, err := db.OpenDatabase(cfg.LhsPath)
 	if err != nil {
 		return fmt.Errorf("failed to open left hand side database. %w", err)
 	}
 	defer lhs.Close()
 
-	rhs, err := db.OpenDatabase(rhsPath)
+	rhs, err := db.OpenDatabase(cfg.RhsPath)
 	if err != nil {
 		return fmt.Errorf("failed to open right hand side database. %w", err)
 	}
 	defer rhs.Close()
 
-	if onlyHashes {
-		err = compareOnlyHashes(lhs, rhs, fn)
+	if cfg.OnlyHashes {
+		err = compareOnlyHashes(lhs, rhs, cfg.Fn)
 		if err != nil {
 			if err != diff.SkipAll {
 				return err
@@ -52,7 +57,7 @@ func tosync(lhsPath string, rhsPath string, onlyHashes bool, fn diff.CompareFn) 
 			return nil
 		}
 	} else {
-		err = compare(lhs, rhs, fn)
+		err = compare(cfg, lhs, rhs, cfg.Fn)
 		if err != nil {
 			if err != diff.SkipAll {
 				return err
@@ -64,8 +69,11 @@ func tosync(lhsPath string, rhsPath string, onlyHashes bool, fn diff.CompareFn) 
 	return nil
 }
 
-func compare(lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.CompareFn) error {
+func compare(cfg Config, lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.CompareFn) error {
 	changedMask := ^diff.ChangedFlags(diff.ChangedModTime | diff.ChangedMode)
+
+	count := 0
+	totalSize := uint64(0)
 
 	err := diff.CompareDatabases(lhs, rhs, true, func(d diff.Diff) error {
 		// Ignore if the entry is a directory or if nothing has changed
@@ -79,11 +87,16 @@ func compare(lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.CompareFn) erro
 			return nil
 		}
 
+		count++
+		totalSize += d.Size
+
 		return fn(d)
 	})
 	if err != nil {
 		return err
 	}
+
+	cfg.VerbosePrintln(fmt.Sprintf("\nTotal of %d files with a size of %d bytes [%s] need to be synced", count, totalSize, human.Bytes(totalSize)))
 
 	return nil
 }

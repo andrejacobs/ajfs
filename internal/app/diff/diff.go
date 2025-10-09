@@ -121,11 +121,12 @@ func (f ChangedFlags) HashChanged() bool {
 
 // Describe a difference between the LHS and RHS databases.
 type Diff struct {
-	Type    Type
-	Id      path.Id
-	Path    string
-	IsDir   bool
-	Changed ChangedFlags
+	Type    Type         // Type of difference
+	Id      path.Id      // Identifier of the path info item
+	Path    string       // Path of the item
+	IsDir   bool         // Is this a directory
+	Changed ChangedFlags // What was changed
+	Size    uint64       // Size of the item. If the item exists on both sides, then this would be the size of the LHS item
 }
 
 // Stringer implementation.
@@ -243,6 +244,7 @@ func CompareDatabases(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, 
 			Id:    kv.Value.Id,
 			Path:  kv.Value.Path,
 			IsDir: kv.Value.IsDir(),
+			Size:  kv.Value.Size,
 		})
 		if err != nil {
 			return err
@@ -261,6 +263,7 @@ func CompareDatabases(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, 
 				Id:    kv.Value.Id,
 				Path:  kv.Value.Path,
 				IsDir: kv.Value.IsDir(),
+				Size:  kv.Value.Size,
 			})
 			if err != nil {
 				return err
@@ -300,6 +303,7 @@ func CompareDatabases(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, 
 			Path:    lv.Path,
 			Changed: changed,
 			IsDir:   lv.IsDir(),
+			Size:    lv.Size,
 		})
 		if err != nil {
 			return err

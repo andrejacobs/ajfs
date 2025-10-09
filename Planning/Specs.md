@@ -117,7 +117,8 @@ Overview of the subcommands that will be available.
 -   `tosync`
 
     -   Shows what files need to be synced from the LHS to the RHS. NOTE: Does not do any syncing. This is the job for the execellent rsync.
-        For example I can use this to see which files on my Mac has not yet been backed up on a Linux server (even though the paths will be different etc.)
+        For example I can use this to see which files on my Mac has not yet been backed up on a Linux server (even though the paths will be different etc.).
+        Meaning this is just a quick way of seeing if any files on the LHS has not yet been copied somewhere onto the RHS.
     -   Criteria are:
         -   Files that only appear in the LHS will be shown.
         -   Files that have changed will be shown and thus indicate that the ones on the RHS need to be overwritten.
@@ -129,6 +130,8 @@ Overview of the subcommands that will be available.
     -   Examples:
         -   `ajfs tosync /path/to/rhs.ajfs` compares ./db.ajfs as the LHS against the RHS database.
         -   `ajfs tosync /path/to/lhs.ajfs /path/to/rhs.ajfs` compares the LHS database against the RHS database.
+        -   `ajfs tosync --hash lhs.ajfs rhs.ajfs` Will only compare the file signature hashes and can tell which files have changed or are new on the LHS.
+            For example this will ignore if the same file exists on both sides but in different locations.
 
 ### Global flags
 

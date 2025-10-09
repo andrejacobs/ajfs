@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"fmt"
+
+	"github.com/andrejacobs/ajfs/internal/app/diff"
 	"github.com/andrejacobs/ajfs/internal/app/tosync"
 	"github.com/spf13/cobra"
 )
@@ -26,7 +29,7 @@ var tosyncCmd = &cobra.Command{
 			cfg.RhsPath = args[1]
 		}
 
-		cfg.Fn = printDiff
+		cfg.Fn = printToSync
 
 		if err := tosync.Run(cfg); err != nil {
 			exitOnError(err, 1)
@@ -43,3 +46,8 @@ func init() {
 var (
 	tosyncHashesOnly bool
 )
+
+func printToSync(d diff.Diff) error {
+	fmt.Println(d.Path)
+	return nil
+}
