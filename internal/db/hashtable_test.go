@@ -554,5 +554,61 @@ func TestBuildIdToHashMap(t *testing.T) {
 }
 
 func TestBuildHashStrToIndexMap(t *testing.T) {
-	assert.Fail(t, "TODO!")
+	algo := ajhash.AlgoSHA1
+
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureHashTable)
+	require.NoError(t, err)
+
+	p1 := path.Info{
+		Id:      path.IdFromPath("a.txt"),
+		Path:    "a.txt",
+		Size:    uint64(42),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p1))
+
+	p3 := path.Info{
+		Id:      path.IdFromPath("c.txt"),
+		Path:    "c.txt",
+		Size:    uint64(442),
+		Mode:    0740,
+		ModTime: time.Now().Add(-10 * time.Minute),
+	}
+	require.NoError(t, dbf.WriteEntry(&p3))
+
+	require.NoError(t, dbf.FinishEntries())
+	assert.NoError(t, dbf.StartHashTable(algo))
+	assert.NoError(t, dbf.FinishHashTable())
+
+	// Hashes
+	h1 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h1))
+	require.NoError(t, dbf.WriteHashEntry(0, h1))
+
+	h3 := algo.Buffer()
+	require.NoError(t, random.SecureBytes(h3))
+	require.NoError(t, dbf.WriteHashEntry(1, h3))
+
+	assert.NoError(t, dbf.Close())
+
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	hm, err := dbf.BuildHashStrToIndexMap()
+	require.NoError(t, err)
+	assert.Len(t, hm, 2)
+
+	v, ok := hm[hex.EncodeToString(h1)]
+	assert.True(t, ok)
+	assert.Equal(t, 0, v)
+
+	v, ok = hm[hex.EncodeToString(h3)]
+	assert.True(t, ok)
+	assert.Equal(t, 1, v)
 }
