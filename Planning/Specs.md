@@ -3,13 +3,13 @@
 Author: André Jacobs
 Date: 3/10/2024
 
--   28/09/2025: Added more commands and details.
+-   2025: Planning and documenting the required features as I develop them.
 
 ## Overview
 
 Why mk2 (mark 2)?
 
--   About a year ago I wrote `ajfs` which I used internally quite a bit.
+-   Some time in 2023 I wrote `ajfs` which I used internally quite a bit.
 -   I now consider that project as the mk1 that helped me prototype and play around with ideas.
 -   I learned a lot about what I would like to improve in the next version, which now brings me to mk2.
 
@@ -29,6 +29,11 @@ Why build this yourself?
 -   I have been needing and thinking about a tool like this for a number of years now but never quite found something that I would use consistently.
     Most of the time it would be cobbled toghether shell scripts and 3rd party tools.
     There was also the mk1 version but I am not quite happy about the UX.
+
+## Abbreviations and terminology
+
+-   LHS: Left Hand Side vs.
+-   RHS: Right Hand Side
 
 ## Command summary
 
@@ -108,6 +113,22 @@ Overview of the subcommands that will be available.
         -   `ajfs diff /path/to/lhs.ajfs /path/to/rhs.ajfs` compare two databases.
         -   `ajfs diff /path/to/lhs.ajfs /path/to/dirs` compare a database against a directory.
         -   `ajfs diff /path/a /path/b` compare two file systems.
+
+-   `tosync`
+
+    -   Shows what files need to be synced from the LHS to the RHS. NOTE: Does not do any syncing. This is the job for the execellent rsync.
+        For example I can use this to see which files on my Mac has not yet been backed up on a Linux server (even though the paths will be different etc.)
+    -   Criteria are:
+        -   Files that only appear in the LHS will be shown.
+        -   Files that have changed will be shown and thus indicate that the ones on the RHS need to be overwritten.
+        -   However permissions and last modification times are ignored since these are bound to be different between two systems.
+        -   If both databases have compatible file signature hashes, then items with a different hash will also be shown.
+    -   One of my biggest use cases for this tool is to be able to tell if some files on one system have actually been backed up onto another system.
+        In these situations the paths are not the same.
+        -   `-s, --hash`. When this option is specified then both sides (LHS and RHS) will need to have file signature hashes. Only the hashes will be compared and any hash that appears only in the LHS or that is different to the hash on the RHS will be shown.
+    -   Examples:
+        -   `ajfs tosync /path/to/rhs.ajfs` compares ./db.ajfs as the LHS against the RHS database.
+        -   `ajfs tosync /path/to/lhs.ajfs /path/to/rhs.ajfs` compares the LHS database against the RHS database.
 
 ### Global flags
 

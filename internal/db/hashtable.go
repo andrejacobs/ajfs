@@ -18,8 +18,6 @@ import (
 // n * hashEntry, where n == number of file path entries
 // sentinel
 
-//TODO: need a util dbf.HashTableAlgo etc.
-
 // HashTable maps from path info index to the calculated file signature hash.
 type HashTable map[int][]byte
 
@@ -476,6 +474,26 @@ func (dbf *DatabaseFile) BuildIdToHashMap() (IdToHashMap, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	return result, nil
+}
+
+// Map from a hash encoded string to the path entry index.
+type HashStrToIndexMap map[string]int
+
+// Build a map from a hash encoded string to the path entry index.
+func (dbf *DatabaseFile) BuildHashStrToIndexMap() (HashStrToIndexMap, error) {
+	result := make(HashStrToIndexMap, dbf.EntriesCount())
+
+	ht, err := dbf.ReadHashTable()
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range ht {
+		hashStr := hex.EncodeToString(v)
+		result[hashStr] = k
 	}
 
 	return result, nil

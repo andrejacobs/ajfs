@@ -60,7 +60,7 @@ var scanCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(scanCmd)
 
-	scanCmd.Flags().BoolVarP(&scanForceOverride, "force", "f", false, "Override any existing database")
+	scanCmd.Flags().BoolVar(&scanForceOverride, "force", false, "Override any existing database")
 	scanCmd.Flags().BoolVarP(&scanCalculateHashes, "hash", "s", false, "Calculate file signature hashes")
 	scanCmd.Flags().BoolVar(&scanDryRun, "dry-run", false, "Only display files and directories that would be stored in the database")
 	scanCmd.Flags().StringVarP(&scanHashAlgo, "algo", "a", "sha256", "Hashing algorithm to use. Valid values are 'sha1', 'sha256' and 'sha512'")

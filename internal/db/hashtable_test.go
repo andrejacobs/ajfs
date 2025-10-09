@@ -552,3 +552,7 @@ func TestBuildIdToHashMap(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, h3, v)
 }
+
+func TestBuildHashStrToIndexMap(t *testing.T) {
+	assert.Fail(t, "TODO!")
+}

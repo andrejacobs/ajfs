@@ -206,7 +206,7 @@ func Compare(lhsPath string, rhsPath string, onlyLHS bool, fn CompareFn) error {
 			return nil
 		}
 	} else {
-		err = compare(lhs, rhs, onlyLHS, fn)
+		err = CompareDatabases(lhs, rhs, onlyLHS, fn)
 		if err != nil {
 			if err != SkipAll {
 				return err
@@ -218,7 +218,7 @@ func Compare(lhsPath string, rhsPath string, onlyLHS bool, fn CompareFn) error {
 	return nil
 }
 
-func compare(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, fn CompareFn) error {
+func CompareDatabases(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool, fn CompareFn) error {
 	lhsMap, err := lhs.BuildIdToInfoMap()
 	if err != nil {
 		return fmt.Errorf("left hand side error. %w", err)
@@ -322,7 +322,7 @@ func compareWithHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool,
 
 	if lhsAlgo != rhsAlgo {
 		// Can't compare hashes so just do normal compare
-		return compare(lhs, rhs, onlyLHS, fn)
+		return CompareDatabases(lhs, rhs, onlyLHS, fn)
 	}
 
 	lhsMap, err := lhs.BuildIdToHashMap()
@@ -335,7 +335,7 @@ func compareWithHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, onlyLHS bool,
 		return fmt.Errorf("failed to build the right hand side hash map. %w", err)
 	}
 
-	err = compare(lhs, rhs, onlyLHS, func(d Diff) error {
+	err = CompareDatabases(lhs, rhs, onlyLHS, func(d Diff) error {
 		// Check if the hashes are different if this diff is for a file (!dir)
 		// and the diff thus far indicates nothing or meta has changed
 		if !d.IsDir && ((d.Type == TypeNothing) || (d.Type == TypeChanged)) {

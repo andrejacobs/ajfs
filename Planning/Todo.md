@@ -10,3 +10,4 @@
 -   [] verbose and progress is a bit crazy. Perhaps when using progress, then don't output each file being hashed.
 -   [] Add elapsed time when using verbose
 -   [] Add a flag for printing out memory usage.
+-   [] Export, Diff and ToSync need to support -f --full paths.
