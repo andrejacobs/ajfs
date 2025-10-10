@@ -51,7 +51,7 @@ func Run(cfg Config) error {
 			}
 
 			hashStr := hex.EncodeToString(hash)
-			cfg.Println(fmt.Sprintf("{%x}, %v, %q, %v, %v, %s", pi.Id, pi.Size, pi.Path, pi.Mode, pi.ModTime.Format(time.RFC3339Nano), hashStr))
+			cfg.Println(fmt.Sprintf("{%x}, %q, %v, %q, %v, %v", pi.Id, hashStr, pi.Size, pi.Path, pi.Mode, pi.ModTime.Format(time.RFC3339Nano)))
 			return nil
 		})
 		return err

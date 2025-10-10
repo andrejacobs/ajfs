@@ -11,6 +11,8 @@
 -   [] Add elapsed time when using verbose
 -   [] Add a flag for printing out memory usage.
 -   [] Export, Diff and ToSync need to support -f --full paths.
+-   [] Ensure list uses the same output and header as search when using hashes
+-   [] Add option to search to find Id
 
 ## Future (nice to have)
 

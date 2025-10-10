@@ -1,11 +1,20 @@
 package search_test
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/hex"
+	"fmt"
+	"io"
 	"io/fs"
+	"os"
+	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
+	"github.com/andrejacobs/ajfs/internal/app/config"
+	"github.com/andrejacobs/ajfs/internal/app/scan"
 	"github.com/andrejacobs/ajfs/internal/app/search"
 	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/stretchr/testify/assert"
@@ -340,4 +349,60 @@ func TestModTimeExpression(t *testing.T) {
 			assert.Equal(t, tC.expected, m)
 		})
 	}
+}
+
+func TestScanAndSearch(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: tempFile,
+		},
+		Root: "../../testdata/scan",
+	}
+
+	err := scan.Run(scanCfg)
+	require.NoError(t, err)
+
+	var outBuffer bytes.Buffer
+	var errBuffer bytes.Buffer
+
+	r1, err := search.NewRegex("b1a/blank")
+	require.NoError(t, err)
+	r2, err := search.NewRegex("^c/c.txt$")
+	require.NoError(t, err)
+
+	cfg := search.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: &outBuffer,
+			Stderr: &errBuffer,
+			DbPath: tempFile,
+		},
+		Expresion:      search.NewOr(r1, r2),
+		DisplayMinimal: true,
+	}
+
+	err = search.Run(cfg)
+	assert.NoError(t, err)
+
+	result := make([]string, 0, 2)
+
+	scanner := bufio.NewScanner(&outBuffer)
+	for scanner.Scan() {
+		result = append(result, scanner.Text())
+	}
+
+	assert.Equal(t, "", errBuffer.String())
+
+	expected := []string{
+		fmt.Sprintf("{%x}, %q", path.IdFromPath("b/b1/b1a/blank.txt"), "b/b1/b1a/blank.txt"),
+		fmt.Sprintf("{%x}, %q", path.IdFromPath("c/c.txt"), "c/c.txt"),
+	}
+
+	slices.Sort(result)
+	assert.Equal(t, expected, result)
 }

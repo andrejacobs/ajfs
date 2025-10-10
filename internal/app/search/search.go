@@ -11,17 +11,100 @@ import (
 	"time"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
+	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
 )
 
 // Config for the ajfs info command.
 type Config struct {
 	config.CommonConfig
+	Expresion        Expression // The search expression used to match path entries against.
+	AlsoHashes       bool       // If the hashes need to also be checked, because we know one of the expressions require this.
+	DisplayFullPaths bool       // If true then each path entry will be prefixed with the root path of the database.
+	DisplayMinimal   bool       // Display only the paths.
 }
 
 // Process the ajfs info command.
 func Run(cfg Config) error {
-	return fmt.Errorf("TODO")
+
+	if cfg.Expresion == nil {
+		return fmt.Errorf("expected a search expression")
+	}
+
+	dbf, err := db.OpenDatabase(cfg.DbPath)
+	if err != nil {
+		return err
+	}
+	defer dbf.Close()
+
+	// Header
+	if cfg.CommonConfig.Verbose {
+		if cfg.AlsoHashes && dbf.Features().HasHashTable() {
+			if cfg.DisplayMinimal {
+				cfg.Println("Id, Hash, Path")
+			} else {
+				cfg.Println(path.HeaderWithHash())
+			}
+		} else {
+			if cfg.DisplayMinimal {
+				cfg.Println("Id, Path")
+			} else {
+				cfg.Println(path.Header())
+			}
+		}
+	}
+
+	// Hashes?
+	if cfg.AlsoHashes && dbf.Features().HasHashTable() {
+		err = dbf.ReadAllEntriesWithHashes(func(idx int, pi path.Info, hash []byte) error {
+			matched, err := cfg.Expresion.Match(pi, hash)
+			if err != nil {
+				return err
+			}
+
+			if !matched {
+				return nil
+			}
+
+			if cfg.DisplayFullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			}
+
+			hashStr := hex.EncodeToString(hash)
+
+			if cfg.DisplayMinimal {
+				cfg.Println(fmt.Sprintf("{%x}, %s, %q", pi.Id, hashStr, pi.Path))
+			} else {
+				cfg.Println(fmt.Sprintf("{%x}, %s, %v, %q, %v, %v", pi.Id, hashStr, pi.Size, pi.Path, pi.Mode, pi.ModTime.Format(time.RFC3339Nano)))
+			}
+			return nil
+		})
+		return err
+	} else {
+		// Without hashes
+		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+			matched, err := cfg.Expresion.Match(pi, nil)
+			if err != nil {
+				return err
+			}
+
+			if !matched {
+				return nil
+			}
+
+			if cfg.DisplayFullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			}
+
+			if cfg.DisplayMinimal {
+				cfg.Println(fmt.Sprintf("{%x}, %q", pi.Id, pi.Path))
+			} else {
+				cfg.Println(pi)
+			}
+			return nil
+		})
+		return err
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -233,7 +316,8 @@ func (s *searchShellPattern) Match(pi path.Info, hash []byte) (bool, error) {
 // Type
 
 type searchType struct {
-	flags fs.FileMode
+	flags    fs.FileMode
+	andFiles bool
 }
 
 // Match if path is of a specific type as compared against the fs.FileMode flags.
@@ -250,30 +334,30 @@ func NewTypeFlags(flags fs.FileMode) *searchType {
 // p: Named pipe
 // s: Socket
 func NewType(t string) (*searchType, error) {
-	var flags fs.FileMode
+	s := &searchType{}
 
 	for _, c := range strings.ToLower(t) {
 		switch c {
 		case 'd':
-			flags |= fs.ModeDir
+			s.flags |= fs.ModeDir
 		case 'f':
-			// continue
+			s.andFiles = true
 		case 'l':
-			flags |= fs.ModeSymlink
+			s.flags |= fs.ModeSymlink
 		case 'p':
-			flags |= fs.ModeNamedPipe
+			s.flags |= fs.ModeNamedPipe
 		case 's':
-			flags |= fs.ModeSocket
+			s.flags |= fs.ModeSocket
 		default:
 			return nil, fmt.Errorf("unknown type %q in %q", c, t)
 		}
 	}
 
-	return NewTypeFlags(flags), nil
+	return s, nil
 }
 
 func (s *searchType) Match(pi path.Info, hash []byte) (bool, error) {
-	if s.flags == 0 { // Regular file
+	if s.andFiles || (s.flags == 0) { // Regular file
 		return pi.Mode.IsRegular(), nil
 	}
 	return (pi.Mode & s.flags) != 0, nil

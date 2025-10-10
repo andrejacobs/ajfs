@@ -79,5 +79,5 @@ func Header() string {
 
 // Header returns a comma seperated list of the expected columns that will be outputted for paths with a file signature hash.
 func HeaderWithHash() string {
-	return "Id, Size, Path, Mode, Modification time, Hash"
+	return "Id, Hash, Size, Path, Mode, Modification time"
 }

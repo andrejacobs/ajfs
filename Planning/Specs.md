@@ -136,6 +136,9 @@ Overview of the subcommands that will be available.
 -   `search`
 
     -   Search and display path entries that match certain criteria.
+    -   `-v, --verbose`: Shows a header as the first line of output.
+    -   `-f, --full`: Display the full path including the root path of when the database was created.
+    -   `-m, --minimal`: Display only the id, path and optionally the file signature hash.
     -   You can specify multiple criteria and they would have to all be matched (e.g. AND). Example: `-e something -t f --size +10k`
     -   `-e, --exp` Match path against a regular expression
     -   `-i, --iexp` Case insensitive match path against a regular expression
