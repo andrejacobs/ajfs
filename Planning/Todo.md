@@ -11,3 +11,7 @@
 -   [] Add elapsed time when using verbose
 -   [] Add a flag for printing out memory usage.
 -   [] Export, Diff and ToSync need to support -f --full paths.
+
+## Future (nice to have)
+
+-   [] Add support to search, to be able to parse a file (or from stdin) with more expressions like OR, NOT etc.
