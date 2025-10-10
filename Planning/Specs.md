@@ -133,6 +133,48 @@ Overview of the subcommands that will be available.
         -   `ajfs tosync --hash lhs.ajfs rhs.ajfs` Will only compare the file signature hashes and can tell which files have changed or are new on the LHS.
             For example this will ignore if the same file exists on both sides but in different locations.
 
+-   `search`
+
+    -   Search and display path entries that match certain criteria.
+    -   You can specify multiple criteria and they would have to all be matched (e.g. AND). Example: `-e something -t f --size +10k`
+    -   `-e, --exp` Match path against a regular expression
+    -   `-i, --iexp` Case insensitive match path against a regular expression
+    -   `-n, --name` Match base name against the shell pattern (e.g. \* ?). Base name is the last part of a path (e.g. /dir/to/file.txt would have file.txt as the base name)
+    -   `--iname` Case insensitive match base name against the shell pattern (e.g. \* ?)
+    -   `-p, --path` Match path against the shell pattern (e.g. \* ?)
+    -   `--ipath` Case insensitive match path against the Shell pattern (e.g. \* ?)
+    -   `-t, --type` Match if the type is one of the following:
+        -   d directory
+        -   f regular file
+        -   l symbolic link
+        -   p named pipe (FIFO)
+        -   s socket
+    -   `-s, --hash` Match if the file signature hash starts with this prefix
+    -   `--size` Match the file size according to:
+        -   <n> with no suffix means exactly <n> bytes. e.g. --size 100
+        -   With one of the following scaling suffixes:
+        -   `k/K` Kilobytes (1 KB = 1000 bytes). e.g. --size 1k
+        -   `m/M` Megabytes (1 MB = 1000 KB). e.g. --size 1m
+        -   `g/G` Gigabytes (1 GB = 1000 MB). e.g. --size 1g
+        -   `t/T` Terrabytes (1 TB = 1000 GB). e.g. --size 1t
+        -   `p/P` Petabytes (1 PB = 1000 TB). e.g. --size 1p
+        -   With one of the following operation prefixes:
+        -   `+` Greater than. e.g. --size +1k
+        -   `-` Less than. e.g. --size -1k
+    -   `-b, --before` Match if the entry's last modification time is before this time.
+        -   The following formats are allowed:
+        -   `YYYY-MM-DD`
+        -   `YYYY-MM-DD HH:mm:ss`
+        -   `YYYY-MM-DDTHH:mm:ss`
+        -   `<n>D` n Days before now. e.g. -b 10D
+        -   `<n>M` n Months before now. .e.g. -b 2M
+        -   `<n>Y` n Years before now. e.g. -b 5Y
+    -   `-a, --after` Match if the entry's last modification time is after this time.
+        -   The following formats are allowed:
+        -   `YYYY-MM-DD`
+        -   `YYYY-MM-DD HH:mm:ss`
+        -   `YYYY-MM-DDTHH:mm:ss`
+
 ### Global flags
 
 -   `-h, --help`
