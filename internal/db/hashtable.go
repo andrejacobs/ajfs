@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 
 	"github.com/andrejacobs/ajfs/internal/path"
 	"github.com/andrejacobs/go-aj/ajhash"
@@ -276,7 +278,10 @@ func (dbf *DatabaseFile) FindDuplicateHashes() (DuplicateHashes, error) {
 
 	result := make(DuplicateHashes, 64)
 
-	for idx, hash := range ht {
+	keys := slices.Sorted(maps.Keys(ht))
+
+	for _, idx := range keys {
+		hash := ht[idx]
 		hashStr := hex.EncodeToString(hash)
 
 		var dupes []uint32
@@ -319,8 +324,11 @@ func (dbf *DatabaseFile) FindDuplicates(fn FindDuplicatesFn) error {
 		return err
 	}
 
+	keys := slices.Sorted(maps.Keys(dupes))
+
 	group := 0
-	for hashStr, indices := range dupes {
+	for _, hashStr := range keys {
+		indices := dupes[hashStr]
 		for _, idx := range indices {
 			pi, err := dbf.ReadEntryAtIndex(int(idx))
 			if err != nil {

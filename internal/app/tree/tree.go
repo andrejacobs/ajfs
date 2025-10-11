@@ -17,21 +17,8 @@ type Config struct {
 
 // Process the ajfs info command.
 func Run(cfg Config) error {
-	dbf, err := db.OpenDatabase(cfg.DbPath)
-	if err != nil {
-		return err
-	}
-	defer dbf.Close()
 
-	tr := itree.New(dbf.RootPath())
-
-	err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
-		node := tr.Insert(pi)
-		if node == nil {
-			return fmt.Errorf("failed to insert new node into the tree (index = %d, path = %q)", idx, pi.Path)
-		}
-		return nil
-	})
+	tr, err := FromDatabase(cfg.DbPath)
 	if err != nil {
 		return err
 	}
@@ -47,4 +34,39 @@ func Run(cfg Config) error {
 	}
 
 	return nil
+}
+
+// Create a tree from the path entries in an ajfs database.
+func FromDatabase(dbPath string) (itree.Tree, error) {
+	dbf, err := db.OpenDatabase(dbPath)
+	if err != nil {
+		return itree.Tree{}, err
+	}
+	defer dbf.Close()
+
+	tr := itree.New(dbf.RootPath())
+
+	err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+		node := tr.Insert(pi)
+		if node == nil {
+			return fmt.Errorf("failed to insert new node into the tree (index = %d, path = %q)", idx, pi.Path)
+		}
+		return nil
+	})
+	if err != nil {
+		return itree.Tree{}, err
+	}
+
+	return tr, nil
+}
+
+// Create a signatured tree from the path entries in an ajfs database.
+func SignaturedTreeFromDatabase(dbPath string) (itree.SignaturedTree, error) {
+	tr, err := FromDatabase(dbPath)
+	if err != nil {
+		return itree.SignaturedTree{}, err
+	}
+
+	stree := itree.NewSignaturedTree(tr)
+	return stree, nil
 }

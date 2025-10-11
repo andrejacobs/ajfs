@@ -188,6 +188,15 @@ Overview of the subcommands that will be available.
     -   TODO: Think about options to support, i.e. limit, dirs only, full path
     -   TODO: Would be nice to also output colours.
 
+-   `dupes`
+
+    -   List out all duplicate files (ignoring 0 sized files) and is based on the file's signature hash.
+        Thus the database must contain file signature hashes.
+    -   `-d, --dirs` List out all duplicate directory trees.
+        Each directory will have a hash based on the filenames and directories inside of it.
+        Does not need file signature hashes.
+        -   `-t, --tree` Also print out the sub tree so you can see what is being duplicated.
+
 ### Global flags
 
 -   `-h, --help`
