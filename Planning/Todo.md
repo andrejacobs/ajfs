@@ -13,6 +13,7 @@
 -   [] Export, Diff and ToSync need to support -f --full paths.
 -   [] Ensure list uses the same output and header as search when using hashes
 -   [] Add option to search to find Id
+-   [] Should commands like list, search etc. by default be minimal output and then -m, --more is used for more details?
 
 ## Future (nice to have)
 

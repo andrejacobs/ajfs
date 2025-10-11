@@ -82,12 +82,12 @@ func TestPrint(t *testing.T) {
     └── httpd
         └── config.json
 
-4 directories, 3 files
+5 directories, 3 files
 `
 	assert.Equal(t, expected, buffer.String())
 
 	buffer.Reset()
-	n4 := makePaths(tr, "a/b")
+	n4 := tr.Find("a/b")
 	assert.NotNil(t, n4)
 
 	n4.Print(&buffer)
@@ -95,7 +95,7 @@ func TestPrint(t *testing.T) {
 	expected = `b
 └── c
 
-0 directories, 1 file
+1 directory, 1 file
 `
 	assert.Equal(t, expected, buffer.String())
 

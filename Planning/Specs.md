@@ -178,6 +178,16 @@ Overview of the subcommands that will be available.
         -   `YYYY-MM-DD HH:mm:ss`
         -   `YYYY-MM-DDTHH:mm:ss`
 
+-   `tree`
+
+    -   Display the whole or partial file hierarchy tree in the same way the CLI `tree` command does.
+    -   Examples:
+        -   `ajfs tree` will use ./db.ajfs and display entire tree.
+        -   `ajfs tree /path/to/db.ajfs` will use the specified database and display the entire tree.
+        -   `ajfs tree /path/to/db.ajfs some/sub/path` will use the specified database and only display a sub tree.
+    -   TODO: Think about options to support, i.e. limit, dirs only, full path
+    -   TODO: Would be nice to also output colours.
+
 ### Global flags
 
 -   `-h, --help`

@@ -80,7 +80,9 @@ func (t *Tree) Find(path string) *Node {
 func (t *Tree) Print(w io.Writer) {
 	if t.root != nil {
 		fmt.Fprintln(w, t.rootPath)
-		st := stats{}
+		st := stats{
+			dirCount: 1,
+		}
 		t.root.printChildren(w, &st, "")
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, st.String())
@@ -172,6 +174,9 @@ func (n *Node) findChild(named string) *Node {
 // Recursively display this node and children.
 func (n *Node) Print(w io.Writer) {
 	st := stats{}
+	if n.Info.IsDir() {
+		st.dirCount = 1
+	}
 	fmt.Fprintln(w, n.Name)
 	n.printChildren(w, &st, "")
 	fmt.Fprintln(w)
