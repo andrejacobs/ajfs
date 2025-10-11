@@ -1,6 +1,7 @@
 package tree_test
 
 import (
+	"bytes"
 	"slices"
 	"testing"
 
@@ -67,6 +68,55 @@ func TestSignaturedTreeFindDuplicates(t *testing.T) {
 	// stree.Print(os.Stdout)
 	// fmt.Printf("=======================================================\n\n")
 	// stree.PrintDuplicateSubtrees(os.Stdout, false)
+}
+
+func TestSignaturedPrint(t *testing.T) {
+	tr := tree.New("/test")
+	makePaths(tr, "a/b/c.txt")
+	makePaths(tr, "a/d/e.txt")
+
+	stree := tree.NewSignaturedTree(tr)
+
+	var buffer bytes.Buffer
+	stree.Print(&buffer)
+
+	expected := `/test
+└── a     [738f85b5fb947ee653004952949083d597e1da45]
+    ├── b     [f08d52d8c5774306baf4203c859efb1666e18df6]
+    │   └── c.txt     [fe4c80bb098894b4d6ca36c16082d567bfd41b8b]
+    └── d     [c9fc6719efc1551cdcae31a81c1d251019ce08fe]
+        └── e.txt     [0acf62922eb3f6dc602c80fe8225cf7419f50adc]
+
+3 directories, 2 files
+`
+	assert.Equal(t, expected, buffer.String())
+}
+
+func TestPrintDuplicateSubtrees(t *testing.T) {
+	tr := tree.New("/test")
+	makePaths(tr, "a/b/c.txt")
+	makePaths(tr, "a/d/e.txt")
+	makePaths(tr, "dupes/b/c.txt")
+	makePaths(tr, "dupes/x/y/z/d/e.txt")
+
+	stree := tree.NewSignaturedTree(tr)
+
+	var buffer bytes.Buffer
+	stree.PrintDuplicateSubtrees(&buffer, true)
+
+	expected := `/test
+Signature: c9fc6719efc1551cdcae31a81c1d251019ce08fe
+  a/d
+  dupes/x/y/z/d
+  └── e.txt     [0acf62922eb3f6dc602c80fe8225cf7419f50adc]
+
+Signature: f08d52d8c5774306baf4203c859efb1666e18df6
+  a/b
+  dupes/b
+  └── c.txt     [fe4c80bb098894b4d6ca36c16082d567bfd41b8b]
+
+`
+	assert.Equal(t, expected, buffer.String())
 }
 
 //-----------------------------------------------------------------------------

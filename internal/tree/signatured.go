@@ -2,12 +2,14 @@ package tree
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"hash"
 	"io"
 	"sort"
 
 	"github.com/andrejacobs/go-aj/file"
+	"github.com/andrejacobs/go-collection/collection"
 )
 
 // SignaturedTree calculates a signature for each parent node.
@@ -149,19 +151,25 @@ func (n *SignaturedNode) sortedChildren() []*SignaturedNode {
 
 // Display the map of duplicates.
 func (m DuplicateMap) Print(w io.Writer, printTree bool) {
-	for signature, list := range m {
-		fmt.Fprintln(w, "Signature:", fmt.Sprintf("%x", signature))
+	sorted := collection.MapSortedByKeysFunc(m, func(l, r file.PathHash) bool {
+		lhex := hex.EncodeToString(l[:])
+		rhex := hex.EncodeToString(r[:])
+		return lhex < rhex
+	})
 
-		sort.Slice(list, func(i, j int) bool {
-			return list[i].Node.Info.Path < list[j].Node.Info.Path
+	for _, kv := range sorted {
+		fmt.Fprintln(w, "Signature:", fmt.Sprintf("%x", kv.Key))
+
+		sort.Slice(kv.Value, func(i, j int) bool {
+			return kv.Value[i].Node.Info.Path < kv.Value[j].Node.Info.Path
 		})
 
-		for _, node := range list {
+		for _, node := range kv.Value {
 			fmt.Fprintln(w, " ", node.Node.Info.Path)
 		}
 
-		if printTree && len(list) > 0 {
-			list[0].printChildren(w, &stats{}, "  ")
+		if printTree && len(kv.Value) > 0 {
+			kv.Value[0].printChildren(w, &stats{}, "  ")
 		}
 
 		fmt.Fprintln(w)

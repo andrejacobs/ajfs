@@ -1,6 +1,7 @@
 package tree_test
 
 import (
+	"bytes"
 	"io/fs"
 	"path/filepath"
 	"slices"
@@ -26,8 +27,8 @@ func TestTree(t *testing.T) {
 	r := makePaths(tr, ".")
 	assert.NotNil(t, r)
 
-	n5 := makePaths(tr, "etc/httpd/config.json")
-	assert.NotNil(t, n5)
+	n3 := makePaths(tr, "etc/httpd/config.json")
+	assert.NotNil(t, n3)
 
 	expected := []string{
 		".",
@@ -49,8 +50,80 @@ func TestTree(t *testing.T) {
 	assert.Equal(t, tr.Root(), r)
 	assert.Equal(t, n1, tr.Find("a/b/c"))
 	assert.Equal(t, n2, tr.Find("a/d"))
-	assert.Equal(t, n5, tr.Find("etc/httpd/config.json"))
+	assert.Equal(t, n3, tr.Find("etc/httpd/config.json"))
 	assert.Nil(t, tr.Find("a/b/zoo"))
+}
+
+func TestPrint(t *testing.T) {
+	tr := tree.New("/test")
+	assert.Equal(t, "/test", tr.RootPath())
+
+	n1 := makePaths(tr, "a/b/c")
+	assert.NotNil(t, n1)
+
+	n2 := makePaths(tr, "a/d")
+	assert.NotNil(t, n2)
+
+	r := makePaths(tr, ".")
+	assert.NotNil(t, r)
+
+	n3 := makePaths(tr, "etc/httpd/config.json")
+	assert.NotNil(t, n3)
+
+	var buffer bytes.Buffer
+	tr.Print(&buffer)
+
+	expected := `/test
+├── a
+│   ├── b
+│   │   └── c
+│   └── d
+└── etc
+    └── httpd
+        └── config.json
+
+4 directories, 3 files
+`
+	assert.Equal(t, expected, buffer.String())
+
+	buffer.Reset()
+	n4 := makePaths(tr, "a/b")
+	assert.NotNil(t, n4)
+
+	n4.Print(&buffer)
+
+	expected = `b
+└── c
+
+0 directories, 1 file
+`
+	assert.Equal(t, expected, buffer.String())
+
+	buffer.Reset()
+	n5 := tr.Insert(path.Info{Path: "z/emptyDir", Mode: fs.ModeDir})
+	assert.NotNil(t, n5)
+
+	fn := tr.Find("z")
+	assert.NotNil(t, fn)
+
+	fn.Print(&buffer)
+
+	expected = `z
+└── emptyDir
+
+1 directory, 0 files
+`
+	assert.Equal(t, expected, buffer.String())
+
+}
+
+func TestTreePanics(t *testing.T) {
+	// Lol just imagine a big tree shaking with fear
+
+	tr := tree.Tree{}
+	assert.Panics(t, func() {
+		tr.Insert(path.Info{Path: "this-should-panic"})
+	})
 }
 
 //-----------------------------------------------------------------------------

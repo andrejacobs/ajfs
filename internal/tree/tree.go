@@ -238,7 +238,21 @@ type stats struct {
 }
 
 func (s *stats) String() string {
-	return fmt.Sprintf("%d directories, %d files", s.dirCount, s.fileCount)
+	var dirStr string
+	if s.dirCount == 1 {
+		dirStr = "directory"
+	} else {
+		dirStr = "directories"
+	}
+
+	var fileStr string
+	if s.fileCount == 1 {
+		fileStr = "file"
+	} else {
+		fileStr = "files"
+	}
+
+	return fmt.Sprintf("%d %s, %d %s", s.dirCount, dirStr, s.fileCount, fileStr)
 }
 
 //-----------------------------------------------------------------------------
