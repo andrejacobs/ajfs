@@ -1,3 +1,4 @@
+// Package filter provides helpers for creating the inclusion and exclusion filters used by ajfs.
 package filter
 
 import (
