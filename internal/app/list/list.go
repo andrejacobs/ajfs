@@ -37,7 +37,7 @@ func Run(cfg Config) error {
 	}
 
 	if cfg.CommonConfig.Verbose {
-		if dbf.Features().HasHashTable() {
+		if cfg.DisplayHashes && dbf.Features().HasHashTable() {
 			cfg.Println(path.HeaderWithHash())
 		} else {
 			cfg.Println(path.Header())
@@ -51,7 +51,7 @@ func Run(cfg Config) error {
 			}
 
 			hashStr := hex.EncodeToString(hash)
-			cfg.Println(fmt.Sprintf("{%x}, %q, %v, %q, %v, %v", pi.Id, hashStr, pi.Size, pi.Path, pi.Mode, pi.ModTime.Format(time.RFC3339Nano)))
+			cfg.Println(fmt.Sprintf("{%x}, %s, %v, %q, %v, %v", pi.Id, hashStr, pi.Size, pi.Path, pi.Mode, pi.ModTime.Format(time.RFC3339Nano)))
 			return nil
 		})
 		return err
