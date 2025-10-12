@@ -398,6 +398,54 @@ func TestExportHashdeep(t *testing.T) {
 	}
 }
 
+func TestExportFullPath(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.csv")
+	_ = os.Remove(tempExportFile)
+	defer os.Remove(tempExportFile)
+
+	expected := expectedDatabase(t, tempFile, false)
+	expectedF, err := os.CreateTemp("", "unit-test.ajfs.expected.csv")
+	require.NoError(t, err)
+	defer os.Remove(expectedF.Name())
+
+	csvWriter := csv.NewWriter(expectedF)
+	csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Path"})
+
+	for _, exp := range expected {
+		csvWriter.Write([]string{
+			fmt.Sprintf("%x", exp.pi.Id),
+			fmt.Sprintf("%d", exp.pi.Size),
+			exp.pi.Mode.String(),
+			exp.pi.ModTime.Format(time.RFC3339Nano),
+			fmt.Sprintf("%t", exp.pi.IsDir()),
+			filepath.Join("/test/", exp.pi.Path),
+		})
+	}
+
+	csvWriter.Flush()
+	require.NoError(t, csvWriter.Error())
+	require.NoError(t, expectedF.Close())
+
+	cfg := export.Config{
+		CommonConfig: config.CommonConfig{
+			DbPath: tempFile,
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		Format:     export.FormatCSV,
+		ExportPath: tempExportFile,
+		FullPaths:  true,
+	}
+
+	require.NoError(t, export.Run(cfg))
+
+	testshared.SimpleDiff(t, expectedF.Name(), tempExportFile)
+}
+
 //-----------------------------------------------------------------------------
 
 type expectedEntry struct {

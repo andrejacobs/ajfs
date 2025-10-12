@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
@@ -43,6 +44,7 @@ type Config struct {
 
 	ExportPath string
 	Format     int
+	FullPaths  bool
 }
 
 // Process the ajfs export command.
@@ -103,6 +105,10 @@ func exportCSV(cfg Config) error {
 				}
 			}
 
+			if cfg.FullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			}
+
 			err := csvWriter.Write([]string{
 				fmt.Sprintf("%x", pi.Id),
 				fmt.Sprintf("%d", pi.Size),
@@ -127,6 +133,10 @@ func exportCSV(cfg Config) error {
 		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Path"})
 
 		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+			if cfg.FullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			}
+
 			err := csvWriter.Write([]string{
 				fmt.Sprintf("%x", pi.Id),
 				fmt.Sprintf("%d", pi.Size),
@@ -258,6 +268,10 @@ func exportJSON(cfg Config) error {
 				}
 			}
 
+			if cfg.FullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			}
+
 			data, err := json.MarshalIndent(jsonEntry{
 				Id:      hex.EncodeToString(pi.Id[:]),
 				Path:    pi.Path,
@@ -301,6 +315,10 @@ func exportJSON(cfg Config) error {
 		expectedCount := dbf.EntriesCount()
 
 		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+			if cfg.FullPaths {
+				pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			}
+
 			data, err := json.MarshalIndent(jsonEntry{
 				Id:      hex.EncodeToString(pi.Id[:]),
 				Path:    pi.Path,
@@ -415,7 +433,15 @@ func exportHashdeep(cfg Config) error {
 
 	err = dbf.ReadAllEntriesWithHashes(func(idx int, pi path.Info, hash []byte) error {
 		hashStr := hex.EncodeToString(hash)
-		_, err := fmt.Fprintf(f, "%d,%s,./%s\n", pi.Size, hashStr, pi.Path)
+
+		var err error
+		if cfg.FullPaths {
+			pi.Path = filepath.Join(dbf.RootPath(), pi.Path)
+			_, err = fmt.Fprintf(f, "%d,%s,%s\n", pi.Size, hashStr, pi.Path)
+		} else {
+			_, err = fmt.Fprintf(f, "%d,%s,./%s\n", pi.Size, hashStr, pi.Path)
+		}
+
 		return err
 	})
 	if err != nil {

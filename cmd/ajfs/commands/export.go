@@ -37,6 +37,7 @@ var exportCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := export.Config{
 			CommonConfig: commonConfig,
+			FullPaths:    exportFullPaths,
 		}
 
 		switch len(args) {
@@ -71,8 +72,10 @@ func init() {
 	rootCmd.AddCommand(exportCmd)
 
 	exportCmd.Flags().StringVar(&exportFormat, "format", "csv", "Export format: csv, json or hashdeep.")
+	exportCmd.Flags().BoolVarP(&exportFullPaths, "full", "f", false, "Export full paths for entries")
 }
 
 var (
-	exportFormat string
+	exportFormat    string
+	exportFullPaths bool
 )

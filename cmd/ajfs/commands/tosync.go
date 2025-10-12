@@ -38,6 +38,7 @@ var tosyncCmd = &cobra.Command{
 		cfg := tosync.Config{
 			CommonConfig: commonConfig,
 			OnlyHashes:   tosyncHashesOnly,
+			FullPaths:    tosyncFullPaths,
 		}
 
 		switch len(args) {
@@ -61,10 +62,12 @@ func init() {
 	rootCmd.AddCommand(tosyncCmd)
 
 	tosyncCmd.Flags().BoolVarP(&tosyncHashesOnly, "hash", "s", false, "Compare only the file signature hashes")
+	tosyncCmd.Flags().BoolVarP(&tosyncFullPaths, "full", "f", false, "Display full paths for entries")
 }
 
 var (
 	tosyncHashesOnly bool
+	tosyncFullPaths  bool
 )
 
 func printToSync(d diff.Diff) error {

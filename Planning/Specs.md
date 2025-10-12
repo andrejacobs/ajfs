@@ -92,6 +92,7 @@ Overview of the subcommands that will be available.
 -   `export`
 
     -   Export a database to different formats.
+    -   `-f, --full`: Display the full path including the root path of when the database was created.
     -   `--format=csv` Export to a CSV format. The default option.
     -   `--format=json` Export to a JSON format.
     -   `--format=hashdeep` Export to a format compatible with hashdeep.
@@ -126,6 +127,7 @@ Overview of the subcommands that will be available.
     -   One of my biggest use cases for this tool is to be able to tell if some files on one system have actually been backed up onto another system.
         In these situations the paths are not the same.
         -   `-s, --hash`. When this option is specified then both sides (LHS and RHS) will need to have file signature hashes. Only the hashes will be compared and any hash that appears only in the LHS or that is different to the hash on the RHS will be shown.
+    -   `-f, --full`: Display the full path including the root path of when the database was created.
     -   Examples:
         -   `ajfs tosync /path/to/rhs.ajfs` compares ./db.ajfs as the LHS against the RHS database.
         -   `ajfs tosync /path/to/lhs.ajfs /path/to/rhs.ajfs` compares the LHS database against the RHS database.

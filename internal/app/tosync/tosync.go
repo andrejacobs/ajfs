@@ -23,6 +23,7 @@ package tosync
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/app/diff"
@@ -39,6 +40,7 @@ type Config struct {
 	RhsPath string
 
 	OnlyHashes bool
+	FullPaths  bool
 
 	Fn diff.CompareFn
 }
@@ -70,7 +72,7 @@ func tosync(cfg Config) error {
 	defer rhs.Close()
 
 	if cfg.OnlyHashes {
-		err = compareOnlyHashes(lhs, rhs, cfg.Fn)
+		err = compareOnlyHashes(cfg, lhs, rhs, cfg.Fn)
 		if err != nil {
 			if err != diff.SkipAll {
 				return err
@@ -108,6 +110,10 @@ func compare(cfg Config, lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.Com
 			return nil
 		}
 
+		if cfg.FullPaths {
+			d.Path = filepath.Join(lhs.RootPath(), d.Path)
+		}
+
 		count++
 		totalSize += d.Size
 
@@ -122,7 +128,7 @@ func compare(cfg Config, lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.Com
 	return nil
 }
 
-func compareOnlyHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.CompareFn) error {
+func compareOnlyHashes(cfg Config, lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.CompareFn) error {
 	if !lhs.Features().HasHashTable() {
 		return fmt.Errorf("left hand side database %q does not have a hash table", lhs.Path())
 	}
@@ -164,12 +170,18 @@ func compareOnlyHashes(lhs *db.DatabaseFile, rhs *db.DatabaseFile, fn diff.Compa
 			return fmt.Errorf("failed to read left hand side entry with index %d. %w", v, err)
 		}
 
-		err = fn(diff.Diff{
+		d := diff.Diff{
 			Type:  diff.TypeLeftOnly,
 			Id:    pi.Id,
 			Path:  pi.Path,
 			IsDir: pi.IsDir(),
-		})
+		}
+
+		if cfg.FullPaths {
+			d.Path = filepath.Join(lhs.RootPath(), d.Path)
+		}
+
+		err = fn(d)
 		if err != nil {
 			return err
 		}
