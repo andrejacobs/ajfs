@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs info
+// ajfs info.
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Display information about a database",

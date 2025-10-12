@@ -54,7 +54,7 @@ func (p *Info) IsDir() bool {
 	return p.Mode.IsDir()
 }
 
-// Return true if the path is a regular file
+// Return true if the path is a regular file.
 func (p *Info) IsFile() bool {
 	return p.Mode.IsRegular()
 }
@@ -83,7 +83,7 @@ func InfoFromWalk(path string, entry fs.DirEntry) (Info, error) {
 	return Info{
 		Id:      IdFromPath(path),
 		Path:    path,
-		Size:    uint64(fileInfo.Size()),
+		Size:    uint64(fileInfo.Size()), //nolint:gosec // disable G115
 		Mode:    fileInfo.Mode(),
 		ModTime: fileInfo.ModTime(),
 	}, nil
@@ -91,13 +91,13 @@ func InfoFromWalk(path string, entry fs.DirEntry) (Info, error) {
 
 //-----------------------------------------------------------------------------
 
-// Header returns a comma seperated list of the expected columns that will be outputted by Info.String()
+// Header returns a comma separated list of the expected columns that will be outputted by Info.String().
 func Header() string {
 	// See Infor.String() to ensure they match if any changes are made
 	return "Id, Size, Path, Mode, Modification time"
 }
 
-// Header returns a comma seperated list of the expected columns that will be outputted for paths with a file signature hash.
+// Header returns a comma separated list of the expected columns that will be outputted for paths with a file signature hash.
 func HeaderWithHash() string {
 	return "Id, Hash, Size, Path, Mode, Modification time"
 }

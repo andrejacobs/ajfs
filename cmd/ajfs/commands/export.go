@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs export
+// ajfs export.
 var exportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export the database",

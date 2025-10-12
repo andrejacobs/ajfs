@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs update
+// ajfs update.
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Perform a new scan and update an existing database",

@@ -33,7 +33,7 @@ type Stats struct {
 	DirCount  uint64 // total number of directories
 	FileCount uint64 // total number of files
 
-	TotalFileSize uint64 // total size of files all summed toghether
+	TotalFileSize uint64 // total size of files all summed together
 	AvgFileSize   uint64 // totalFileSize / fileCount
 
 	MaxFileSize uint64 // the biggest single file size

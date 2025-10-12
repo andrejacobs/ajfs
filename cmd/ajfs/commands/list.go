@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs list
+// ajfs list.
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Display the database path entries",

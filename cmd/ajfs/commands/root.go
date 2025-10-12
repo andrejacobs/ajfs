@@ -32,7 +32,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:     "ajfs",
 	Version: buildinfo.VersionString(),
@@ -40,7 +40,7 @@ var rootCmd = &cobra.Command{
 	Long:    `todo`,
 }
 
-// Main entry point for ajfs CLI
+// Main entry point for ajfs CLI.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -49,7 +49,7 @@ func Execute() {
 	}
 }
 
-// Init cobra
+// Init cobra.
 func init() {
 	cobra.OnInitialize(initApp)
 	cobra.OnFinalize(cleanupApplication)
@@ -61,7 +61,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Output verbose information.")
 }
 
-// Run before any commands are run
+// Run before any commands are run.
 func initApp() {
 	commonConfig.Init()
 	commonConfig.Verbose = verbose
@@ -71,7 +71,7 @@ func initApp() {
 	}
 }
 
-// Run after a command is finished
+// Run after a command is finished.
 func cleanupApplication() {
 	if commonConfig.Verbose {
 		commonConfig.VerbosePrintln("")
@@ -79,13 +79,13 @@ func cleanupApplication() {
 	}
 }
 
-// Log error message to STDERR and exit the program with the specified exit code
+// Log error message to STDERR and exit the program with the specified exit code.
 func exitOnError(err error, code int) {
 	fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 	os.Exit(code)
 }
 
-// Database path from the args
+// Database path from the args.
 func dbPathFromArgs(args []string) string {
 	if len(args) > 0 {
 		return args[0]

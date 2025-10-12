@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs tosync
+// ajfs tosync.
 var tosyncCmd = &cobra.Command{
 	Use:   "tosync",
 	Short: "Show which files need to be synced from the LHS to the RHS",

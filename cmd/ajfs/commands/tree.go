@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs tree
+// ajfs tree.
 var treeCmd = &cobra.Command{
 	Use:   "tree",
 	Short: "Display the file hiearchy tree",

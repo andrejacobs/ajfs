@@ -93,7 +93,9 @@ func exportCSV(cfg Config) error {
 			return err
 		}
 
-		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Hash (" + algo.String() + ")", "Path"})
+		if err = csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Hash (" + algo.String() + ")", "Path"}); err != nil {
+			return err
+		}
 
 		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
 			var hashStr string
@@ -130,7 +132,9 @@ func exportCSV(cfg Config) error {
 		}
 	} else {
 		// Without a hash table
-		csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Path"})
+		if err = csvWriter.Write([]string{"Id", "Size", "Mode", "ModTime", "IsDir", "Path"}); err != nil {
+			return err
+		}
 
 		err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
 			if cfg.FullPaths {

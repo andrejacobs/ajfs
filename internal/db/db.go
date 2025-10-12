@@ -62,6 +62,7 @@ import (
 // - [features]
 // - Finish
 // - Close
+// .
 type DatabaseFile struct {
 	file *trackedoffset.File
 	path string
@@ -235,7 +236,7 @@ func (dbf *DatabaseFile) readHeadersAndVerify() error {
 	return nil
 }
 
-// Sync pending writes and close the file
+// Sync pending writes and close the file.
 func (dbf *DatabaseFile) Close() error {
 	if dbf.file == nil {
 		return nil
@@ -535,7 +536,7 @@ func (dbf *DatabaseFile) BuildIdToInfoMap() (IdToInfoMap, error) {
 
 //-----------------------------------------------------------------------------
 
-// Update the header
+// Update the header.
 func (dbf *DatabaseFile) finishCreation() error {
 	dbf.panicIfNotWriting()
 
@@ -571,7 +572,7 @@ func (dbf *DatabaseFile) finishCreation() error {
 	return nil
 }
 
-// Read the entry offset table
+// Read the entry offset table.
 func (dbf *DatabaseFile) readEntryLookupTable() error {
 	if dbf.header.EntriesCount == 0 {
 		return nil
@@ -622,7 +623,7 @@ func (dbf *DatabaseFile) readEntryLookupTable() error {
 	return nil
 }
 
-// Write the entry lookup table
+// Write the entry lookup table.
 func (dbf *DatabaseFile) writeEntryLookupTable() error {
 	if dbf.header.EntriesCount == 0 {
 		return nil
@@ -654,7 +655,7 @@ func (dbf *DatabaseFile) writeEntryLookupTable() error {
 	return nil
 }
 
-// Panic if the database was not opened for creation (as in file writing)
+// Panic if the database was not opened for creation (as in file writing).
 func (dbf *DatabaseFile) panicIfNotWriting() {
 	if !dbf.creating {
 		panic("database was not opened for writing")
@@ -664,7 +665,7 @@ func (dbf *DatabaseFile) panicIfNotWriting() {
 //-----------------------------------------------------------------------------
 // Prefix Header
 
-// First part of the file to identify the type and version of the format
+// First part of the file to identify the type and version of the format.
 type prefixHeader struct {
 	Signature [4]byte // AJFS
 	Version   uint16  // Version of the file format
@@ -745,7 +746,7 @@ func (s *rootEntry) write(w io.Writer) error {
 //-----------------------------------------------------------------------------
 // Meta entry
 
-// Meta info about how the database was created
+// Meta info about how the database was created.
 type MetaEntry struct {
 	// The following fields will be written as the size of the data varint followed by the encoded form of the data
 	OS        string    `json:"os"`        // The operating system (e.g. darwin, linux, windows etc.)
@@ -810,7 +811,7 @@ func (s *MetaEntry) write(w io.Writer) error {
 //-----------------------------------------------------------------------------
 // Path info
 
-// Path entry
+// Path entry.
 type pathEntry struct {
 	header pathEntryHeader // fixed size struct to make serialization easier
 
@@ -917,7 +918,7 @@ func (f FeatureFlags) HasHashTable() bool {
 //-----------------------------------------------------------------------------
 // Helpers
 
-// Convert from path.PathInfo to pathEntry
+// Convert from path.PathInfo to pathEntry.
 func pathEntryFromPathInfo(i *path.Info) pathEntry {
 	result := pathEntry{
 		header: pathEntryHeader{
@@ -931,7 +932,7 @@ func pathEntryFromPathInfo(i *path.Info) pathEntry {
 	return result
 }
 
-// Convert from pathEntry to path.PathInfo
+// Convert from pathEntry to path.PathInfo.
 func pathInfoFromPathEntry(e *pathEntry) path.Info {
 	result := path.Info{
 		Id:      e.header.Id,
@@ -952,7 +953,7 @@ var (
 
 var (
 	signature = [4]byte{0x41, 0x4A, 0x46, 0x53} // AJFS
-	sentinel  = [4]byte{0x41, 0x4A, 0x43, 0x43} // AJCC (as in interupt 3 0xCC :-)
+	sentinel  = [4]byte{0x41, 0x4A, 0x43, 0x43} // AJCC (as in interrupt 3 0xCC :-)
 	varData   = vardata.NewVariableData()
 )
 

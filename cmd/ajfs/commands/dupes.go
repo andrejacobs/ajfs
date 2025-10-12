@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs dupes
+// ajfs dupes.
 var dupesCmd = &cobra.Command{
 	Use:   "dupes",
 	Short: "Display all duplicate files or directory trees",

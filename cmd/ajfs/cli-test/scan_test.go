@@ -41,7 +41,7 @@ func TestScanAndList(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, out)
 
-	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	cmd = exec.Command(execPath, "list", dbPath)
 	out, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -61,7 +61,7 @@ func TestScanIncludeFileFiltering(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, out)
 
-	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	cmd = exec.Command(execPath, "list", dbPath)
 	out, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -92,7 +92,7 @@ func TestScanIncludeDirFiltering(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, out)
 
-	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	cmd = exec.Command(execPath, "list", dbPath)
 	out, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -119,7 +119,7 @@ func TestScanExcludeFileFiltering(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, out)
 
-	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	cmd = exec.Command(execPath, "list", dbPath)
 	out, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -146,7 +146,7 @@ func TestScanExcludeDirFiltering(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, out)
 
-	cmd = exec.Command(execPath, "list", "--minimal", dbPath)
+	cmd = exec.Command(execPath, "list", dbPath)
 	out, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 

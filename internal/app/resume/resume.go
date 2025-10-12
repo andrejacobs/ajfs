@@ -103,8 +103,8 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 	cfg.VerbosePrintln(fmt.Sprintf("  Algorithm: %s", algo))
 
 	var progress *progressbar.ProgressBar
-	count := 0
-	totalCount := 0
+	count := uint64(0)
+	totalCount := uint64(0)
 
 	if cfg.Progress {
 		cfg.ProgressPrintln("Calculating progress information ...")
@@ -113,10 +113,10 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 			return err
 		}
 
-		totalCount = int(stats.FileCount)
+		totalCount = stats.FileCount
 
 		todoSize := uint64(0)
-		todoCount := 0
+		todoCount := uint64(0)
 		err = dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {
 			todoSize += pi.Size
 			todoCount++
@@ -128,8 +128,10 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 
 		cfg.VerbosePrintln(fmt.Sprintf("Still need to process %d files [%s]", todoCount, human.Bytes(todoSize)))
 
-		progress = progressbar.DefaultBytes(int64(stats.TotalFileSize))
-		progress.Set64(int64(stats.TotalFileSize - todoSize))
+		progress = progressbar.DefaultBytes(int64(stats.TotalFileSize)) //nolint:gosec // disable G115
+		if err = progress.Set64(int64(stats.TotalFileSize - todoSize)); err != nil {
+			return err
+		}
 		count = totalCount - todoCount
 	}
 

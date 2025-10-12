@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs resume
+// ajfs resume.
 var resumeCmd = &cobra.Command{
 	Use:   "resume",
 	Short: "Resume calculating file signature hashes",

@@ -80,7 +80,7 @@ func Run(cfg Config) error {
 		}
 	}
 
-	features := db.FeatureJustEntries
+	features := db.FeatureFlags(db.FeatureJustEntries)
 	if cfg.CalculateHashes {
 		features |= db.FeatureHashTable
 		cfg.VerbosePrintln("Will be creating a hash table")
@@ -178,7 +178,7 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 
 	var progress *progressbar.ProgressBar
 	count := 0
-	totalCount := 0
+	totalCount := uint64(0)
 
 	if cfg.Progress {
 		cfg.ProgressPrintln("Calculating progress information ...")
@@ -187,8 +187,8 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 			return err
 		}
 
-		progress = progressbar.DefaultBytes(int64(stats.TotalFileSize))
-		totalCount = int(stats.FileCount)
+		progress = progressbar.DefaultBytes(int64(stats.TotalFileSize)) //nolint:gosec // disable G115
+		totalCount = stats.FileCount
 	}
 
 	err := dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {

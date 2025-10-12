@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs diff
+// ajfs diff.
 var diffCmd = &cobra.Command{
 	Use:   "diff",
 	Short: "Display the differences between two databases and or file system",

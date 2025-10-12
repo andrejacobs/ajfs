@@ -99,7 +99,7 @@ File size:     %s`,
 	expOut3 := fmt.Sprintf(`Calculating statistics...
 File count:    %d
 Dir count:     %d
-Total size:    %s [all files toghether]
+Total size:    %s [all files together]
 Max file size: %s [single biggest file]
 Avg file size: %s`,
 		exp.fileCount,

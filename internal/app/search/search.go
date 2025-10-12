@@ -59,7 +59,7 @@ func Run(cfg Config) error {
 	defer dbf.Close()
 
 	// Header
-	if cfg.CommonConfig.Verbose {
+	if cfg.Verbose {
 		if cfg.AlsoHashes && dbf.Features().HasHashTable() {
 			if cfg.DisplayMinimal {
 				cfg.Println("Hash, Path")
@@ -208,7 +208,7 @@ type searchNot struct {
 	exp Expression
 }
 
-// Inverts a match
+// Inverts a match.
 func NewNot(exp Expression) *searchNot {
 	return &searchNot{exp: exp}
 }
@@ -412,7 +412,8 @@ const (
 // p/P for Petabytes (1 PB = 1000 TB). e.g. 1p
 // Valid prefixes are:
 // + means Greater than. e.g. +1k
-// - means Less than. e.g. -1k
+// - means Less than. e.g. -1
+// .
 func NewSize(expression string) (*searchSize, error) {
 	s := &searchSize{}
 	err := s.parse(expression)
@@ -480,7 +481,7 @@ func (s *searchSize) parse(expression string) error {
 		return fmt.Errorf("failed to parse the size expression %q. %v", expression, err)
 	}
 
-	s.size = uint64(value) * blocksize
+	s.size = uint64(value) * blocksize //nolint:gosec // disable G115
 
 	return nil
 }
@@ -529,6 +530,7 @@ type searchModTime struct {
 // <n>D n Days before now. e.g. 10D
 // <n>M n Months before now. .e.g. 2M
 // <n>Y n Years before now. e.g. 5Y
+// .
 func NewModTimeBefore(expression string) (*searchModTime, error) {
 	s := &searchModTime{}
 	err := s.parse(expression, false)
@@ -543,6 +545,7 @@ func NewModTimeBefore(expression string) (*searchModTime, error) {
 // YYYY-MM-DD
 // YYYY-MM-DD HH:mm:ss
 // YYYY-MM-DDTHH:mm:ss
+// .
 func NewModTimeAfter(expression string) (*searchModTime, error) {
 	s := &searchModTime{}
 	err := s.parse(expression, true)

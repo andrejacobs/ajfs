@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs scan
+// ajfs scan.
 var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "TODO",
@@ -96,7 +96,7 @@ var (
 	scanDryRun          bool
 )
 
-// Determine the hashing algorithm to use based on the flag that was passed
+// Determine the hashing algorithm to use based on the flag that was passed.
 func algoFromFlag(flag string) (ajhash.Algo, error) {
 	switch strings.ToLower(flag) {
 	case "sha1":

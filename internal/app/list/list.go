@@ -56,7 +56,7 @@ func Run(cfg Config) error {
 		return nil
 	}
 
-	if cfg.CommonConfig.Verbose {
+	if cfg.Verbose {
 		if cfg.DisplayHashes && dbf.Features().HasHashTable() {
 			cfg.Println(path.HeaderWithHash())
 		} else {

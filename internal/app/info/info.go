@@ -56,7 +56,7 @@ func Run(cfg Config) error {
 	cfg.Println(fmt.Sprintf("Architecture:  %s", dbf.Meta().Arch))
 	cfg.Println(fmt.Sprintf("Created at:    %s", dbf.Meta().CreatedAt))
 	cfg.Println(fmt.Sprintf("Entries:       %d", dbf.EntriesCount()))
-	cfg.Println(fmt.Sprintf("File size:     %s", human.Bytes(uint64(fileInfo.Size()))))
+	cfg.Println(fmt.Sprintf("File size:     %s", human.Bytes(uint64(fileInfo.Size())))) //nolint:gosec // disable G115
 	cfg.Println(fmt.Sprintf("Features:      0x%x", dbf.Features()))
 
 	if dbf.Features().HasHashTable() {
@@ -87,7 +87,7 @@ func Run(cfg Config) error {
 
 	cfg.Println(fmt.Sprintf("File count:    %d", stats.FileCount))
 	cfg.Println(fmt.Sprintf("Dir count:     %d", stats.DirCount))
-	cfg.Println(fmt.Sprintf("Total size:    %s [all files toghether]", human.Bytes(stats.TotalFileSize)))
+	cfg.Println(fmt.Sprintf("Total size:    %s [all files together]", human.Bytes(stats.TotalFileSize)))
 	cfg.Println(fmt.Sprintf("Max file size: %s [single biggest file]", human.Bytes(stats.MaxFileSize)))
 	cfg.Println(fmt.Sprintf("Avg file size: %s", human.Bytes(stats.AvgFileSize)))
 

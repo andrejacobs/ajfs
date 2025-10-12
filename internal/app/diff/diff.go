@@ -197,7 +197,7 @@ func (d *Diff) String() string {
 //-----------------------------------------------------------------------------
 
 // Indicates to Compare to stop processing differences.
-var SkipAll = errors.New("skip all") //lint:ignore ST1012 not an error and is more readable
+var SkipAll = errors.New("skip all") //nolint:staticcheck //ST1012: not an error and is more readable
 
 // Called by Compare for each difference that was found.
 // Return [SkipAll] to stop the process.

@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs search
+// ajfs search.
 var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search for matching path entries",
@@ -258,6 +258,8 @@ func buildSearchExpression(cfg *search.Config) error {
 		and = search.NewAnd(prev, exp)
 		prev = and
 	}
+
+	_ = prev
 
 	// If no flags then match nothing
 	if and == nil {

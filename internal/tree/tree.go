@@ -101,7 +101,7 @@ func (t *Tree) Print(w io.Writer) {
 	t.PrintWithLimit(w, 0)
 }
 
-// Display the tree with a maximum specified depth
+// Display the tree with a maximum specified depth.
 func (t *Tree) PrintWithLimit(w io.Writer, limit int) {
 	if t.root != nil {
 		fmt.Fprintln(w, t.rootPath)
@@ -180,11 +180,11 @@ func (n *Node) insertChild(c *Node) {
 	n.FirstChild = c
 }
 
-// Find the first child with the specified name
+// Find the first child with the specified name.
 func (n *Node) findChild(named string) *Node {
 	current := n.FirstChild
 	for {
-		if current == nil {
+		if current == nil { //nolint:staticcheck // QF1006
 			break
 		}
 		if current.Name == named {
@@ -249,7 +249,7 @@ func (n *Node) children() []*Node {
 
 	current := n.FirstChild
 	for {
-		if current == nil {
+		if current == nil { //nolint:staticcheck // QF1006
 			break
 		}
 		result = append(result, current)

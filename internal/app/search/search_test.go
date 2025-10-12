@@ -24,7 +24,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -420,8 +419,8 @@ func TestScanAndSearch(t *testing.T) {
 	assert.Equal(t, "", errBuffer.String())
 
 	expected := []string{
-		fmt.Sprintf("{%x}, %q", path.IdFromPath("b/b1/b1a/blank.txt"), "b/b1/b1a/blank.txt"),
-		fmt.Sprintf("{%x}, %q", path.IdFromPath("c/c.txt"), "c/c.txt"),
+		"b/b1/b1a/blank.txt",
+		"c/c.txt",
 	}
 
 	slices.Sort(result)

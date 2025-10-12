@@ -89,7 +89,7 @@ func (dbf *DatabaseFile) StartHashTable(algo ajhash.Algo) error {
 		return fmt.Errorf("failed to write the hash table header. %w", err)
 	}
 
-	// Write inital empty entries
+	// Write initial empty entries
 	zeroHash := algo.ZeroValue()
 	for _, idx := range dbf.fileIndices {
 		entry := hashEntry{
@@ -310,7 +310,7 @@ func (dbf *DatabaseFile) FindDuplicateHashes() (DuplicateHashes, error) {
 		if !exists {
 			dupes = make([]uint32, 0, 4)
 		}
-		dupes = append(dupes, uint32(idx))
+		dupes = append(dupes, uint32(idx)) //nolint:gosec // disable G115
 		result[hashStr] = dupes
 	}
 
@@ -406,7 +406,7 @@ func (dbf *DatabaseFile) HashTableAlgo() (ajhash.Algo, error) {
 	return header.Algo, nil
 }
 
-// Read the hash table header and do basic validation
+// Read the hash table header and do basic validation.
 func (dbf *DatabaseFile) readHashTableHeader() (hashTableHeader, error) {
 	if !dbf.header.Features.HasHashTable() || (dbf.header.HashTableOffset == 0) {
 		panic("database contains no hash table")
@@ -441,7 +441,7 @@ func (dbf *DatabaseFile) readHashTableHeader() (hashTableHeader, error) {
 	return header, nil
 }
 
-// Get the database ready to resume calculating the file signature hashes
+// Get the database ready to resume calculating the file signature hashes.
 func (dbf *DatabaseFile) resumeHashTable() error {
 
 	header, err := dbf.readHashTableHeader()

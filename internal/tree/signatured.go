@@ -21,7 +21,7 @@
 package tree
 
 import (
-	"crypto/sha1"
+	"crypto/sha1" // #nosec G505 -- SHA1 is not used for cryptography
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -49,7 +49,7 @@ func NewSignaturedTree(t Tree) SignaturedTree {
 		rootPath: t.rootPath,
 		root:     sroot,
 	}
-	buildNodes(t.root, sroot, sha1.New())
+	buildNodes(t.root, sroot, sha1.New()) // #nosec G401 -- SHA1 is not used for cryptography
 	return stree
 }
 
@@ -148,7 +148,7 @@ func (n *SignaturedNode) children() []*SignaturedNode {
 
 	current := n.FirstChild
 	for {
-		if current == nil {
+		if current == nil { //nolint:staticcheck // QF1006
 			break
 		}
 		result = append(result, current)
@@ -211,11 +211,11 @@ func buildNodes(parent *Node, signaturedParent *SignaturedNode, hasher hash.Hash
 		}
 
 		signaturedParent.insertChild(signaturedChild)
-		buildNodes(child, signaturedChild, sha1.New())
+		buildNodes(child, signaturedChild, sha1.New()) // #nosec G401 -- SHA1 is not used for cryptography
 		hasher.Write(signaturedChild.Signature[:])
 	}
 
-	io.WriteString(hasher, parent.Name)
+	_, _ = io.WriteString(hasher, parent.Name)
 	signaturedParent.Signature = file.PathHash(hasher.Sum(nil))
 }
 
@@ -238,7 +238,7 @@ func findDuplicateSubtrees(dupes DuplicateMap, parent *SignaturedNode) {
 	if !exists {
 		child := parent.FirstChild
 		for {
-			if child == nil {
+			if child == nil { //nolint:staticcheck // QF1006
 				break
 			}
 			findDuplicateSubtrees(dupes, child)
