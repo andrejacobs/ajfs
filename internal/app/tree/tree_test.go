@@ -179,3 +179,130 @@ func TestSubpathDoesNotExist(t *testing.T) {
 	err = tree.Run(config)
 	assert.ErrorContains(t, err, "failed to find the path")
 }
+
+func TestOnlyDirs(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: tempFile,
+		},
+		Root: "../../testdata/scan",
+	}
+
+	err := scan.Run(scanCfg)
+	require.NoError(t, err)
+
+	var outBuffer bytes.Buffer
+	var errBuffer bytes.Buffer
+
+	config := tree.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: &outBuffer,
+			Stderr: &errBuffer,
+			DbPath: tempFile,
+		},
+		OnlyDirs: true,
+	}
+
+	err = tree.Run(config)
+	require.NoError(t, err)
+
+	absRoot, err := filepath.Abs(scanCfg.Root)
+	require.NoError(t, err)
+
+	expected := absRoot + `
+├── a
+│   ├── a1
+│   │   ├── a1a
+│   │   │   └── a1a1
+│   │   └── a1b
+│   └── a2
+├── b
+│   └── b1
+│       └── b1a
+└── c
+
+11 directories, 0 files
+`
+
+	result := outBuffer.String()
+	assert.Equal(t, expected, result)
+	assert.Equal(t, "", errBuffer.String())
+}
+
+func TestLimit(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: tempFile,
+		},
+		Root: "../../testdata/scan",
+	}
+
+	err := scan.Run(scanCfg)
+	require.NoError(t, err)
+
+	var outBuffer bytes.Buffer
+	var errBuffer bytes.Buffer
+
+	config := tree.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: &outBuffer,
+			Stderr: &errBuffer,
+			DbPath: tempFile,
+		},
+		OnlyDirs: true,
+		Limit:    2,
+	}
+
+	err = tree.Run(config)
+	require.NoError(t, err)
+
+	absRoot, err := filepath.Abs(scanCfg.Root)
+	require.NoError(t, err)
+
+	expected := absRoot + `
+├── a
+│   ├── a1
+│   └── a2
+├── b
+│   └── b1
+└── c
+
+7 directories, 0 files
+`
+
+	result := outBuffer.String()
+	assert.Equal(t, expected, result)
+	assert.Equal(t, "", errBuffer.String())
+
+	outBuffer.Reset()
+
+	config.Subpath = "a"
+	err = tree.Run(config)
+	require.NoError(t, err)
+
+	expected = `a
+├── a1
+│   ├── a1a
+│   └── a1b
+└── a2
+
+5 directories, 0 files
+`
+
+	result = outBuffer.String()
+	assert.Equal(t, expected, result)
+	assert.Equal(t, "", errBuffer.String())
+
+}

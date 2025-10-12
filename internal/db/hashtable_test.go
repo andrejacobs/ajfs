@@ -17,8 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: empty database, database with only initial hash table
-
 func TestWriteInitialHashTable(t *testing.T) {
 	testCases := []struct {
 		algo ajhash.Algo

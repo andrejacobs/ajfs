@@ -181,6 +181,8 @@ Overview of the subcommands that will be available.
 -   `tree`
 
     -   Display the whole or partial file hierarchy tree in the same way the CLI `tree` command does.
+    -   `-d, --dirs` Only display directories.
+    -   `-l N, --limit N` Limit displaying the tree up to the specified depth. N < 1 means there is no limit.
     -   Examples:
         -   `ajfs tree` will use ./db.ajfs and display entire tree.
         -   `ajfs tree /path/to/db.ajfs` will use the specified database and display the entire tree.

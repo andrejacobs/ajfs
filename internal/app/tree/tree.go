@@ -13,12 +13,15 @@ import (
 type Config struct {
 	config.CommonConfig
 	Subpath string
+
+	OnlyDirs bool
+	Limit    int
 }
 
 // Process the ajfs info command.
 func Run(cfg Config) error {
 
-	tr, err := FromDatabase(cfg.DbPath)
+	tr, err := FromDatabase(cfg.DbPath, cfg.OnlyDirs)
 	if err != nil {
 		return err
 	}
@@ -28,16 +31,16 @@ func Run(cfg Config) error {
 		if node == nil {
 			return fmt.Errorf("failed to find the path %q in the database %q", cfg.Subpath, cfg.DbPath)
 		}
-		node.Print(cfg.Stdout)
+		node.PrintWithLimit(cfg.Stdout, cfg.Limit)
 	} else {
-		tr.Print(cfg.Stdout)
+		tr.PrintWithLimit(cfg.Stdout, cfg.Limit)
 	}
 
 	return nil
 }
 
 // Create a tree from the path entries in an ajfs database.
-func FromDatabase(dbPath string) (itree.Tree, error) {
+func FromDatabase(dbPath string, onlyDirs bool) (itree.Tree, error) {
 	dbf, err := db.OpenDatabase(dbPath)
 	if err != nil {
 		return itree.Tree{}, err
@@ -47,6 +50,10 @@ func FromDatabase(dbPath string) (itree.Tree, error) {
 	tr := itree.New(dbf.RootPath())
 
 	err = dbf.ReadAllEntries(func(idx int, pi path.Info) error {
+		if onlyDirs && !pi.IsDir() {
+			return nil
+		}
+
 		node := tr.Insert(pi)
 		if node == nil {
 			return fmt.Errorf("failed to insert new node into the tree (index = %d, path = %q)", idx, pi.Path)
@@ -62,7 +69,7 @@ func FromDatabase(dbPath string) (itree.Tree, error) {
 
 // Create a signatured tree from the path entries in an ajfs database.
 func SignaturedTreeFromDatabase(dbPath string) (itree.SignaturedTree, error) {
-	tr, err := FromDatabase(dbPath)
+	tr, err := FromDatabase(dbPath, false)
 	if err != nil {
 		return itree.SignaturedTree{}, err
 	}

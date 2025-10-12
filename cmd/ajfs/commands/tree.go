@@ -15,6 +15,8 @@ var treeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := tree.Config{
 			CommonConfig: commonConfig,
+			OnlyDirs:     treeOnlyDirs,
+			Limit:        treeLimit,
 		}
 
 		switch len(args) {
@@ -47,4 +49,12 @@ var treeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(treeCmd)
+
+	treeCmd.Flags().BoolVarP(&treeOnlyDirs, "dirs", "d", false, "Display only directories")
+	treeCmd.Flags().IntVarP(&treeLimit, "limit", "l", 0, "Limit the tree depth")
 }
+
+var (
+	treeOnlyDirs bool
+	treeLimit    int
+)

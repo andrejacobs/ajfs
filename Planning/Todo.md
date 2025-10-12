@@ -5,9 +5,7 @@
 -   [] Ensure all packages have a package level comment
 -   [] Document each command and what the output means
 -   [] Write a "system" test for each of the commands.
--   [] Tree: Think about options to support, i.e. limit, dirs only, full path
 -   [] Tree: Would be nice to also output colours.
--   [] Check for TODOs in the code and move them here.
 -   [] Could do with more testing on failure paths
 
 -   [] Ensure go-collection is using the new stdlib maps packages
@@ -33,6 +31,8 @@
 -   [x] Resume needs verbose info
 -   [x] Add elapsed time when using verbose
 -   [x] Add option to search to find Id
+-   [x] Check for TODOs in the code and move them here.
+-   [x] Tree: Think about options to support, i.e. limit, dirs only, full path
 
 ## Future (nice to have)
 

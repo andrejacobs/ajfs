@@ -78,12 +78,17 @@ func (t *Tree) Find(path string) *Node {
 
 // Display the entire tree.
 func (t *Tree) Print(w io.Writer) {
+	t.PrintWithLimit(w, 0)
+}
+
+// Display the tree with a maximum specified depth
+func (t *Tree) PrintWithLimit(w io.Writer, limit int) {
 	if t.root != nil {
 		fmt.Fprintln(w, t.rootPath)
 		st := stats{
 			dirCount: 1,
 		}
-		t.root.printChildren(w, &st, "")
+		t.root.printChildren(w, &st, "", 1, limit)
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, st.String())
 	}
@@ -173,17 +178,25 @@ func (n *Node) findChild(named string) *Node {
 
 // Recursively display this node and children.
 func (n *Node) Print(w io.Writer) {
+	n.PrintWithLimit(w, 0)
+}
+
+func (n *Node) PrintWithLimit(w io.Writer, limit int) {
 	st := stats{}
 	if n.Info.IsDir() {
 		st.dirCount = 1
 	}
 	fmt.Fprintln(w, n.Name)
-	n.printChildren(w, &st, "")
+	n.printChildren(w, &st, "", 1, limit)
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, st.String())
 }
 
-func (n *Node) printChildren(w io.Writer, st *stats, prefix string) {
+func (n *Node) printChildren(w io.Writer, st *stats, prefix string, currentDepth int, maxDepth int) {
+	if (maxDepth > 0) && (currentDepth > maxDepth) {
+		return
+	}
+
 	// Based on kddnewton's implementation: https://github.com/kddnewton/tree/blob/main/tree.go
 	children := n.sortedChildren()
 	count := len(children)
@@ -202,10 +215,10 @@ func (n *Node) printChildren(w io.Writer, st *stats, prefix string) {
 
 		if i == count-1 {
 			fmt.Fprintln(w, prefix+"└──", child.Name)
-			child.printChildren(w, st, prefix+"    ")
+			child.printChildren(w, st, prefix+"    ", currentDepth+1, maxDepth)
 		} else {
 			fmt.Fprintln(w, prefix+"├──", child.Name)
-			child.printChildren(w, st, prefix+"│   ")
+			child.printChildren(w, st, prefix+"│   ", currentDepth+1, maxDepth)
 		}
 	}
 }
