@@ -1,11 +1,11 @@
 # TODO
 
 -   [] Scan with only --progress needs a tiny bit more verbose info while scanning
+-   [] verbose and progress is a bit crazy. Perhaps when using progress, then don't output each file being hashed.
 -   [] Export needs verbose info
 -   [] Resume needs verbose info
--   [] Could do with more testing on failure paths
--   [] verbose and progress is a bit crazy. Perhaps when using progress, then don't output each file being hashed.
 -   [] Add elapsed time when using verbose
+-   [] Could do with more testing on failure paths
 -   [] Export, Diff and ToSync need to support -f --full paths.
 -   [] Add option to search to find Id
 -   [] Check that the vardata stuff respects endianess

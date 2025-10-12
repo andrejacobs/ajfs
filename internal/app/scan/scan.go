@@ -42,7 +42,7 @@ func Run(cfg Config) error {
 		return dryRun(cfg)
 	}
 
-	cfg.VerbosePrintln(fmt.Sprintf("Scan root path %q", cfg.Root))
+	cfg.VerbosePrintln(fmt.Sprintf("Scanning root path %q", cfg.Root))
 
 	exists, err := file.FileExists(cfg.DbPath)
 	if err != nil {
@@ -98,7 +98,7 @@ func Run(cfg Config) error {
 	s.FileExcluder = cfg.FileExcluder
 	s.DirExcluder = cfg.DirExcluder
 
-	cfg.VerbosePrintln("Scanning ...")
+	progressPrintln(cfg, "Scanning ...")
 	if err = s.Scan(ctx, dbf); err != nil {
 		if !errors.Is(err, context.Canceled) {
 			return err
@@ -114,8 +114,6 @@ func Run(cfg Config) error {
 			}
 		}
 	}
-
-	//TODO: If tree, to it here | calculating the tree might not be safe to shutdown, so need to think about it then
 
 	select {
 	case <-interruptedCh:
@@ -163,7 +161,7 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 	totalCount := 0
 
 	if cfg.Progress {
-		cfg.VerbosePrintln("Calculating progress information ...")
+		progressPrintln(cfg, "Calculating progress information ...")
 		stats, err := dbf.CalculateStats()
 		if err != nil {
 			return err
@@ -174,10 +172,11 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 	}
 
 	err := dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {
-		cfg.VerbosePrintln(fmt.Sprintf("Hashing %q", pi.Path))
 
 		if progress != nil {
 			progress.Describe(fmt.Sprintf("[%d/%d]", count+1, totalCount))
+		} else {
+			cfg.VerbosePrintln(fmt.Sprintf("Hashing %q", pi.Path))
 		}
 
 		path := filepath.Join(dbf.RootPath(), pi.Path)
@@ -229,4 +228,12 @@ func dryRun(cfg Config) error {
 	}
 
 	return nil
+}
+
+func progressPrintln(cfg Config, message string) {
+	if cfg.Progress {
+		cfg.Println(message)
+	} else {
+		cfg.VerbosePrintln(message)
+	}
 }
