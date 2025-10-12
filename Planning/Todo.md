@@ -16,6 +16,8 @@
 -   [] Add the usual polish for a public repo
 -   [] Look into using goreleaser to build all the binaries etc for different platforms
 
+-   [] Make this repo and go-aj public
+
 -   [x] Remove the replace for local go mod repo.
 -   [x] Info needs to display info about the hash table.
 -   [x] Scan needs to output some verbose info.

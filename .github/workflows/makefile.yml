@@ -1,0 +1,43 @@
+name: Makefile CI
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+
+jobs:
+    build:
+        name: Build and test on Linux
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: stable
+
+            - name: Install dependencies
+              run: make go-deps
+
+            - name: Checking code quality (formatting, linting etc.)
+              run: make check
+
+            - name: Checking code quality with golangci-lint
+              uses: golangci/golangci-lint-action@v8
+              with:
+                  version: v2.4.0
+
+            - name: Checking copyright and license is applied
+              run: >-
+                  docker run
+                  -v $(pwd):/wrk -w /wrk
+                  ghcr.io/google/addlicense
+                  -check -c "Andre Jacobs" -l mit -ignore '.github/**' -ignore 'build/**' ./
+
+            - name: Run unit-tests
+              run: make test
