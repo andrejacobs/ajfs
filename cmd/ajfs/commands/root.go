@@ -1,3 +1,4 @@
+// Package commands provide the subcommands for ajfs CLI.
 package commands
 
 import (

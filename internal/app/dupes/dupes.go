@@ -1,3 +1,4 @@
+// Package dupes provides the functionality for ajfs dupes command.
 package dupes
 
 import (

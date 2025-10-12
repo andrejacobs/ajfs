@@ -2,10 +2,8 @@
 
 -   [] Export, Diff and ToSync need to support -f --full paths.
 -   [] Check that the vardata stuff respects endianess
--   [] Ensure all packages have a package level comment
 -   [] Document each command and what the output means
 -   [] Write a "system" test for each of the commands.
--   [] Tree: Would be nice to also output colours.
 -   [] Could do with more testing on failure paths
 
 -   [] Ensure go-collection is using the new stdlib maps packages
@@ -33,8 +31,17 @@
 -   [x] Add option to search to find Id
 -   [x] Check for TODOs in the code and move them here.
 -   [x] Tree: Think about options to support, i.e. limit, dirs only, full path
+-   [x] Ensure all packages have a package level comment
 
 ## Future (nice to have)
 
+-   [] `ajfs dedupe` To process and "deal" with duplicates. Will need different strategies.
+    -   Delete, just simply delete any duplicates _Dangerous_
+    -   Symlink, delete duplicates but leave a symlink in place
+    -   Move duplicates to another directory while preserving hierarchy tree. Can thus be reviewed by a human.
 -   [] Add support to search, to be able to parse a file (or from stdin) with more expressions like OR, NOT etc.
 -   [] Add a flag for printing out memory usage.
+-   [] Tree: Would be nice to also output colours.
+    Turns out not to be a quick win to support LS_COLORS
+    This is the best implementation for go I can find for reference:
+    https://github.com/elves/elvish/blob/v0.21.0/pkg/cli/lscolors/lscolors.go

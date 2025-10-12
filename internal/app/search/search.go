@@ -1,3 +1,4 @@
+// Package search provides the functionality for ajfs search command.
 package search
 
 import (

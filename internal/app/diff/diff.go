@@ -1,3 +1,4 @@
+// Package diff provides the functionality for ajfs diff command.
 package diff
 
 import (

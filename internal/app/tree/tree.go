@@ -1,3 +1,4 @@
+// Package tree provides the functionality for ajfs tree command.
 package tree
 
 import (

@@ -1,3 +1,4 @@
+// Package update provides the functionality for ajfs update command.
 package update
 
 import (

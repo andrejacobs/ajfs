@@ -1,3 +1,4 @@
+// Package tosync provides the functionality for ajfs tosync command.
 package tosync
 
 import (

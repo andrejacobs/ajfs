@@ -1,3 +1,4 @@
+// Package resume provides the functionality for ajfs resume command.
 package resume
 
 import (
