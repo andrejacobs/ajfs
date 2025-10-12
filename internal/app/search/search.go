@@ -41,13 +41,13 @@ func Run(cfg Config) error {
 	if cfg.CommonConfig.Verbose {
 		if cfg.AlsoHashes && dbf.Features().HasHashTable() {
 			if cfg.DisplayMinimal {
-				cfg.Println("Id, Hash, Path")
+				cfg.Println("Hash, Path")
 			} else {
 				cfg.Println(path.HeaderWithHash())
 			}
 		} else {
 			if cfg.DisplayMinimal {
-				cfg.Println("Id, Path")
+				cfg.Println("Path")
 			} else {
 				cfg.Println(path.Header())
 			}
@@ -73,7 +73,7 @@ func Run(cfg Config) error {
 			hashStr := hex.EncodeToString(hash)
 
 			if cfg.DisplayMinimal {
-				cfg.Println(fmt.Sprintf("{%x}, %s, %q", pi.Id, hashStr, pi.Path))
+				cfg.Println(fmt.Sprintf("%s, %q", hashStr, pi.Path))
 			} else {
 				cfg.Println(fmt.Sprintf("{%x}, %s, %v, %q, %v, %v", pi.Id, hashStr, pi.Size, pi.Path, pi.Mode, pi.ModTime.Format(time.RFC3339Nano)))
 			}
@@ -97,7 +97,7 @@ func Run(cfg Config) error {
 			}
 
 			if cfg.DisplayMinimal {
-				cfg.Println(fmt.Sprintf("{%x}, %q", pi.Id, pi.Path))
+				cfg.Println(pi.Path)
 			} else {
 				cfg.Println(pi)
 			}

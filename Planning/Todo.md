@@ -8,7 +8,6 @@
 -   [] Add elapsed time when using verbose
 -   [] Export, Diff and ToSync need to support -f --full paths.
 -   [] Add option to search to find Id
--   [] Should commands like list, search etc. by default be minimal output and then -m, --more is used for more details?
 -   [] Check that the vardata stuff respects endianess
 -   [] Ensure all packages have a package level comment
 -   [] Document each command and what the output means
@@ -33,6 +32,7 @@
 -   [x] Scan needs to output progress info.
 -   [x] Remove the idea of the tree being cached.
 -   [x] Ensure list uses the same output and header as search when using hashes
+-   [x] Should commands like list, search etc. by default be minimal output and then -m, --more is used for more details?
 
 ## Future (nice to have)
 

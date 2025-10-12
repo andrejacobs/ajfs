@@ -17,7 +17,7 @@ var searchCmd = &cobra.Command{
 		cfg := search.Config{
 			CommonConfig:     commonConfig,
 			DisplayFullPaths: searchDisplayFullPaths,
-			DisplayMinimal:   searchDisplayMinimal,
+			DisplayMinimal:   !searchDisplayMore,
 		}
 		cfg.DbPath = dbPathFromArgs(args)
 
@@ -36,7 +36,7 @@ func init() {
 	rootCmd.AddCommand(searchCmd)
 
 	searchCmd.Flags().BoolVarP(&searchDisplayFullPaths, "full", "f", false, "Display full paths for entries")
-	searchCmd.Flags().BoolVarP(&searchDisplayMinimal, "minimal", "m", false, "Display only the identifiers, file signature hash and paths")
+	searchCmd.Flags().BoolVarP(&searchDisplayMore, "more", "m", false, "Display more information about the matching paths")
 
 	searchCmd.Flags().StringArrayVarP(&searchRegex, "exp", "e", nil, "Match path against the regular expression")
 	searchCmd.Flags().StringArrayVarP(&searchRegexInsensitive, "iexp", "i", nil, "Case insensitive match path against the regular expression")
@@ -102,7 +102,7 @@ var (
 	searchModTimeBefore    string
 	searchModTimeAfter     string
 	searchDisplayFullPaths bool
-	searchDisplayMinimal   bool
+	searchDisplayMore      bool
 )
 
 func buildSearchExpression(cfg *search.Config) error {

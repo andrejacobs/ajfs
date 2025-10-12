@@ -86,7 +86,7 @@ Overview of the subcommands that will be available.
     -   `-f, --full`: Display the full path including the root path of when the database was created.
     -   `-v, --verbose`: Shows a header as the first line of output.
     -   `-s, --hash`: Also output the file signature hash if available.
-    -   `-m, --minimal`: Display only the path. Similar to what `find .` would produce.
+    -   `-m, --more`: Display more information about the path. The default is to only display the path and no extra information.
     -   Example: `ajfs list` (uses ./db.ajfs) or `ajfs list /path/to/db`
 
 -   `export`
@@ -137,7 +137,7 @@ Overview of the subcommands that will be available.
     -   Search and display path entries that match certain criteria.
     -   `-v, --verbose`: Shows a header as the first line of output.
     -   `-f, --full`: Display the full path including the root path of when the database was created.
-    -   `-m, --minimal`: Display only the id, path and optionally the file signature hash.
+    -   `-m, --more`: Display more information about the path. The default is to only display the path and no extra information.
     -   You can specify multiple criteria and they would have to all be matched (e.g. AND). Example: `-e something -t f --size +10k`
     -   `-e, --exp` Match path against a regular expression
     -   `-i, --iexp` Case insensitive match path against a regular expression
