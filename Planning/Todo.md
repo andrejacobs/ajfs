@@ -1,5 +1,6 @@
 # TODO
 
+-   [] Fix linting errors (make check)
 -   [] Export, Diff and ToSync need to support -f --full paths.
 -   [] Check that the vardata stuff respects endianess
 -   [] Document each command and what the output means
@@ -32,6 +33,7 @@
 -   [x] Check for TODOs in the code and move them here.
 -   [x] Tree: Think about options to support, i.e. limit, dirs only, full path
 -   [x] Ensure all packages have a package level comment
+-   [x] Add license headers
 
 ## Future (nice to have)
 
