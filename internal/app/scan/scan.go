@@ -98,7 +98,7 @@ func Run(cfg Config) error {
 	s.FileExcluder = cfg.FileExcluder
 	s.DirExcluder = cfg.DirExcluder
 
-	progressPrintln(cfg, "Scanning ...")
+	cfg.ProgressPrintln("Scanning ...")
 	if err = s.Scan(ctx, dbf); err != nil {
 		if !errors.Is(err, context.Canceled) {
 			return err
@@ -161,7 +161,7 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 	totalCount := 0
 
 	if cfg.Progress {
-		progressPrintln(cfg, "Calculating progress information ...")
+		cfg.ProgressPrintln("Calculating progress information ...")
 		stats, err := dbf.CalculateStats()
 		if err != nil {
 			return err
@@ -228,12 +228,4 @@ func dryRun(cfg Config) error {
 	}
 
 	return nil
-}
-
-func progressPrintln(cfg Config, message string) {
-	if cfg.Progress {
-		cfg.Println(message)
-	} else {
-		cfg.VerbosePrintln(message)
-	}
 }

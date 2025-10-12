@@ -24,7 +24,7 @@ type Config struct {
 
 // Process the ajfs scan command.
 func Run(cfg Config) error {
-	cfg.VerbosePrintln(fmt.Sprintf("Resuming database file at %q", cfg.DbPath))
+	cfg.ProgressPrintln(fmt.Sprintf("Resuming database file at %q", cfg.DbPath))
 	dbf, err := db.ResumeDatabase(cfg.DbPath)
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 	totalCount := 0
 
 	if cfg.Progress {
-		cfg.VerbosePrintln("Calculating progress information ...")
+		cfg.ProgressPrintln("Calculating progress information ...")
 		stats, err := dbf.CalculateStats()
 		if err != nil {
 			return err
@@ -113,10 +113,10 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 	}
 
 	err = dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {
-		cfg.VerbosePrintln(fmt.Sprintf("Hashing %q", pi.Path))
-
 		if progress != nil {
 			progress.Describe(fmt.Sprintf("[%d/%d]", count+1, totalCount))
+		} else {
+			cfg.VerbosePrintln(fmt.Sprintf("Hashing %q", pi.Path))
 		}
 
 		path := filepath.Join(dbf.RootPath(), pi.Path)

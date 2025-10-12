@@ -55,6 +55,8 @@ func exportCSV(cfg Config) error {
 	}
 	defer outFile.Close()
 
+	cfg.VerbosePrintln(fmt.Sprintf("Exporting database %q to CSV file %q", cfg.DbPath, cfg.ExportPath))
+
 	csvWriter := csv.NewWriter(outFile)
 
 	// With a hash table
@@ -129,6 +131,8 @@ func exportCSV(cfg Config) error {
 	if err = csvWriter.Error(); err != nil {
 		return fmt.Errorf("failed to export to file %q. %w", cfg.ExportPath, err)
 	}
+
+	cfg.VerbosePrintln("Done!")
 	return nil
 }
 
@@ -158,6 +162,8 @@ func exportJSON(cfg Config) error {
 		return fmt.Errorf("failed to create the export file %q. %w", cfg.ExportPath, err)
 	}
 	defer outFile.Close()
+
+	cfg.VerbosePrintln(fmt.Sprintf("Exporting database %q to JSON file %q", cfg.DbPath, cfg.ExportPath))
 
 	// We will be using a bit of manual writing and json encoding
 	f := bufio.NewWriter(outFile)
@@ -322,6 +328,7 @@ func exportJSON(cfg Config) error {
 		return fmt.Errorf("failed to create the export file %q. %w", cfg.ExportPath, err)
 	}
 
+	cfg.VerbosePrintln("Done!")
 	return nil
 }
 
@@ -344,6 +351,8 @@ func exportHashdeep(cfg Config) error {
 	if err != nil {
 		return err
 	}
+
+	cfg.VerbosePrintln(fmt.Sprintf("Exporting database %q to hashdeep file %q", cfg.DbPath, cfg.ExportPath))
 
 	outFile, err := os.OpenFile(cfg.ExportPath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -397,6 +406,7 @@ func exportHashdeep(cfg Config) error {
 		return fmt.Errorf("failed to create the export file %q. %w", cfg.ExportPath, err)
 	}
 
+	cfg.VerbosePrintln("Done!")
 	return nil
 }
 

@@ -1,9 +1,5 @@
 # TODO
 
--   [] Scan with only --progress needs a tiny bit more verbose info while scanning
--   [] verbose and progress is a bit crazy. Perhaps when using progress, then don't output each file being hashed.
--   [] Export needs verbose info
--   [] Resume needs verbose info
 -   [] Add elapsed time when using verbose
 -   [] Could do with more testing on failure paths
 -   [] Export, Diff and ToSync need to support -f --full paths.
@@ -33,6 +29,10 @@
 -   [x] Remove the idea of the tree being cached.
 -   [x] Ensure list uses the same output and header as search when using hashes
 -   [x] Should commands like list, search etc. by default be minimal output and then -m, --more is used for more details?
+-   [x] Scan with only --progress needs a tiny bit more verbose info while scanning
+-   [x] verbose and progress is a bit crazy. Perhaps when using progress, then don't output each file being hashed.
+-   [x] Export needs verbose info
+-   [x] Resume needs verbose info
 
 ## Future (nice to have)
 

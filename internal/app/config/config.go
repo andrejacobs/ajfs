@@ -42,6 +42,15 @@ func (c *CommonConfig) Errorln(a ...any) {
 	fmt.Fprintln(c.Stderr, a...)
 }
 
+// If Progress is enabled then output to Stdout else output using VerbosePrintln.
+func (c *CommonConfig) ProgressPrintln(a ...any) {
+	if c.Progress {
+		c.Println(a...)
+	} else {
+		c.VerbosePrintln(a...)
+	}
+}
+
 //-----------------------------------------------------------------------------
 
 // Config used to filter paths.

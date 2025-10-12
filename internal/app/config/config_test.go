@@ -47,3 +47,21 @@ func TestErrorln(t *testing.T) {
 	cfg.Errorln(expected)
 	assert.Equal(t, expected+"\n", buffer.String())
 }
+
+func TestProgressPrintln(t *testing.T) {
+	var buffer bytes.Buffer
+
+	cfg := config.CommonConfig{
+		Stdout: &buffer,
+	}
+
+	ignored := "Verbose and Progress is not enabled"
+	cfg.ProgressPrintln(ignored)
+	assert.Equal(t, "", buffer.String())
+	buffer.Reset()
+
+	cfg.Progress = true
+	expected := "The quick brown fox jumped over the lazy dog!"
+	cfg.ProgressPrintln(expected)
+	assert.Equal(t, expected+"\n", buffer.String())
+}
