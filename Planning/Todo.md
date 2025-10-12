@@ -1,7 +1,5 @@
 # TODO
 
--   [] Add elapsed time when using verbose
--   [] Could do with more testing on failure paths
 -   [] Export, Diff and ToSync need to support -f --full paths.
 -   [] Add option to search to find Id
 -   [] Check that the vardata stuff respects endianess
@@ -11,6 +9,7 @@
 -   [] Tree: Think about options to support, i.e. limit, dirs only, full path
 -   [] Tree: Would be nice to also output colours.
 -   [] Check for TODOs in the code and move them here.
+-   [] Could do with more testing on failure paths
 
 -   [] Ensure go-collection is using the new stdlib maps packages
 
@@ -33,6 +32,7 @@
 -   [x] verbose and progress is a bit crazy. Perhaps when using progress, then don't output each file being hashed.
 -   [x] Export needs verbose info
 -   [x] Resume needs verbose info
+-   [x] Add elapsed time when using verbose
 
 ## Future (nice to have)
 

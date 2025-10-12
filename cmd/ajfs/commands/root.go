@@ -3,9 +3,11 @@ package commands
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/go-aj/buildinfo"
+	"github.com/andrejacobs/go-aj/stats"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +31,7 @@ func Execute() {
 // Init cobra
 func init() {
 	cobra.OnInitialize(initApp)
+	cobra.OnFinalize(cleanupApplication)
 
 	versionTemplate := `{{printf "%s: %s\n" .Name .Version}}`
 	rootCmd.SetVersionTemplate(versionTemplate)
@@ -41,6 +44,18 @@ func init() {
 func initApp() {
 	commonConfig.Init()
 	commonConfig.Verbose = verbose
+
+	if commonConfig.Verbose {
+		startTime = time.Now()
+	}
+}
+
+// Run after a command is finished
+func cleanupApplication() {
+	if commonConfig.Verbose {
+		commonConfig.VerbosePrintln("")
+		stats.PrintTimeTaken(commonConfig.Stdout, "ajfs", startTime, time.Now())
+	}
 }
 
 // Log error message to STDERR and exit the program with the specified exit code
@@ -66,4 +81,6 @@ var (
 	showProgress bool
 
 	commonConfig config.CommonConfig
+
+	startTime time.Time
 )
