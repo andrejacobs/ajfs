@@ -1,7 +1,6 @@
 # TODO
 
 -   [] Export, Diff and ToSync need to support -f --full paths.
--   [] Add option to search to find Id
 -   [] Check that the vardata stuff respects endianess
 -   [] Ensure all packages have a package level comment
 -   [] Document each command and what the output means
@@ -33,6 +32,7 @@
 -   [x] Export needs verbose info
 -   [x] Resume needs verbose info
 -   [x] Add elapsed time when using verbose
+-   [x] Add option to search to find Id
 
 ## Future (nice to have)
 

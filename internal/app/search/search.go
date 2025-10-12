@@ -661,3 +661,17 @@ func (s *searchModTime) Match(pi path.Info, hash []byte) (bool, error) {
 	}
 	return compare == -1, nil
 }
+
+//-----------------------------------------------------------------------------
+// Id
+
+type Id struct {
+	Prefix string
+}
+
+// Match if the entry's identifier starts with the specified prefix. case insensitive.
+func (s *Id) Match(pi path.Info, hash []byte) (bool, error) {
+	str := hex.EncodeToString(pi.Id[:])
+	matched := strings.HasPrefix(strings.ToLower(str), strings.ToLower(s.Prefix))
+	return matched, nil
+}

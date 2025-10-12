@@ -55,6 +55,7 @@ func init() {
   s  socket`)
 
 	searchCmd.Flags().StringVarP(&searchHash, "hash", "s", "", "Match if the file signature hash starts with this prefix")
+	searchCmd.Flags().StringVar(&searchId, "id", "", "Match if the entry's identifier starts with this prefix")
 
 	searchCmd.Flags().StringArrayVar(&searchSize, "size", nil, `Match the file size according to:
   <n> with no suffix means exactly <n> bytes. e.g. --size 100
@@ -101,6 +102,7 @@ var (
 	searchHash             string
 	searchModTimeBefore    string
 	searchModTimeAfter     string
+	searchId               string
 	searchDisplayFullPaths bool
 	searchDisplayMore      bool
 )
@@ -206,6 +208,13 @@ func buildSearchExpression(cfg *search.Config) error {
 		prev = and
 
 		cfg.AlsoHashes = true
+	}
+
+	// Id
+	if searchId != "" {
+		exp := &search.Id{Prefix: searchId}
+		and = search.NewAnd(prev, exp)
+		prev = and
 	}
 
 	// Before date/time

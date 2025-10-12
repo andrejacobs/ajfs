@@ -145,6 +145,7 @@ Overview of the subcommands that will be available.
     -   `--iname` Case insensitive match base name against the shell pattern (e.g. \* ?)
     -   `-p, --path` Match path against the shell pattern (e.g. \* ?)
     -   `--ipath` Case insensitive match path against the Shell pattern (e.g. \* ?)
+    -   `--id` Match if the path entry's identifier starts with this prefix
     -   `-t, --type` Match if the type is one of the following:
         -   d directory
         -   f regular file

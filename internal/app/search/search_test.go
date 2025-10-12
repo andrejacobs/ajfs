@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -405,4 +406,23 @@ func TestScanAndSearch(t *testing.T) {
 
 	slices.Sort(result)
 	assert.Equal(t, expected, result)
+}
+
+func TestId(t *testing.T) {
+	id1 := path.IdFromPath("abc.xyz")
+	id2 := path.IdFromPath("not.found")
+
+	e := search.Id{Prefix: hex.EncodeToString(id1[:])}
+	found, err := e.Match(path.Info{Id: id1}, nil)
+	require.NoError(t, err)
+	assert.True(t, found)
+
+	found, err = e.Match(path.Info{Id: id2}, nil)
+	require.NoError(t, err)
+	assert.False(t, found)
+
+	e = search.Id{Prefix: strings.ToUpper(hex.EncodeToString(id1[:3]))}
+	found, err = e.Match(path.Info{Id: id1}, nil)
+	require.NoError(t, err)
+	assert.True(t, found)
 }
