@@ -4,6 +4,7 @@
 -   [x] Info needs to display info about the hash table.
 -   [x] Scan needs to output some verbose info.
 -   [x] Scan needs to output progress info.
+-   [] Scan with only --progress needs a tiny bit more verbose info while scanning
 -   [] Export needs verbose info
 -   [] Resume needs verbose info
 -   [] Could do with more testing on failure paths
@@ -17,8 +18,17 @@
 -   [] Check that the vardata stuff respects endianess
 -   [] Ensure all packages have a package level comment
 -   [] Document each command and what the output means
+-   [x] Remove the idea of the tree being cached.
+-   [] Write a "system" test for each of the commands.
+-   [] Tree: Think about options to support, i.e. limit, dirs only, full path
+-   [] Tree: Would be nice to also output colours.
+-   [] Check for TODOs in the code and move them here.
 
 -   [] Ensure go-collection is using the new stdlib maps packages
+
+-   [] Setup a github pages site and write end user documentation
+-   [] Setup github action to check code quality etc
+-   [] Look into using goreleaser to build all the binaries etc for different platforms
 
 ## Future (nice to have)
 

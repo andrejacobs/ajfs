@@ -32,7 +32,6 @@ import (
 // entries [c]
 // entry lookup table [c]
 // [optional] hash table
-// [optional] tree
 // [optional] future features (without breaking existing databases)
 
 // DatabaseFile is the underlying data storage used by ajfs as a single file.
@@ -678,7 +677,6 @@ type header struct {
 	FeaturesOffset uint32       // Start of features
 
 	HashTableOffset uint32 // The start of the hash table
-	TreeOffset      uint32 // The start of the tree
 
 	FeatureReserved [8]uint32 // 8x feature offsets reserved for future use without breaking backwards compatibility
 }
@@ -890,15 +888,10 @@ type FeatureFlags uint16
 const (
 	FeatureJustEntries = 0         // Contains no extra features. Only path info entries.
 	FeatureHashTable   = 1 << iota // Contains the calculated file hash signatures for the path objects.
-	FeatureTree                    // Contains the cached file tree.
 )
 
 func (f FeatureFlags) HasHashTable() bool {
 	return (f & FeatureHashTable) != 0
-}
-
-func (f FeatureFlags) HasTree() bool {
-	return (f & FeatureTree) != 0
 }
 
 //-----------------------------------------------------------------------------

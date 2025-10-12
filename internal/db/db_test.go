@@ -411,5 +411,3 @@ func TestBuildIdToInfoMap(t *testing.T) {
 		assert.Equal(t, filePath, v.Path)
 	}
 }
-
-//TODO: Need to check if the vardata stuff actually respects endianess

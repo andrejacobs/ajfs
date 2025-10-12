@@ -50,12 +50,6 @@ func Run(cfg Config) error {
 		cfg.Println("  Hash table:  no")
 	}
 
-	if dbf.Features().HasTree() {
-		cfg.Println("  Cached Tree: yes")
-	} else {
-		cfg.Println("  Cached Tree: no")
-	}
-
 	cfg.Println("\nVerifying checksum...")
 	if err = dbf.VerifyChecksums(); err != nil {
 		cfg.Errorln("Invalid checksum!")

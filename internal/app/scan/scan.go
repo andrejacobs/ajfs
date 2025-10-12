@@ -32,9 +32,7 @@ type Config struct {
 	CalculateHashes bool        // Calculate file signature hashes.
 	Algo            ajhash.Algo // Algorithm to use for calculating the hashes.
 
-	BuildTree bool // Build and cache the tree.
-	DryRun    bool // Only display files and directories that would have been stored in the database.
-
+	DryRun   bool // Only display files and directories that would have been stored in the database.
 	InitOnly bool // The initial database will be created without long running processes (hashing).
 }
 
@@ -66,10 +64,6 @@ func Run(cfg Config) error {
 	if cfg.CalculateHashes {
 		features |= db.FeatureHashTable
 		cfg.VerbosePrintln("Will be creating a hash table")
-	}
-	if cfg.BuildTree {
-		features |= db.FeatureTree
-		cfg.VerbosePrintln("Will be caching the tree structure")
 	}
 
 	cfg.VerbosePrintln(fmt.Sprintf("Creating database file at %q", cfg.DbPath))
