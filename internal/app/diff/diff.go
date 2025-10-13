@@ -169,7 +169,7 @@ func (d *Diff) String() string {
 		sb := strings.Builder{}
 		sb.WriteRune(typeChar)
 		if d.Changed.ModeChanged() {
-			sb.WriteString("m") // Mode changed (type  and permissions)
+			sb.WriteString("m") // Mode changed (type and permissions)
 		} else {
 			sb.WriteString("~")
 		}

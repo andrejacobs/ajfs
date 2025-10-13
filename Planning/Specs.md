@@ -116,7 +116,7 @@ Overview of the subcommands that will be available.
 
 -   `tosync`
 
-    -   Shows what files need to be synced from the LHS to the RHS. NOTE: Does not do any syncing. This is the job for the execellent rsync.
+    -   Shows what files need to be synced from the LHS to the RHS. NOTE: Does not do any syncing. This is the job for the excellent rsync.
         For example I can use this to see which files on my Mac has not yet been backed up on a Linux server (even though the paths will be different etc.).
         Meaning this is just a quick way of seeing if any files on the LHS has not yet been copied somewhere onto the RHS.
     -   Criteria are:

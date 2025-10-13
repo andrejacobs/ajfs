@@ -1,8 +1,9 @@
 # TODO
 
--   [] Document each command and what the output means
 -   [] Write a "system" test for each of the commands.
 -   [] Could do with more testing on failure paths
+-   [] Strip out the ``` from the Long description for dupes. This is used to ensure the markdown docs look correct.
+-   [] Specify explicit command ordering when using --help.
 
 -   [] Build, test and fix so it can run on Windows as well
 
@@ -34,6 +35,7 @@
 -   [x] Export and ToSync need to support -f --full paths.
 -   [x] Check that the vardata stuff respects endianess
 -   [x] Fix linting errors (make check)
+-   [x] Document each command and what the output means
 
 ## Future (nice to have)
 

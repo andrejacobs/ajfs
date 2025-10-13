@@ -28,9 +28,15 @@ import (
 // ajfs info.
 var infoCmd = &cobra.Command{
 	Use:   "info",
-	Short: "Display information about a database",
-	Long:  `Display information about a database`,
-	Args:  cobra.MaximumNArgs(1),
+	Short: "Display information about a database.",
+	Long: `Display information about a database such as the path it was created from, meta, features and statistics.
+Info will also validate the integrity of the database.`,
+	Example: `  # using the default ./db.ajfs database
+  ajfs info
+
+  # using a specific database
+  ajfs info /path/to/database.ajfs`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := info.Config{
 			CommonConfig: commonConfig,

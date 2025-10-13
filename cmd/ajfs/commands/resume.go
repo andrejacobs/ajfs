@@ -28,9 +28,16 @@ import (
 // ajfs resume.
 var resumeCmd = &cobra.Command{
 	Use:   "resume",
-	Short: "Resume calculating file signature hashes",
-	Long:  `Resume calculating file signature hashes`,
-	Args:  cobra.MaximumNArgs(1),
+	Short: "Resume calculating file signature hashes.",
+	Long: `Resume calculating file signature hashes for a previously interrupted scan.
+
+NOTE: The database must have been created using the "--hash" option.`,
+	Example: `  # resume using the default ./db.ajfs database
+  ajfs resume
+
+  # resume the specific database and display a progress bar
+  ajfs resume --progress /path/to/database.ajfs`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		commonConfig.Progress = showProgress
 
@@ -48,5 +55,5 @@ var resumeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(resumeCmd)
 
-	resumeCmd.Flags().BoolVarP(&showProgress, "progress", "p", false, "Display progress information")
+	resumeCmd.Flags().BoolVarP(&showProgress, "progress", "p", false, "Display progress information.")
 }

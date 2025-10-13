@@ -72,7 +72,8 @@ install: build
 # Generate documentation
 .PHONY: docs
 docs:
-	@go run ./internal/docgen -out ./docs/cli -format markdown
+	@rm -rf ./docs/cli
+	@go run ./internal/docgen -out ./docs/cli/md -format markdown
 
 #------------------------------------------------------------------------------
 # Code quality assurance

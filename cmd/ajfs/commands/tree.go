@@ -29,9 +29,23 @@ import (
 // ajfs tree.
 var treeCmd = &cobra.Command{
 	Use:   "tree",
-	Short: "Display the file hiearchy tree",
-	Long:  `Display the file hiearchy tree`,
-	Args:  cobra.MaximumNArgs(2),
+	Short: "Display the file hiearchy tree.",
+	Long:  `Display the file hiearchy as a tree in a similar way the popular tree command does.`,
+	Example: `  # display the entire hierarchy from the default ./db.ajfs
+  ajfs tree
+
+  # display the entire hierarchy of the specified database
+  ajfs tree /path/to/database.ajfs
+
+  # display a subtree from the default ./db.ajfs
+  ajfs tree /sub/tree/path/inside
+
+  # display only directories
+  ajfs tree --dirs /path/to/database.ajfs
+
+  # display only directories and limit the depth to 3 layers starting at the subtree
+  ajfs tree --dirs --limit 3 /path/to/database.ajfs /sub/tree/path/inside`,
+	Args: cobra.MaximumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := tree.Config{
 			CommonConfig: commonConfig,
@@ -70,8 +84,8 @@ var treeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(treeCmd)
 
-	treeCmd.Flags().BoolVarP(&treeOnlyDirs, "dirs", "d", false, "Display only directories")
-	treeCmd.Flags().IntVarP(&treeLimit, "limit", "l", 0, "Limit the tree depth")
+	treeCmd.Flags().BoolVarP(&treeOnlyDirs, "dirs", "d", false, "Display only directories.")
+	treeCmd.Flags().IntVarP(&treeLimit, "limit", "l", 0, "Limit the tree depth.")
 }
 
 var (

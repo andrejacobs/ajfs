@@ -28,9 +28,26 @@ import (
 // ajfs update.
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Perform a new scan and update an existing database",
-	Long:  `Perform a new scan and update an existing database`,
-	Args:  cobra.MaximumNArgs(1),
+	Short: "Perform a new scan and update an existing database.",
+	Long: `Perform a new scan on the root path and update an existing database.
+
+The file system hierarchy specified by the root path stored in the database
+will be scanned again and effectively a new updated database will be created.
+
+However the strength in this command comes into play if the database also
+contains the calculated file signature hashes. In this case the previously
+calculated signatures will be copied as is for existing entries and only new
+file entries will be calculated.
+
+A backup of the existing database will first be created (with .bak suffix)
+and if any error occurred then the database will be restored.
+`,
+	Example: `  # update the existing default ./db.ajfs database
+  ajfs update
+
+  # update the specific database and show a progress bar
+  ajfs update --progress /path/to/database.ajfs`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		filterCfg, err := parseFilterConfig()
 		if err != nil {
@@ -54,7 +71,7 @@ var updateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(updateCmd)
 
-	updateCmd.Flags().BoolVarP(&showProgress, "progress", "p", false, "Display progress information")
+	updateCmd.Flags().BoolVarP(&showProgress, "progress", "p", false, "Display progress information.")
 
 	addPathFilteringFlags(updateCmd)
 }

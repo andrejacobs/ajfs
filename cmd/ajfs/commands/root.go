@@ -36,8 +36,18 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "ajfs",
 	Version: buildinfo.VersionString(),
-	Short:   "todo",
-	Long:    `todo`,
+	Short:   "Andre Jacobs' file hierarchy snapshot tool.",
+	Long: `Andre Jacobs' file hierarchy snapshot tool is used to save a file system
+hierarchy to a single flat file database.
+
+Which can then be used in an offline and independant way to do the following:
+* Find duplicate files or entire duplicate subtrees.
+* Compare differences between databases (snapshots) and or file systems.
+* Find out which files would still need to be synced to another system.
+* Search for entries that match certain criteria.
+* List or export the entries to CSV, JSON or Hashdeep.
+* Display the entries as a tree.
+`,
 }
 
 // Main entry point for ajfs CLI.
@@ -58,7 +68,9 @@ func init() {
 	rootCmd.SetVersionTemplate(versionTemplate)
 
 	// Persistent flags that are available to every subcommand
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Output verbose information.")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display verbose information.")
+
+	customHelp()
 }
 
 // Run before any commands are run.
@@ -96,6 +108,50 @@ func dbPathFromArgs(args []string) string {
 // Root cobra command.
 func RootCmd() *cobra.Command {
 	return rootCmd
+}
+
+func customHelp() {
+	groups := []struct {
+		Title    string
+		Commands []string
+	}{
+		{
+			Title:    "Creation commands",
+			Commands: []string{"scan", "resume", "update"},
+		},
+		{
+			Title:    "Information commands",
+			Commands: []string{"info", "list", "export", "tree", "search"},
+		},
+		{
+			Title:    "Comparison commands",
+			Commands: []string{"diff", "tosync", "dupes"},
+		},
+	}
+
+	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		fmt.Println(cmd.Long)
+		fmt.Printf("Usage:\n  %s [command]\n\n", cmd.UseLine())
+
+		fmt.Println("Available commands:")
+		cmds := cmd.Commands()
+		cmdMap := make(map[string]*cobra.Command)
+		for _, c := range cmds {
+			cmdMap[c.Name()] = c
+		}
+
+		for _, group := range groups {
+			fmt.Printf("  %s:\n", group.Title)
+			for _, name := range group.Commands {
+				if c, ok := cmdMap[name]; ok {
+					fmt.Printf("    %-12s %s\n", c.Name(), c.Short)
+				}
+			}
+			fmt.Println()
+		}
+
+		fmt.Println("Use \"ajfs [command] --help\" for more information about a command.")
+	})
 }
 
 const (

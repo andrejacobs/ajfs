@@ -31,9 +31,20 @@ import (
 // ajfs export.
 var exportCmd = &cobra.Command{
 	Use:   "export",
-	Short: "Export the database",
-	Long:  `Export the database`,
-	Args:  cobra.RangeArgs(1, 2),
+	Short: "Export a database.",
+	Long:  `Export a database into one of the following formats: CSV, JSON or Hashdeep`,
+	Example: `  # export the default ./db.ajfs to a CSV file
+  ajfs export /path/to/export.csv
+
+  # export a database to a CSV file
+  ajfs export /path/to/database.ajfs /path/to/export.csv
+
+  # export with full path information to a JSON file
+  ajfs export --full --format=json /path/to/database.ajfs /path/to/export.json
+
+  # export to a hashdeep file. NOTE: the database must contain file signature hashes
+  ajfs export --format=hashdeep /path/to/export.sha256`,
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := export.Config{
 			CommonConfig: commonConfig,
@@ -72,7 +83,7 @@ func init() {
 	rootCmd.AddCommand(exportCmd)
 
 	exportCmd.Flags().StringVar(&exportFormat, "format", "csv", "Export format: csv, json or hashdeep.")
-	exportCmd.Flags().BoolVarP(&exportFullPaths, "full", "f", false, "Export full paths for entries")
+	exportCmd.Flags().BoolVarP(&exportFullPaths, "full", "f", false, "Export full paths for entries.")
 }
 
 var (

@@ -30,9 +30,41 @@ import (
 // ajfs search.
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "Search for matching path entries",
-	Long:  `Search for matching path entries`,
-	Args:  cobra.MaximumNArgs(1),
+	Short: "Search for matching path entries.",
+	Long: `Search for entries in the database that match certain criteria.
+
+Criteria include:
+* Matching a path against a regular expression.
+* Matching the path or the base name (last component e.g. filename) against
+  a shell pattern (e.g. * ?).
+* Matching the type of entry (e.g. a directory, file etc.).
+* Matching the path identifier against a prefix.
+* Matching the file signature hash against a prefix.
+* Matching if the size is exactly, greater or less than a value.
+* Matching if the last modification date is before or after a value.
+`,
+	Example: `  # search for all .txt files in the default ./db.ajfs database
+  ajfs search -i "\.txt$"
+
+  # search for all .txt using shell pattern
+  ajfs search --iname "*.txt"
+
+  # display all files bigger than 1MB
+  ajfs search --type f --size +1M
+
+  # display all files smaller than 1GB
+  ajfs search --type f --size -1G
+
+  # display all entries with a last modification date before the date
+  ajfs search --before 2019-03-01
+
+  # display all entries with a last modification date before 30 days ago
+  ajfs search --before 30D
+
+  # display all entries with a last modification date after the date
+  ajfs search --after 1999-03-24
+`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := search.Config{
 			CommonConfig:     commonConfig,
@@ -55,17 +87,17 @@ var searchCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(searchCmd)
 
-	searchCmd.Flags().BoolVarP(&searchDisplayFullPaths, "full", "f", false, "Display full paths for entries")
-	searchCmd.Flags().BoolVarP(&searchDisplayMore, "more", "m", false, "Display more information about the matching paths")
+	searchCmd.Flags().BoolVarP(&searchDisplayFullPaths, "full", "f", false, "Display full paths for entries.")
+	searchCmd.Flags().BoolVarP(&searchDisplayMore, "more", "m", false, "Display more information about the matching paths.")
 
-	searchCmd.Flags().StringArrayVarP(&searchRegex, "exp", "e", nil, "Match path against the regular expression")
-	searchCmd.Flags().StringArrayVarP(&searchRegexInsensitive, "iexp", "i", nil, "Case insensitive match path against the regular expression")
+	searchCmd.Flags().StringArrayVarP(&searchRegex, "exp", "e", nil, "Match path against the regular expression.")
+	searchCmd.Flags().StringArrayVarP(&searchRegexInsensitive, "iexp", "i", nil, "Case insensitive match path against the regular expression.")
 
-	searchCmd.Flags().StringArrayVarP(&searchName, "name", "n", nil, "Match base name against the shell pattern (e.g. * ?)")
-	searchCmd.Flags().StringArrayVar(&searchNameInsensitive, "iname", nil, "Case insensitive match base name against the shell pattern (e.g. * ?)")
+	searchCmd.Flags().StringArrayVarP(&searchName, "name", "n", nil, "Match base name against the shell pattern (e.g. * ?).")
+	searchCmd.Flags().StringArrayVar(&searchNameInsensitive, "iname", nil, "Case insensitive match base name against the shell pattern (e.g. * ?).")
 
-	searchCmd.Flags().StringArrayVarP(&searchPath, "path", "p", nil, "Match path against the shell pattern (e.g. * ?)")
-	searchCmd.Flags().StringArrayVar(&searchPathInsensitive, "ipath", nil, "Case insensitive match path against the shell pattern (e.g. * ?)")
+	searchCmd.Flags().StringArrayVarP(&searchPath, "path", "p", nil, "Match path against the shell pattern (e.g. * ?).")
+	searchCmd.Flags().StringArrayVar(&searchPathInsensitive, "ipath", nil, "Case insensitive match path against the shell pattern (e.g. * ?).")
 
 	searchCmd.Flags().StringVarP(&searchType, "type", "t", "", `Match if the type is one of the following:
   d  directory
@@ -74,8 +106,8 @@ func init() {
   p  named pipe (FIFO)
   s  socket`)
 
-	searchCmd.Flags().StringVarP(&searchHash, "hash", "s", "", "Match if the file signature hash starts with this prefix")
-	searchCmd.Flags().StringVar(&searchId, "id", "", "Match if the entry's identifier starts with this prefix")
+	searchCmd.Flags().StringVarP(&searchHash, "hash", "s", "", "Match if the file signature hash starts with this prefix.")
+	searchCmd.Flags().StringVar(&searchId, "id", "", "Match if the entry's identifier starts with this prefix.")
 
 	searchCmd.Flags().StringArrayVar(&searchSize, "size", nil, `Match the file size according to:
   <n> with no suffix means exactly <n> bytes. e.g. --size 100

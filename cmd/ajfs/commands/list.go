@@ -28,9 +28,17 @@ import (
 // ajfs list.
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Display the database path entries",
-	Long:  `Display the database path entries`,
-	Args:  cobra.MaximumNArgs(1),
+	Short: "Display the database path entries.",
+	Long:  `Display all the path entries stored inside a database.`,
+	Example: `  # using the default ./db.ajfs database
+  ajfs list
+
+  # using a specific database
+  ajfs list /path/to/database.ajfs
+
+  # display full paths, file signature hashes and more information for each entry
+  ajfs list --full --hash --more /path/to/database.ajfs`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := list.Config{
 			CommonConfig:     commonConfig,
@@ -49,9 +57,9 @@ var listCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	listCmd.Flags().BoolVarP(&listDisplayFullPaths, "full", "f", false, "Display full paths for entries")
-	listCmd.Flags().BoolVarP(&listDisplayHashes, "hash", "s", false, "Display file signature hashes if available")
-	listCmd.Flags().BoolVarP(&listDisplayMore, "more", "m", false, "Display more information about the paths")
+	listCmd.Flags().BoolVarP(&listDisplayFullPaths, "full", "f", false, "Display full paths for entries.")
+	listCmd.Flags().BoolVarP(&listDisplayHashes, "hash", "s", false, "Display file signature hashes if available.")
+	listCmd.Flags().BoolVarP(&listDisplayMore, "more", "m", false, "Display more information about the paths.")
 }
 
 var (

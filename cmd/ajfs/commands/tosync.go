@@ -31,9 +31,41 @@ import (
 // ajfs tosync.
 var tosyncCmd = &cobra.Command{
 	Use:   "tosync",
-	Short: "Show which files need to be synced from the LHS to the RHS",
-	Long:  `Show which files need to be synced from the LHS to the RHS`,
-	Args:  cobra.RangeArgs(1, 2),
+	Short: "Show which files need to be synced from the LHS to the RHS.",
+	Long: `Show which files need to be synced from the left hand side (LHS) to the
+right hand side (RHS).
+
+Think of this as a quick way to see which files on the LHS has been changed or
+added and have not yet been copied onto the RHS.
+ 
+NOTE: Does not do any syncing. This is the job for the excellent rsync.
+
+ Criteria are:
+* Only files that appear on the LHS will be shown.
+* Files that have changed will be shown and thus indicate that the ones on
+  the RHS need to be overwritten.
+* Permissions and last modification times are ignored since these are bound
+  to be different between two systems.
+* If both databases have compatible file signature hashes, then items with
+  a different hash will also be shown.
+
+One of the biggest use cases for this command is to be able to see which files
+on one system (e.g. laptop) has not yet been backed up somewhere on another
+system (e.g. Linux server). In which case the file locations are different
+between the systems. In order to do this you need to perform a scan with
+file signature hash calculations on both systems and the use:
+  ajfs tosync lhs.ajfs rhs.ajfs
+`,
+	Example: `  # compares the default database ./db.ajfs as the LHS against the RHS database
+  ajfs tosync /path/to/rhs.ajf
+
+  # compares the LHS database against the RHS database
+  ajfs tosync /path/to/lhs.ajfs /path/to/rhs.ajfs
+
+  # only compare the file signature hashes. Useful when the files are in different locations
+  ajfs tosync --hash lhs.ajfs rhs.ajfs
+`,
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := tosync.Config{
 			CommonConfig: commonConfig,
@@ -61,8 +93,8 @@ var tosyncCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(tosyncCmd)
 
-	tosyncCmd.Flags().BoolVarP(&tosyncHashesOnly, "hash", "s", false, "Compare only the file signature hashes")
-	tosyncCmd.Flags().BoolVarP(&tosyncFullPaths, "full", "f", false, "Display full paths for entries")
+	tosyncCmd.Flags().BoolVarP(&tosyncHashesOnly, "hash", "s", false, "Compare only the file signature hashes.")
+	tosyncCmd.Flags().BoolVarP(&tosyncFullPaths, "full", "f", false, "Display full paths for entries.")
 }
 
 var (
