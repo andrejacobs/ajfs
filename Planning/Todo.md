@@ -3,7 +3,6 @@
 -   [] Write a "system" test for each of the commands.
 -   [] Could do with more testing on failure paths
 -   [] Strip out the ``` from the Long description for dupes. This is used to ensure the markdown docs look correct.
--   [] Specify explicit command ordering when using --help.
 
 -   [] Build, test and fix so it can run on Windows as well
 
@@ -14,6 +13,7 @@
 -   [] Look into using goreleaser to build all the binaries etc for different platforms
 
 -   [] Make this repo and go-aj public
+-   [] Also make mk1 public for historical reasons and slap a big "archived" sticker on it
 
 -   [x] Remove the replace for local go mod repo.
 -   [x] Info needs to display info about the hash table.
@@ -36,6 +36,7 @@
 -   [x] Check that the vardata stuff respects endianess
 -   [x] Fix linting errors (make check)
 -   [x] Document each command and what the output means
+-   [x] Specify explicit command ordering when using --help.
 
 ## Future (nice to have)
 

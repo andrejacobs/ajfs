@@ -3,8 +3,8 @@ module github.com/andrejacobs/ajfs
 go 1.25.1
 
 require (
-	github.com/andrejacobs/go-aj v0.0.0-20251004103405-e61adfac2bf8
-	github.com/andrejacobs/go-collection v0.0.0-20251011073126-9f39afcec221
+	github.com/andrejacobs/go-aj v0.1.0
+	github.com/andrejacobs/go-collection v0.1.0
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1

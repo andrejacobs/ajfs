@@ -1,7 +1,7 @@
-github.com/andrejacobs/go-aj v0.0.0-20251004103405-e61adfac2bf8 h1:fglJyk0GNmvb9RJWS9N+e1s+XAAQ1mx2Kf0bNwrOurI=
-github.com/andrejacobs/go-aj v0.0.0-20251004103405-e61adfac2bf8/go.mod h1:GobNkb7/Rsy7gsjuPweNWbYjjp5edZRK4XDK8dxHXWo=
-github.com/andrejacobs/go-collection v0.0.0-20251011073126-9f39afcec221 h1:Q/4JzvawJSC0PDjhXDRBaqNpejw9iJh//LjUWIrjddU=
-github.com/andrejacobs/go-collection v0.0.0-20251011073126-9f39afcec221/go.mod h1:vtOlyHiSY6suBtC/sizxh802WoOuL1UC+W0KgHdK4Xw=
+github.com/andrejacobs/go-aj v0.1.0 h1:1atHShgYjPJYxTnj6bxsFqcV6bSwPxlJuW8oZZ7iugw=
+github.com/andrejacobs/go-aj v0.1.0/go.mod h1:GobNkb7/Rsy7gsjuPweNWbYjjp5edZRK4XDK8dxHXWo=
+github.com/andrejacobs/go-collection v0.1.0 h1:ZO3wrybyjJgr3TE1UOCzwrsW+3bpFIDNKUwd60dqe10=
+github.com/andrejacobs/go-collection v0.1.0/go.mod h1:vtOlyHiSY6suBtC/sizxh802WoOuL1UC+W0KgHdK4Xw=
 github.com/chengxilo/virtualterm v1.0.4 h1:Z6IpERbRVlfB8WkOmtbHiDbBANU7cimRIof7mk9/PwM=
 github.com/chengxilo/virtualterm v1.0.4/go.mod h1:DyxxBZz/x1iqJjFxTFcr6/x+jSpqN0iwWCOK1q10rlY=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
