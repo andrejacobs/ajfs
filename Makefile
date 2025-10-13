@@ -69,6 +69,11 @@ install: build
 		cp "$${name}" "${GO_BIN_DIR}/"; \
 	done
 
+# Generate documentation
+.PHONY: docs
+docs:
+	@go run ./internal/docgen -out ./docs/cli -format markdown
+
 #------------------------------------------------------------------------------
 # Code quality assurance
 #------------------------------------------------------------------------------

@@ -93,6 +93,11 @@ func dbPathFromArgs(args []string) string {
 	return defaultDBPath
 }
 
+// Root cobra command.
+func RootCmd() *cobra.Command {
+	return rootCmd
+}
+
 const (
 	defaultDBPath = "./db.ajfs"
 )

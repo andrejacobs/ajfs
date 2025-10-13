@@ -1,6 +1,5 @@
 # TODO
 
--   [] Fix linting errors (make check)
 -   [] Document each command and what the output means
 -   [] Write a "system" test for each of the commands.
 -   [] Could do with more testing on failure paths
@@ -34,6 +33,7 @@
 -   [x] Add license headers
 -   [x] Export and ToSync need to support -f --full paths.
 -   [x] Check that the vardata stuff respects endianess
+-   [x] Fix linting errors (make check)
 
 ## Future (nice to have)
 
