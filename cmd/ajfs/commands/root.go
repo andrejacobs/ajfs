@@ -40,7 +40,7 @@ var rootCmd = &cobra.Command{
 	Long: `Andre Jacobs' file hierarchy snapshot tool is used to save a file system
 hierarchy to a single flat file database.
 
-Which can then be used in an offline and independant way to do the following:
+Which can then be used in an offline and independent way to do the following:
 * Find duplicate files or entire duplicate subtrees.
 * Compare differences between databases (snapshots) and or file systems.
 * Find out which files would still need to be synced to another system.
