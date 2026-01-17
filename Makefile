@@ -51,7 +51,6 @@ build: versioninfo
 	@for name in cmd/*; do \
 		CURRENT_EXECUTABLE=${CURRENT_OUTPUT_DIR}/$${name#cmd/}; \
 		GO_LDFLAGS="${GO_LDFLAGS} -X github.com/andrejacobs/go-aj/buildinfo.AppName=$${name#cmd/}"; \
-		echo "GO_LDFLAGS = ${GO_LDFLAGS}"; \
     	echo "Compiling $${name} to: $${CURRENT_EXECUTABLE}"; \
 		mkdir -p ${CURRENT_OUTPUT_DIR}; \
 		CGO_ENABLED=0 go build -ldflags "$${GO_LDFLAGS}" -o $${CURRENT_EXECUTABLE} "$${name}/${INPUT_SRC_FILE}"; \
@@ -75,6 +74,13 @@ install: build
 docs:
 	@rm -rf ./docs/cli
 	@go run ./internal/docgen -out ./docs/cli/md -format markdown
+
+#------------------------------------------------------------------------------
+# Release
+#------------------------------------------------------------------------------
+.PHONY: release-snapshot
+release-snapshot:
+	@goreleaser release --snapshot --clean
 
 #------------------------------------------------------------------------------
 # Code quality assurance
