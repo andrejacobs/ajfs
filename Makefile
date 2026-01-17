@@ -29,7 +29,7 @@ versioninfo:
 	$(eval GIT_COMMIT_HASH := $(shell git rev-parse HEAD))
 	$(eval GIT_TAG := $(shell git describe --tags --dirty --always))
 
-	$(eval GO_LDFLAGS := -s -w -X ${MODULE_NAME}/internal/compiledinfo.Version=${GIT_TAG} -X ${MODULE_NAME}/internal/compiledinfo.GitCommitHash=${GIT_COMMIT_HASH})
+	$(eval GO_LDFLAGS := -s -w -X github.com/andrejacobs/go-aj/buildinfo.Version=${GIT_TAG} -X github.com/andrejacobs/go-aj/buildinfo.GitCommitHash=${GIT_COMMIT_HASH})
 
 # Display info about the current platform and configurations etc.
 .PHONY: info
@@ -50,7 +50,8 @@ build: versioninfo
 # Each directory inside of ./cmd is considered to be a seperate CLI executable
 	@for name in cmd/*; do \
 		CURRENT_EXECUTABLE=${CURRENT_OUTPUT_DIR}/$${name#cmd/}; \
-		GO_LDFLAGS="${GO_LDFLAGS} -X ${MODULE_NAME}/internal/compiledinfo.AppName=$${name#cmd/}"; \
+		GO_LDFLAGS="${GO_LDFLAGS} -X github.com/andrejacobs/go-aj/buildinfo.AppName=$${name#cmd/}"; \
+		echo "GO_LDFLAGS = ${GO_LDFLAGS}"; \
     	echo "Compiling $${name} to: $${CURRENT_EXECUTABLE}"; \
 		mkdir -p ${CURRENT_OUTPUT_DIR}; \
 		CGO_ENABLED=0 go build -ldflags "$${GO_LDFLAGS}" -o $${CURRENT_EXECUTABLE} "$${name}/${INPUT_SRC_FILE}"; \
