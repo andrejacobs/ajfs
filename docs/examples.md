@@ -2,7 +2,7 @@
 
 The core concept to remember is that you use ajfs to take a snapshot of a file system hierarchy (directory layout,
 filenames, size, etc.) that you can then use to later perform things such as searching or finding duplicates.
-You can perform these operations on a completely different machine than the one on which the file system hierarchy lives.
+You can perform these operations on a **completely different machine** than the one on which the file system hierarchy lives.
 Please note that a snapshot does not include the actual file content data.
 
 When creating a new snapshot you have the choice of including the file signature hashes or not. The file signature hash
@@ -13,6 +13,7 @@ The following examples use:
 
 -   `$` to indicate your local machine and `remote$` to indicate another machine.
 -   the words `I`, `my` etc. written as if it was you that performed the operations.
+-   `...` indicate that there is more output and not included in the example.
 
 ## Installing ajfs
 
@@ -80,13 +81,201 @@ nas$ ajfs update ~/mybooks.ajfs
 
 ## Index everything
 
-I want to take a snapshot of all the files stored on my NAS including the file signature hashes. This operation will take hours to perform on over 10TB of data.
+I want to take a snapshot of all the files stored on my NAS including the file signature hashes.
+This operation will take hours to perform on over 15TB of data.
+I also want to be able to check in every few hours and see the progress being made.
+It also happens to be that the SHA-1 algorithm performs much better on this "old" x86-64 machine.
+
+-   Start the scan.
+
+```shell
+nas$ ajfs scan --hash --algo=sha1 --progress ~/database.ajfs /media
+
+Scanning ...
+Calculating progress information ...
+[1525/4464882]   0% |                | (12 GB/15 TB, 149 MB/s) [1m12s:27h16m8s]
+```
+
+-   After a few minutes I realise that I need to run this in tmux or screen so that the process doesn't get terminated when the connection gets dropped.
+-   `Ctrl c` to stop the process.
+-   Start a tmux or screen session.
+-   Continue the process to calculate the file signature hashes. This will still take +/- 27 hours!
+
+```shell
+nas$ ajfs resume --progress ~/database.ajfs
+
+Resuming database file at "./db.ajfs"
+Calculating progress information ...
+[1589/4464882]   0% |                | (14 GB/15 TB, 152 MB/s) [9s:26h38m17s]
+```
+
+## What has changed?
+
+I need to see which files are being modified when I run a certain program.
+
+-   See [ajfs diff](https://github.com/andrejacobs/ajfs/blob/main/docs/cli/md/ajfs_diff.md) for more details.
+-   Create the initial snapshot.
+
+```shell
+$ ajfs scan ~/snap1.ajfs ~/.config
+```
+
+-   Assume I run a program called `bravo` for the first time.
+-   I want to see which files this program created.
+
+```shell
+$ ajfs diff ~/snap1.ajfs
+
+d++++ bravo
+f++++ bravo/bravo.settings
+f++++ bravo/cached_ids.json
+d~sl~ .
+```
+
+-   I can see that it has created a new directory called bravo and two new files.
+-   Take another snapshot.
+
+```shell
+$ ajfs scan ~/snap2.ajfs ~/.config
+```
+
+-   Assume I make changes to `bravo` and run it again.
+-   I want to see which files this program modified.
+
+```shell
+$ ajfs diff ~/snap2.ajfs
+
+f---- bravo/cached_ids.json
+d++++ bravo/data
+f++++ bravo/data.xyz
+f++++ bravo/data/1.json
+f++++ bravo/data/2.json
+f~sl~ bravo/bravo.settings
+d~sl~ bravo
+```
+
+-   From this I can see that the file 'cached_ids.json' was deleted. A new directory and files were created under 'data'. The 'bravo.settings' was changed (size and last modification time).
+
+-   I can also see the differences between two snapshots.
+
+```shell
+$ ajfs diff ~/snap1.ajfs ~/snap2.ajfs
+...
+```
+
+## Browse a snapshot
+
+-   I want to see what file and directory information was stored in a snapshot.
+    -   See [ajfs list](https://github.com/andrejacobs/ajfs/blob/main/docs/cli/md/ajfs_list.md) for more details.
+    -   Remember you can also perform this on another computer with only the .ajfs database file.
+
+```shell
+ajfs list ~/snap3.ajfs
+
+.
+bravo
+bravo/bravo.settings
+bravo/data
+bravo/data/1.json
+bravo/data/2.json
+bravo/data.xyz
+mc
+mc/ini
+mc/mcedit
+mc/panels.ini
+...
+```
+
+-   I want to see this information in a `tree` like manner.
+    -   See [ajfs tree](https://github.com/andrejacobs/ajfs/blob/main/docs/cli/md/ajfs_tree.md) for more details.
+
+```shell
+$ ajfs tree ~/snap3.ajfs
+
+/Users/andre/.config
+...
+├── bravo
+│   ├── bravo.settings
+│   ├── data
+│   │   ├── 1.json
+│   │   └── 2.json
+│   └── data.xyz
+├── mc
+│   ├── ini
+│   ├── mcedit
+│   └── panels.ini
+...
+```
+
+-   I want to only see the tree for a certain directory.
+
+```shell
+$ ajfs tree ~/snap3.ajfs bravo/data
+
+data
+├── 1.json
+└── 2.json
+
+1 directory, 2 files
+```
+
+## Finding duplicates
+
+I have the problem where a lot of data was backed up over the years to a number of different locations on my NAS and
+I want to find these duplicates.
+
+-   See [ajfs dupes](https://github.com/andrejacobs/ajfs/blob/main/docs/cli/md/ajfs_dupes.md) for more details.
+-   First create a snapshot. I will be including the file signature hashes so that I can find duplicates even if the filenames are different.
+
+```shell
+nas$ ajfs scan --hash --algo=sha1 --progress ~/database.ajfs /media
+```
+
+-   I want to see all the subtrees that are the same. This is a good indicator of where certain directories were copied into different locations over time.
+
+```shell
+nas$ ajfs dupes --dirs ~/database.ajfs
+...
+├── Photos
+│   └── Holiday2025
+│       └── Day1
+│           ├── Photo1.jpg
+│           └── Photo2.jpg
+└── Backup
+    └── MyPhotos
+        └── 2025
+            └── Day1
+                ├── Photo1.jpg
+                └── Photo2.jpg
+...
+# I can see that I have a duplicate set of photos backed up under a slightly different directory structure
+```
+
+-   I want to find all the duplicate files that might have different filenames but the exact same file data.
+
+```shell
+nas$ ajfs dupes ~/database.ajfs
+
+>>>
+Hash: c88e6e3b20f8478468288d2bef9cf624f5707ebcdad6113d4a545469333271a1
+Size: 11167407 [11 MB]
+
+[0]: Bought/Books/Some-awesome-book.pdf
+[1]: Another/dir/somewhere/with/backups/Same-book.pdf
+
+Count: 2
+Total Size: 22334814 [22 MB]
+<<<
+
+# I can see that I have 2 books with different locations and filenames, however the content is the exact same.
+# A single instance of the data would only take up 11MB. In this case the total size including all duplicates are 22MB.
+```
+
+## Export to other formats
+
+TODO
 
 ---
 
 TODO:
-To have a hash table or not?
-Index everything with hashes, long running task
-What's changed?
-Finding duplicates
 Figuring out what still needs to be backed up
