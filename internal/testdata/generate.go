@@ -83,12 +83,12 @@ func generateDiffFiles(rootDir string) {
 	// LHS only
 	makeFile(filepath.Join(baseDir, "a/quick/1.txt"), "The quick brown fox", 0644)
 	makeFile(filepath.Join(baseDir, "a/quick/2.txt"), "Jumped over the lazy dog", 0644)
-	makeDir(filepath.Join(baseDir, "a/dir1/lhs-only"))
+	makeFile(filepath.Join(baseDir, "a/dir1/lhs-only"), "lhs-only", 0644)
 
 	// RHS only
 	makeFile(filepath.Join(baseDir, "b/fox/3.txt"), "Alpha Bravo 17", 0644)
 	makeFile(filepath.Join(baseDir, "b/hole/4.txt"), "Only exists on the RHS", 0644)
-	makeDir(filepath.Join(baseDir, "b/dir2/rhs-only"))
+	makeFile(filepath.Join(baseDir, "b/dir2/rhs-only"), "rhs-only", 0644)
 
 	// Same on both sides
 	makeFile(filepath.Join(baseDir, "a/both/5.txt"), "LHS and RHS equal", 0644)
