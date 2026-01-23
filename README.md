@@ -1,6 +1,6 @@
 # ajfs
 
-[![Tests](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml/badge.svg)](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml)
+[![](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml/badge.svg)](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml)
 
 Snapshot file hierarchy, meta data and hash signatures.
 
