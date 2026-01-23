@@ -156,6 +156,9 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 	})
 
 	if err != nil {
+		if progress != nil {
+			progress.Exit()
+		}
 		return err
 	}
 

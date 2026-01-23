@@ -1,6 +1,6 @@
 # TODO
 
--   [] I need to test the following: What happens when you resume but some files have been deleted?
+-   [] What happens when you resume, but all the signatures have already been calced?
 
 -   [] Write a "system" test for each of the commands.
 -   [] Could do with more testing on failure paths
@@ -39,6 +39,8 @@
 -   [x] Fix linting errors (make check)
 -   [x] Document each command and what the output means
 -   [x] Specify explicit command ordering when using --help.
+-   [x] I need to test the following: What happens when you resume but some files have been deleted?
+        Answer: The operation is stopped with ERROR: failed to calculate the hash for ...
 
 ## Future (nice to have)
 

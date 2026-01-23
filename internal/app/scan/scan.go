@@ -213,6 +213,9 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 	})
 
 	if err != nil {
+		if progress != nil {
+			progress.Exit()
+		}
 		return err
 	}
 
