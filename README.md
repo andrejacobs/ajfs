@@ -14,6 +14,31 @@ Please see the [documentation](docs/cli/md/ajfs.md) for more details.
 
 TODO: Need to hookup goreleaser in github. Need to figure out homebrew taps and linux packages / repos
 
+## Development
+
+-   Clone this repo.
+
+-   Build.
+
+    ```shell
+    make build
+
+    # build and run
+    make build && ./build/bin/ajfs --help
+    ```
+
+-   Run unit-tests.
+
+    ```shell
+    make test
+    ```
+
+-   Confirm code quality.
+
+    ```shell
+    make check
+    ```
+
 ## Usage
 
 Please see the [examples](docs/examples.md) for more detailed example use cases.
@@ -103,7 +128,7 @@ The following is just a couple of examples of what is possible with `ajfs`.
 
 -   Export the snapshot to other formats.
 
-    ```shell
+    ```
     ajfs export database.ajfs export.csv
 
     ajfs export --format=json database.ajfs export.json
