@@ -1,7 +1,5 @@
 # TODO
 
--   [] What happens when you resume, but all the signatures have already been calced?
-
 -   [] Write a "system" test for each of the commands.
 -   [] Could do with more testing on failure paths
 -   [] Strip out the ``` from the Long description for dupes. This is used to ensure the markdown docs look correct.
@@ -15,7 +13,6 @@
 -   [] Look into using goreleaser to build all the binaries etc for different platforms
 
 -   [] Make this repo and go-aj public
--   [] Also make mk1 public for historical reasons and slap a big "archived" sticker on it
 
 -   [x] Remove the replace for local go mod repo.
 -   [x] Info needs to display info about the hash table.
@@ -41,6 +38,9 @@
 -   [x] Specify explicit command ordering when using --help.
 -   [x] I need to test the following: What happens when you resume but some files have been deleted?
         Answer: The operation is stopped with ERROR: failed to calculate the hash for ...
+-   [x] What happens when you resume, but all the signatures have already been calced?
+        Answer: It just works.
+-   [x] UPDATE: Nope. Also make mk1 public for historical reasons and slap a big "archived" sticker on it
 
 ## Future (nice to have)
 
