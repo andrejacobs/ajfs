@@ -18,6 +18,10 @@ TODO: Need to hookup goreleaser in github. Need to figure out homebrew taps and 
 
 -   Clone this repo.
 
+    ```shell
+    git clone git@github.com:andrejacobs/ajfs.git
+    ```
+
 -   Build.
 
     ```shell
