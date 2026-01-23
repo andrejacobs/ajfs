@@ -63,22 +63,20 @@ func generateDiffFiles(rootDir string) {
 	// f----- quick/1.txt
 	// f----- quick/2.txt
 	// d----- dir1
-	// d----- dir1/lhs-only
+	// f----- dir1/lhs-only
 
 	// d+++++ fox
 	// f+++++ fox/3.txt
 	// d+++++ hole
 	// f+++++ hole/4.txt
 	// d+++++ dir2
-	// d+++++ dir2/rhs-only
+	// f+++++ dir2/rhs-only
 
 	// d~~sm~ .				<-- valid
 	// d~~~m~ both
 	// f~~s~~ both/6.txt
 	// f~p~~~ both/7.txt
 	// f~~~m~ both/8.txt
-	// d~~~m~ dir3
-	// d~~~m~ dir3/both
 
 	// LHS only
 	makeFile(filepath.Join(baseDir, "a/quick/1.txt"), "The quick brown fox", 0644)
@@ -95,8 +93,6 @@ func generateDiffFiles(rootDir string) {
 	copy(filepath.Join(baseDir, "a/both/5.txt"), filepath.Join(baseDir, "b/both/5.txt"))
 	setLastMod(filepath.Join(baseDir, "a/both/5.txt"), "202310310530.42")
 	setLastMod(filepath.Join(baseDir, "b/both/5.txt"), "202310310530.42")
-	makeDir(filepath.Join(baseDir, "a/dir3/both"))
-	copy(filepath.Join(baseDir, "a/dir3/both"), filepath.Join(baseDir, "b/dir3/both"))
 
 	// Changed
 	// size

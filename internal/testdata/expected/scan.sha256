@@ -1,6 +1,6 @@
 %%%% HASHDEEP-1.0
 %%%% size,sha256,filename
-## Invoked from: /Users/andre/git/Personal/tools/ajfs/internal/testdata/scan
+## Invoked from: /Users/andre/temp/ajfs-test/internal/testdata/scan
 ## $ hashdeep -c sha256 -l -r ./
 ## 
 0,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,./blank.txt
@@ -15,6 +15,6 @@
 484,dc7e12be50b456cffc046584b24a0c69c4de207ed816622436c7b7556536b41e,./1.txt
 616,ff4ab767d9d398110adf256c1cdb84d9fd42e431de3ead95ef57f6ca68313030,./c/c.txt
 0,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,./b/b1/b1a/blank.txt
-484,dc7e12be50b456cffc046584b24a0c69c4de207ed816622436c7b7556536b41e,./b/b1/b1a/1.txt
 484,dc7e12be50b456cffc046584b24a0c69c4de207ed816622436c7b7556536b41e,./b/b1/b1a/same-as-1.txt
+484,dc7e12be50b456cffc046584b24a0c69c4de207ed816622436c7b7556536b41e,./b/b1/b1a/1.txt
 961,245ededb8ec6d2343a081d355eb858191dec666c0f5bde6f20303ae6f6b28caf,./b/b1/b1a/7.txt

@@ -172,7 +172,7 @@ func TestDiffCompare(t *testing.T) {
 		"f---- quick/1.txt",
 		"f---- quick/2.txt",
 		"d---- dir1",
-		"d---- dir1/lhs-only",
+		"f---- dir1/lhs-only",
 	}
 
 	expectedRHSOnly := []string{
@@ -181,7 +181,7 @@ func TestDiffCompare(t *testing.T) {
 		"d++++ hole",
 		"f++++ hole/4.txt",
 		"d++++ dir2",
-		"d++++ dir2/rhs-only",
+		"f++++ dir2/rhs-only",
 	}
 	expectedChanged := []string{
 		"d~sl~ .",
@@ -189,8 +189,6 @@ func TestDiffCompare(t *testing.T) {
 		"f~s~~ both/6.txt",
 		"fm~~~ both/7.txt",
 		"f~~l~ both/8.txt",
-		"d~~l~ dir3",
-		"d~~l~ dir3/both",
 	}
 
 	slices.Sort(expectedLHSOnly)
@@ -325,7 +323,7 @@ func TestRunTwoDirs(t *testing.T) {
 		"f---- quick/1.txt",
 		"f---- quick/2.txt",
 		"d---- dir1",
-		"d---- dir1/lhs-only",
+		"f---- dir1/lhs-only",
 	}
 
 	expectedRHSOnly := []string{
@@ -334,7 +332,7 @@ func TestRunTwoDirs(t *testing.T) {
 		"d++++ hole",
 		"f++++ hole/4.txt",
 		"d++++ dir2",
-		"d++++ dir2/rhs-only",
+		"f++++ dir2/rhs-only",
 	}
 	expectedChanged := []string{
 		"d~sl~ .",
@@ -342,8 +340,6 @@ func TestRunTwoDirs(t *testing.T) {
 		"f~s~~ both/6.txt",
 		"fm~~~ both/7.txt",
 		"f~~l~ both/8.txt",
-		"d~~l~ dir3",
-		"d~~l~ dir3/both",
 	}
 
 	slices.Sort(expectedLHSOnly)
@@ -420,7 +416,7 @@ func TestRunTwoDatabases(t *testing.T) {
 		"f---- quick/1.txt",
 		"f---- quick/2.txt",
 		"d---- dir1",
-		"d---- dir1/lhs-only",
+		"f---- dir1/lhs-only",
 	}
 
 	expectedRHSOnly := []string{
@@ -429,7 +425,7 @@ func TestRunTwoDatabases(t *testing.T) {
 		"d++++ hole",
 		"f++++ hole/4.txt",
 		"d++++ dir2",
-		"d++++ dir2/rhs-only",
+		"f++++ dir2/rhs-only",
 	}
 	expectedChanged := []string{
 		"d~sl~ .",
@@ -437,8 +433,6 @@ func TestRunTwoDatabases(t *testing.T) {
 		"f~s~~ both/6.txt",
 		"fm~~~ both/7.txt",
 		"f~~l~ both/8.txt",
-		"d~~l~ dir3",
-		"d~~l~ dir3/both",
 	}
 
 	slices.Sort(expectedLHSOnly)
