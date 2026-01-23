@@ -96,9 +96,9 @@ Calculating progress information ...
 [1525/4464882]   0% |                | (12 GB/15 TB, 149 MB/s) [1m12s:27h16m8s]
 ```
 
--   After a few minutes I realise that I need to run this in tmux or screen so that the process doesn't get terminated when the connection gets dropped.
+-   After a few minutes I realise that I need to run this in `tmux` or `screen` so that the process doesn't get terminated when the connection gets dropped.
 -   `Ctrl c` to stop the process.
--   Start a tmux or screen session.
+-   Start a `tmux` or `screen` session.
 -   Continue the process to calculate the file signature hashes. This will still take +/- 27 hours!
 
 ```shell
@@ -107,6 +107,16 @@ nas$ ajfs resume --progress ~/database.ajfs
 Resuming database file at "./db.ajfs"
 Calculating progress information ...
 [1589/4464882]   0% |                | (14 GB/15 TB, 152 MB/s) [9s:26h38m17s]
+```
+
+-   Now the process can be interuppted at any point and I can simply resume when needed.
+
+-   At some point I want to update the snapshot but really don't want to wait another 27 hours.
+    -   [ajfs update](https://github.com/andrejacobs/ajfs/blob/main/docs/cli/md/ajfs_update.md) will create a new
+        snapshot but only calculate file signature hashes for new files.
+
+```shell
+nas$ ajfs update --progress ~/database.ajfs
 ```
 
 ## What has changed?
@@ -273,9 +283,51 @@ Total Size: 22334814 [22 MB]
 
 ## Export to other formats
 
-TODO
+A snapshot can also be exported to other formats like: CSV, JSON and hashdeep.
 
----
+-   See [ajfs export](https://github.com/andrejacobs/ajfs/blob/main/docs/cli/md/ajfs_export.md) for more details.
 
-TODO:
-Figuring out what still needs to be backed up
+```shell
+$ ajfs export ~/database.ajfs export.csv
+```
+
+## What needs to be backed up?
+
+Scenario 1: I need to figure out which files on my laptop has not yet been backed up to my NAS. Unfortunately my files on the NAS
+could also be located in different directories and even have different filenames.
+
+-   In this case I need to take snapshots of both machines as well as include file signature hashes.
+
+```shell
+$ ajfs scan --hash ~/laptop.ajfs ~/
+nas$ ajfs scan --hash ~/nas.ajfs /media/backup
+```
+
+-   I can now get the list of files that still need to be backed up.
+
+```shell
+# I copied the nas.ajfs file from the NAS onto my laptop
+$ ajfs tosync --hash ~/laptop.ajfs ~/nas.ajfs
+...
+Cached/E-books/Go/100_go_mistakes.pdf
+Cached/E-books/Go/100_go_mistakes.epub
+...
+```
+
+Scenario 2: I have a local copy of a file hierarchy that is also mirrored on my NAS. Unfortunately I am not on the
+same network as my NAS and thus can't run `rsync --dry-run` to find out which files still need to be backed up.
+I do however have a snapshot from my NAS. In scenario 1 the files could be stored anywhere on the NAS and I just wanted
+to ensure I at least backed up my local files somewhere on the NAS. This scenario does not require the file signature
+hashes to be calculated.
+
+-   Get the list of files that still need to be backed up.
+
+```shell
+$ ajfs tosync ~/laptop.ajfs ~/nas.ajfs
+```
+
+-   Which files exist on the NAS that I have deleted locally?
+
+```shell
+$ ajfs tosync ~/nas.ajfs ~/laptop.ajfs
+```

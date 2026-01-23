@@ -1,5 +1,7 @@
 # TODO
 
+-   [] I need to test the following: What happens when you resume but some files have been deleted?
+
 -   [] Write a "system" test for each of the commands.
 -   [] Could do with more testing on failure paths
 -   [] Strip out the ``` from the Long description for dupes. This is used to ensure the markdown docs look correct.
