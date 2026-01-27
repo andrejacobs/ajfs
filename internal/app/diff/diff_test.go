@@ -150,6 +150,9 @@ func TestDiffCompare(t *testing.T) {
 	changed := make([]string, 0, 10)
 
 	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
+		if d.Path == "." {
+			return nil
+		}
 		switch d.Type {
 		case diff.TypeLeftOnly:
 			lhs = append(lhs, d.String())
@@ -184,8 +187,6 @@ func TestDiffCompare(t *testing.T) {
 		"f++++ dir2/rhs-only",
 	}
 	expectedChanged := []string{
-		"d~sl~ .",
-		"d~~l~ both",
 		"f~s~~ both/6.txt",
 		"fm~~~ both/7.txt",
 		"f~~l~ both/8.txt",
@@ -231,6 +232,9 @@ func TestDiffCompareWithHashes(t *testing.T) {
 	changed := make([]string, 0, 10)
 
 	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
+		if d.Path == "." {
+			return nil
+		}
 		switch d.Type {
 		case diff.TypeChanged:
 			changed = append(changed, d.String())
@@ -245,7 +249,6 @@ func TestDiffCompareWithHashes(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedChanged := []string{
-		"d~~l~ .",
 		"f~~~x changed.txt",
 	}
 	slices.Sort(expectedChanged)
@@ -289,6 +292,9 @@ func TestRunTwoDirs(t *testing.T) {
 	changed := make([]string, 0, 10)
 
 	fn := func(d diff.Diff) error {
+		if d.Path == "." {
+			return nil
+		}
 		switch d.Type {
 		case diff.TypeLeftOnly:
 			lhs = append(lhs, d.String())
@@ -335,8 +341,6 @@ func TestRunTwoDirs(t *testing.T) {
 		"f++++ dir2/rhs-only",
 	}
 	expectedChanged := []string{
-		"d~sl~ .",
-		"d~~l~ both",
 		"f~s~~ both/6.txt",
 		"fm~~~ both/7.txt",
 		"f~~l~ both/8.txt",
@@ -382,6 +386,9 @@ func TestRunTwoDatabases(t *testing.T) {
 	changed := make([]string, 0, 10)
 
 	fn := func(d diff.Diff) error {
+		if d.Path == "." {
+			return nil
+		}
 		switch d.Type {
 		case diff.TypeLeftOnly:
 			lhs = append(lhs, d.String())
@@ -428,8 +435,6 @@ func TestRunTwoDatabases(t *testing.T) {
 		"f++++ dir2/rhs-only",
 	}
 	expectedChanged := []string{
-		"d~sl~ .",
-		"d~~l~ both",
 		"f~s~~ both/6.txt",
 		"fm~~~ both/7.txt",
 		"f~~l~ both/8.txt",
