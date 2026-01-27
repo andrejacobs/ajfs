@@ -86,14 +86,20 @@ release-snapshot:
 # Code quality assurance
 #------------------------------------------------------------------------------
 
-# Run unit-testing with race detector and code coverage report
+# Run unit-testing with race detector
 .PHONY: test
 test:
+	@echo "Running unit-tests"
+	@go test -count=1 -race ./...
+
+# Run unit-testing with race detector and code coverage report
+.PHONY: test-cover
+test-cover:
 	@echo "Running unit-tests"
 	$(eval COVERAGE_REPORT := ${REPORT_OUTPUT_DIR}/codecoverage)
 	@mkdir -p "${REPORT_OUTPUT_DIR}"
 	@go test -v -count=1 -race ./... -coverprofile="${COVERAGE_REPORT}"
-
+	
 # Check that the source code is formatted correctly according to the gofmt standards
 .PHONY: check-formatting
 check-formatting:

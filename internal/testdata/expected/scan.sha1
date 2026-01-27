@@ -1,6 +1,6 @@
 %%%% HASHDEEP-1.0
 %%%% size,sha1,filename
-## Invoked from: /Users/andre/temp/ajfs-test/internal/testdata/scan
+## Invoked from: /Users/andre/temp/temp-ajfs/internal/testdata/scan
 ## $ hashdeep -c sha1 -l -r ./
 ## 
 0,da39a3ee5e6b4b0d3255bfef95601890afd80709,./blank.txt
@@ -15,6 +15,6 @@
 484,e3d157020b35944b552ba9987eb668228c073d30,./1.txt
 616,0c76100cba4c7495a3d63c79f07be88937d1b911,./c/c.txt
 0,da39a3ee5e6b4b0d3255bfef95601890afd80709,./b/b1/b1a/blank.txt
-961,d4b3248edf8e76886c3653bf07286236d3a611a5,./b/b1/b1a/7.txt
-484,e3d157020b35944b552ba9987eb668228c073d30,./b/b1/b1a/1.txt
 484,e3d157020b35944b552ba9987eb668228c073d30,./b/b1/b1a/same-as-1.txt
+484,e3d157020b35944b552ba9987eb668228c073d30,./b/b1/b1a/1.txt
+961,d4b3248edf8e76886c3653bf07286236d3a611a5,./b/b1/b1a/7.txt

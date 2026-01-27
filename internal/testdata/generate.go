@@ -91,36 +91,36 @@ func generateDiffFiles(rootDir string) {
 	// Same on both sides
 	makeFile(filepath.Join(baseDir, "a/both/5.txt"), "LHS and RHS equal", 0644)
 	copy(filepath.Join(baseDir, "a/both/5.txt"), filepath.Join(baseDir, "b/both/5.txt"))
-	setLastMod(filepath.Join(baseDir, "a/both/5.txt"), "202310310530.42")
-	setLastMod(filepath.Join(baseDir, "b/both/5.txt"), "202310310530.42")
+	setLastMod(filepath.Join(baseDir, "a/both/5.txt"), "2023-10-31T05:30:42.00Z")
+	setLastMod(filepath.Join(baseDir, "b/both/5.txt"), "2023-10-31T05:30:42.00Z")
 
 	// Changed
 	// size
 	makeFile(filepath.Join(baseDir, "a/both/6.txt"), "LHS version", 0644)
 	makeFile(filepath.Join(baseDir, "b/both/6.txt"), "RHS version is bigger", 0644)
-	setLastMod(filepath.Join(baseDir, "a/both/6.txt"), "202310310530.42")
-	setLastMod(filepath.Join(baseDir, "b/both/6.txt"), "202310310530.42")
+	setLastMod(filepath.Join(baseDir, "a/both/6.txt"), "2023-10-31T05:30:42.00Z")
+	setLastMod(filepath.Join(baseDir, "b/both/6.txt"), "2023-10-31T05:30:42.00Z")
 
 	// perms
 	makeFile(filepath.Join(baseDir, "a/both/7.txt"), "Different permissions", 0644)
 	copy(filepath.Join(baseDir, "a/both/7.txt"), filepath.Join(baseDir, "b/both/7.txt"))
 	chmodX(filepath.Join(baseDir, "b/both/7.txt"))
-	setLastMod(filepath.Join(baseDir, "a/both/7.txt"), "202310310530.42")
-	setLastMod(filepath.Join(baseDir, "b/both/7.txt"), "202310310530.42")
+	setLastMod(filepath.Join(baseDir, "a/both/7.txt"), "2023-10-31T05:30:42.00Z")
+	setLastMod(filepath.Join(baseDir, "b/both/7.txt"), "2023-10-31T05:30:42.00Z")
 
 	// last mod
 	makeFile(filepath.Join(baseDir, "a/both/8.txt"), "Different last modification times", 0644)
 	copy(filepath.Join(baseDir, "a/both/8.txt"), filepath.Join(baseDir, "b/both/8.txt"))
-	setLastMod(filepath.Join(baseDir, "a/both/8.txt"), "202310280730.02")
-	setLastMod(filepath.Join(baseDir, "b/both/8.txt"), "202310310530.42")
+	setLastMod(filepath.Join(baseDir, "a/both/8.txt"), "2023-10-31T05:30:42.00Z")
+	setLastMod(filepath.Join(baseDir, "b/both/8.txt"), "2023-11-12T06:33:24.00Z")
 
 	// c -> d [only the hashed data should be different]
 	// d~~~m~ .
 	// f~~~~x changed.txt
 	makeFile(filepath.Join(baseDir, "c/changed.txt"), "Jumped over the lazy dog", 0644)
 	makeFile(filepath.Join(baseDir, "d/changed.txt"), "jumped over the lazy dog", 0644) // only first character is different
-	setLastMod(filepath.Join(baseDir, "c/changed.txt"), "202310280730.02")
-	setLastMod(filepath.Join(baseDir, "d/changed.txt"), "202310280730.02")
+	setLastMod(filepath.Join(baseDir, "c/changed.txt"), "2023-10-31T05:30:42.00Z")
+	setLastMod(filepath.Join(baseDir, "d/changed.txt"), "2023-10-31T05:30:42.00Z")
 }
 
 func generateNeedSyncFiles(rootDir string) {
@@ -145,7 +145,7 @@ func generateNeedSyncFiles(rootDir string) {
 	makeFile(filepath.Join(baseDir, "a/cached/3.txt"), "Alpha Bravo 17", 0644)
 	makeFile(filepath.Join(baseDir, "a/cached/dupe.txt"), "backed up multiple times", 0644)
 	makeFile(filepath.Join(baseDir, "a/cached/4.txt"), "The quick brown fox", 0644) // a dupe of 1.txt
-	setLastMod(filepath.Join(baseDir, "a/cached/1.txt"), "202310280730.02")
+	setLastMod(filepath.Join(baseDir, "a/cached/1.txt"), "2023-10-31T05:30:42.00Z")
 
 	copy(filepath.Join(baseDir, "a"), filepath.Join(baseDir, "b"))
 	makeFile(filepath.Join(baseDir, "a/blank.txt"), "", 0644) // only exists on the LHS
@@ -154,7 +154,7 @@ func generateNeedSyncFiles(rootDir string) {
 	makeFile(filepath.Join(baseDir, "b/cached/5.txt"), "Only exists on the RHS", 0644)
 	makeFile(filepath.Join(baseDir, "b/cached/2.txt"), "jumped over the lazy cow. 42", 0644) // Updated on the RHS
 	chmodX(filepath.Join(baseDir, "b/cached/3.txt"))                                         // Permission changed on RHS
-	setLastMod(filepath.Join(baseDir, "b/cached/1.txt"), "202310310530.42")                  // Last mod changed on RHS
+	setLastMod(filepath.Join(baseDir, "b/cached/1.txt"), "2023-10-31T05:30:42.00Z")          // Last mod changed on RHS
 
 	// c
 	makeFile(filepath.Join(baseDir, "c/dupe.txt"), "backed up multiple times", 0644)
@@ -162,8 +162,8 @@ func generateNeedSyncFiles(rootDir string) {
 	copy(filepath.Join(baseDir, "a/cached/1.txt"), filepath.Join(baseDir, "c/backup/1.txt"))
 	copy(filepath.Join(baseDir, "a/cached/2.txt"), filepath.Join(baseDir, "c/backup/2-another-name.txt"))
 	copy(filepath.Join(baseDir, "a/cached/3.txt"), filepath.Join(baseDir, "c/cached/3.txt"))
-	chmodX(filepath.Join(baseDir, "c/cached/3.txt"))                        // Permission changed on RHS
-	setLastMod(filepath.Join(baseDir, "c/backup/1.txt"), "202310310530.42") // Last mod changed on RHS
+	chmodX(filepath.Join(baseDir, "c/cached/3.txt"))                                // Permission changed on RHS
+	setLastMod(filepath.Join(baseDir, "c/backup/1.txt"), "2023-10-31T05:30:42.00Z") // Last mod changed on RHS
 	makeFile(filepath.Join(baseDir, "c/abc.txt"), "only on RHS", 0644)
 }
 
@@ -200,7 +200,8 @@ func chmodX(path string) {
 }
 
 func setLastMod(path string, date string) {
-	cmd := exec.Command("touch", "-mt", date, path)
+	// YYYY-MM-DDThh:mm:SS[.frac][tz]
+	cmd := exec.Command("touch", "-md", date, path)
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("failed to: touch -mt %s %s. %v", date, path, err)
 	}
