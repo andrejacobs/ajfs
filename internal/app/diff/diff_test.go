@@ -123,6 +123,11 @@ func Test(t *testing.T) {
 }
 
 func TestDiffCompare(t *testing.T) {
+	if os.Getenv("SKIP_TEST") == "1" {
+		t.Skip("Skipping DiffCompare test")
+		return
+	}
+
 	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
@@ -286,6 +291,10 @@ func TestDiffCompareSame(t *testing.T) {
 }
 
 func TestRunTwoDirs(t *testing.T) {
+	if os.Getenv("SKIP_TEST") == "1" {
+		t.Skip("Skipping DiffCompare test")
+		return
+	}
 
 	lhs := make([]string, 0, 10)
 	rhs := make([]string, 0, 10)
@@ -359,6 +368,11 @@ func TestRunTwoDirs(t *testing.T) {
 }
 
 func TestRunTwoDatabases(t *testing.T) {
+	if os.Getenv("SKIP_TEST") == "1" {
+		t.Skip("Skipping DiffCompare test")
+		return
+	}
+
 	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)

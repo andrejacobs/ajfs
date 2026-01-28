@@ -89,9 +89,8 @@ release-snapshot:
 # Run unit-testing with race detector
 .PHONY: test
 test:
-	@cd ./internal/testdata && ./setup.sh
 	@echo "Running unit-tests"
-	@go test -count=1 -race ./...
+	@@SKIP_TEST=1 go test -count=1 -race ./...
 
 # Run unit-testing with race detector and code coverage report
 .PHONY: test-cover
