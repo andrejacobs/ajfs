@@ -1,6 +1,6 @@
 %%%% HASHDEEP-1.0
 %%%% size,sha256,filename
-## Invoked from: /Users/andre/temp/temp-ajfs/internal/testdata/scan
+## Invoked from: /Users/andre/git/Personal/tools/ajfs/internal/testdata/scan
 ## $ hashdeep -c sha256 -l -r ./
 ## 
 0,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,./blank.txt

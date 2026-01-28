@@ -89,6 +89,7 @@ release-snapshot:
 # Run unit-testing with race detector
 .PHONY: test
 test:
+	@cd ./internal/testdata && ./setup.sh
 	@echo "Running unit-tests"
 	@go test -count=1 -race ./...
 
