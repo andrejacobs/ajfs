@@ -9,6 +9,13 @@ MODULE_NAME="github.com/andrejacobs/ajfs"
 # cmd/{APP}/main.go
 INPUT_SRC_FILE="main.go"
 
+# Ensure an environment variable is set
+guard-%:
+	@ if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* need to be set"; \
+		exit 1; \
+	fi
+
 # Clean, Build and Test
 .PHONY: all
 all: clean build test
@@ -78,9 +85,15 @@ docs:
 #------------------------------------------------------------------------------
 # Release
 #------------------------------------------------------------------------------
+
+# Snapshot release that will not be published
 .PHONY: release-snapshot
 release-snapshot:
 	@goreleaser release --snapshot --clean
+
+.PHONY: release
+release: guard-GITHUB_TOKEN guard-GH_PAT_HOMEBREW
+	@goreleaser release --clean
 
 #------------------------------------------------------------------------------
 # Code quality assurance
