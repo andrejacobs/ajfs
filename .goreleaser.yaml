@@ -67,8 +67,34 @@ changelog:
             - "^test:"
 
 release:
+    github:
+        owner: andrejacobs
+        name: ajfs
+    draft: true
+    # Will mark as prerelease if the tag contains -rc, -beta, etc.
+    prerelease: auto
     footer: >-
 
         ---
 
         Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+
+homebrew_casks:
+    - name: ajfs
+
+      # The tap repository
+      repository:
+          owner: andrejacobs
+          name: homebrew-ajfs
+          token: "{{ .Env.GH_PAT_HOMEBREW }}"
+
+      # Git author for the commit to the tap
+      commit_author:
+          name: goreleaserbot
+          email: bot@goreleaser.com
+
+      directory: Casks
+
+      homepage: "https://github.com/andrejacobs/ajfs"
+      description: "Snapshot file hierarchy, meta data and hash signatures"
+      license: "MIT"

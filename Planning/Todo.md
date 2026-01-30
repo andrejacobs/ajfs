@@ -12,7 +12,10 @@
 - [] Setup a github pages site and write end user documentation
 - [] Setup github action to check code quality etc
 - [] Add the usual polish for a public repo
+
 - [] Look into using goreleaser to build all the binaries etc for different platforms
+    - [] Ensure homebrew releases are signed. https://goreleaser.com/customization/homebrew_casks/
+    - Test out the shell completion support. Also look into getting homebrew to install these.
 
 - [] Make this repo and go-aj public
 
