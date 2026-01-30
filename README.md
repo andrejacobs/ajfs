@@ -12,19 +12,24 @@ include the actual file content data.
 
 Please see the [documentation](docs/cli/md/ajfs.md) for more details.
 
-## Installing
+## Install
 
-TODO: Need to hookup goreleaser in github. Need to figure out homebrew taps and linux packages / repos
+- Using [Homebrew](https://brew.sh/):
+
+    ```shell
+    brew tap andrejacobs/ajfs
+    brew install --cask ajfs
+    ```
 
 ## Development
 
--   Clone this repo.
+- Clone this repo.
 
     ```shell
     git clone git@github.com:andrejacobs/ajfs.git
     ```
 
--   Build.
+- Build.
 
     ```shell
     make build
@@ -33,13 +38,13 @@ TODO: Need to hookup goreleaser in github. Need to figure out homebrew taps and 
     make build && ./build/bin/ajfs --help
     ```
 
--   Run unit-tests.
+- Run unit-tests.
 
     ```shell
     make test
     ```
 
--   Confirm code quality.
+- Confirm code quality.
 
     ```shell
     make check
@@ -53,7 +58,7 @@ The "root path" is the path to the file system hierarchy from which a snapshot i
 
 The following is just a couple of examples of what is possible with `ajfs`.
 
--   Create a new snapshot.
+- Create a new snapshot.
 
     ```shell
     # create the default ./db.ajfs database and scan the specified path
@@ -66,19 +71,19 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs scan --hash --algo=sha1 --progress ~/database.ajfs /media/backups
     ```
 
--   Resume calculating file signature hashes.
+- Resume calculating file signature hashes.
 
     ```shell
     ajfs resume --progress ~/database.ajfs
     ```
 
--   Update the snapshot the reflect the current file system hierarchy.
+- Update the snapshot the reflect the current file system hierarchy.
 
     ```shell
     ajfs update --progress ~/database.ajfs
     ```
 
--   List a snapshot.
+- List a snapshot.
 
     ```shell
     ajfs list mydata.ajfs
@@ -86,7 +91,7 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs tree mydata.ajfs
     ```
 
--   Search for matching entries.
+- Search for matching entries.
 
     ```shell
     # list all PDF files that have `go` in the filename
@@ -99,7 +104,7 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs search --type f --size -1G
     ```
 
--   See what has changed.
+- See what has changed.
 
     ```shell
     # diff the default ./db.ajfs and the root path it was created from
@@ -109,7 +114,7 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs diff snap1.ajfs snap2.ajfs
     ```
 
--   Find duplicates.
+- Find duplicates.
 
     ```shell
     # find duplicate files
@@ -119,7 +124,7 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs dupes --dirs database.ajfs
     ```
 
--   See what still needs to be backed up.
+- See what still needs to be backed up.
 
     ```shell
     # what needs to be copied from my laptop to my nas
@@ -132,7 +137,7 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs tosync --hash ~/laptop.ajfs ~/nas.ajfs
     ```
 
--   Export the snapshot to other formats.
+- Export the snapshot to other formats.
 
     ```
     ajfs export database.ajfs export.csv
