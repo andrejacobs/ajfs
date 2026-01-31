@@ -21,6 +21,58 @@ Please see the [documentation](docs/cli/md/ajfs.md) for more details.
     brew install --cask ajfs
     ```
 
+## Manual Installation
+
+You can download the pre-compiled binary for your system directly from the [Releases Page](https://github.com/andrejacobs/ajfs/releases).
+
+### Linux / macOS
+
+1. Determine your architecture:
+
+    ```shell
+    uname -m
+    ```
+
+    - `x86_64` -> Download `ajfs_Linux_x86_64.tar.gz` (Intel/AMD PCs).
+    - `aarch64` -> Download `ajfs_Linux_arm64.tar.gz` (ARM64, Raspberry Pi).
+    - `i386` or `i686` -> Download `ajfs_Linux_i386.tar.gz` (Older 32-bit systems).
+
+2. Download and Install:
+
+    Replace `VER` with the latest version (e.g., `1.0.0`) and `ARCH` with your architecture (e.g., `x86_64`).
+
+    ```shell
+    # 1. Download the archive
+    wget https://github.com/andrejacobs/ajfs/releases/download/vVER/ajfs_Linux_ARCH.tar.gz
+
+    # 2. Extract the executable
+    tar -xzf ajfs_Linux_ARCH.tar.gz
+
+    # 3. Move the executable to a system path
+    sudo mv ajfs /usr/local/bin/
+
+    # 4. Verify installation
+    ajfs --version
+    ```
+
+### Windows
+
+1. Download the latest `ajfs_Windows_x86_64.zip`:
+2. Extract:
+    - Right-click the downloaded `.zip` file.
+    - Select **Extract All...** and choose a location (e.g. `C:\ajfs`).
+
+3. Run:
+
+    Open PowerShell or Command Prompt and navigate to that folder and run ajfs:
+
+    ```powershell
+    cd C:\ajfs
+    .\ajfs.exe --version
+    ```
+
+    > **Tip:** To run `ajfs` from anywhere, add the folder location (e.g., `C:\ajfs`) to your system's **PATH** environment variable.
+
 ## Development
 
 - Clone this repo.

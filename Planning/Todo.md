@@ -13,11 +13,16 @@
 - [] Setup github action to check code quality etc
 - [] Add the usual polish for a public repo
 
-- [] Look into using goreleaser to build all the binaries etc for different platforms
-    - [] Ensure homebrew releases are signed. https://goreleaser.com/customization/homebrew_casks/
-    - Test out the shell completion support. Also look into getting homebrew to install these.
-
 - [] Make this repo and go-aj public
+
+- [x] Look into using goreleaser to build all the binaries etc for different platforms
+    - [] Provide an alternative README.md for the packaged up releases.
+    - [] Provide a different release note for the 1st release.
+    - [] Ensure homebrew releases are signed. https://goreleaser.com/customization/homebrew_casks/
+    - [] Test out the shell completion support. Also look into getting homebrew to install these.
+    - [] What about installing on Linux (Ubuntu, Arch)
+    - [] Need to spin up a VM for each of the Linuxes and test the install and app works.
+    - [] Don't generate i386 for Windows.
 
 - [x] Remove the replace for local go mod repo.
 - [x] Info needs to display info about the hash table.

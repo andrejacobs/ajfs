@@ -98,3 +98,17 @@ homebrew_casks:
       homepage: "https://github.com/andrejacobs/ajfs"
       description: "Snapshot file hierarchy, meta data and hash signatures"
       license: "MIT"
+
+# nfpms:
+#     - package_name: ajfs
+
+#       homepage: "https://github.com/andrejacobs/ajfs"
+#       description: "Snapshot file hierarchy, meta data and hash signatures"
+#       license: "MIT"
+#       maintainer: "andrejacobs@users.noreply.github.com"
+#       vendor: André Jacobs
+
+#       formats:
+#           - apk
+#           - deb
+#           - rpm
