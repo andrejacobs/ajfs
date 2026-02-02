@@ -22,7 +22,7 @@
     - [] Test out the shell completion support. Also look into getting homebrew to install these.
     - [] What about installing on Linux (Ubuntu, Arch)
     - [] Need to spin up a VM for each of the Linuxes and test the install and app works.
-    - [] Don't generate i386 for Windows.
+    - [x] Don't generate i386 for Windows.
 
 - [x] Remove the replace for local go mod repo.
 - [x] Info needs to display info about the hash table.
