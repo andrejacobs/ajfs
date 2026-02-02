@@ -116,7 +116,7 @@ test-cover:
 # Check that the source code is formatted correctly according to the gofmt standards
 .PHONY: check-formatting
 check-formatting:
-	@test -z $(shell gofmt -e -l ./ | tee /dev/stderr) || (echo "Please fix formatting first with gofmt" && exit 1)
+	@test -z $(shell gofmt -e -l $$(find . -type f -name '*.go' -not -path "./vendor/*") | tee /dev/stderr) || (echo "Please fix formatting first with gofmt" && exit 1)	
 
 # Check for other possible issues in the code
 # NOTE: To install golangci-lint
@@ -128,7 +128,7 @@ check-lint:
 	go vet ./...
 ifneq (${CI}, true)
 	golangci-lint run
-	addlicense -check -c "Andre Jacobs" -l mit -ignore '.github/**' -ignore 'build/**' -ignore 'dist/**' ./
+	addlicense -check -c "Andre Jacobs" -l mit -ignore '.github/**' -ignore 'build/**' -ignore 'dist/**' -ignore 'vendor/**' ./
 endif
 
 # Check code quality

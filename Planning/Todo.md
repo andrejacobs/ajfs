@@ -51,6 +51,7 @@
 - [x] What happens when you resume, but all the signatures have already been calced?
       Answer: It just works.
 - [x] UPDATE: Nope. Also make mk1 public for historical reasons and slap a big "archived" sticker on it
+- [x] Ignore vendor directory from code quality checks.
 
 ## Future (nice to have)
 
