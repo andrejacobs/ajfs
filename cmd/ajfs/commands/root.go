@@ -111,6 +111,8 @@ func RootCmd() *cobra.Command {
 }
 
 func customHelp() {
+	defHelpFn := rootCmd.HelpFunc()
+
 	groups := []struct {
 		Title    string
 		Commands []string
@@ -130,6 +132,13 @@ func customHelp() {
 	}
 
 	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+
+		if cmd != rootCmd {
+			// Use the default help function for sub commands
+			defHelpFn(cmd, args)
+			return
+		}
+
 		fmt.Println(cmd.Long)
 		fmt.Printf("Usage:\n  %s [command]\n\n", cmd.UseLine())
 

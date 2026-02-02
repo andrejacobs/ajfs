@@ -52,6 +52,7 @@
       Answer: It just works.
 - [x] UPDATE: Nope. Also make mk1 public for historical reasons and slap a big "archived" sticker on it
 - [x] Ignore vendor directory from code quality checks.
+- [x] Fixed the bug where the root command's help function overwrites the output for subcommands.
 
 ## Future (nice to have)
 
