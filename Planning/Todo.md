@@ -1,5 +1,7 @@
 # TODO
 
+- [] Need to spin up a VM for each of the Linuxes and test the install and app works.
+
 - [] Fix the flaky unit tests!
 - [] Write a "system" test for each of the commands.
 - [] Could do with more testing on failure paths
@@ -7,14 +9,6 @@
 - [] Build, test and fix so it can run on Windows as well
 
 - [] Setup github action to check code quality etc
-
-- [] Make this repo public
-
-- [x] Look into using goreleaser to build all the binaries etc for different platforms
-    - [] Provide an alternative README.md for the packaged up releases.
-    - [] Provide a different release note for the 1st release.
-    - [] Need to spin up a VM for each of the Linuxes and test the install and app works.
-    - [x] Don't generate i386 for Windows.
 
 ### Done
 
@@ -50,6 +44,11 @@
 - [x] Use go mod vendor
 - [x] Add the usual polish for a public repo
 - [x] What about installing on Linux (Ubuntu, Arch) UPDATE: Just use manual install.
+- [x] Provide a different release note for the 1st release. UPDATE: goreleaser release --clean --release-notes ../release-ajfs.md
+- [x] Don't generate i386 for Windows.
+- [x] Make this repo public
+- [x] Can install and works using brew on macOS.
+- [x] Can install and works on Ubuntu x86-64 using manual install.
 
 ## Future (nice to have)
 
@@ -70,3 +69,4 @@
 
 - [] Test out the shell completion support. Also look into getting homebrew to install these.
 - [] Ensure homebrew releases are signed. https://goreleaser.com/customization/homebrew_casks/
+- [] Provide an alternative README.md for the packaged up releases.

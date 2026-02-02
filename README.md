@@ -1,6 +1,7 @@
 # ajfs
 
 [![](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml/badge.svg)](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/andrejacobs/ajfs)](https://goreportcard.com/report/github.com/andrejacobs/ajfs)
 
 Index a file hierarchy with meta data and file signatures so that it can be searched, compared, duplicates found all while being on a different machine.
 
