@@ -127,6 +127,10 @@ func customHelp() {
 			Title:    "Comparison commands",
 			Commands: []string{"diff", "tosync", "dupes"},
 		},
+		{
+			Title:    "Miscellaneous commands",
+			Commands: []string{"completion"},
+		},
 	}
 
 	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
