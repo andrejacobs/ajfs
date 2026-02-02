@@ -1,28 +1,22 @@
 # TODO
 
 - [] Fix the flaky unit tests!
-
 - [] Write a "system" test for each of the commands.
 - [] Could do with more testing on failure paths
-- [] Strip out the ``` from the Long description for dupes. This is used to ensure the markdown docs look correct.
 
 - [] Build, test and fix so it can run on Windows as well
 
-- [] Use go mod vendor
-- [] Setup a github pages site and write end user documentation
 - [] Setup github action to check code quality etc
-- [] Add the usual polish for a public repo
 
-- [] Make this repo and go-aj public
+- [] Make this repo public
 
 - [x] Look into using goreleaser to build all the binaries etc for different platforms
     - [] Provide an alternative README.md for the packaged up releases.
     - [] Provide a different release note for the 1st release.
-    - [] Ensure homebrew releases are signed. https://goreleaser.com/customization/homebrew_casks/
-    - [] Test out the shell completion support. Also look into getting homebrew to install these.
-    - [] What about installing on Linux (Ubuntu, Arch)
     - [] Need to spin up a VM for each of the Linuxes and test the install and app works.
     - [x] Don't generate i386 for Windows.
+
+### Done
 
 - [x] Remove the replace for local go mod repo.
 - [x] Info needs to display info about the hash table.
@@ -53,6 +47,9 @@
 - [x] UPDATE: Nope. Also make mk1 public for historical reasons and slap a big "archived" sticker on it
 - [x] Ignore vendor directory from code quality checks.
 - [x] Fixed the bug where the root command's help function overwrites the output for subcommands.
+- [x] Use go mod vendor
+- [x] Add the usual polish for a public repo
+- [x] What about installing on Linux (Ubuntu, Arch) UPDATE: Just use manual install.
 
 ## Future (nice to have)
 
@@ -66,3 +63,10 @@
   Turns out not to be a quick win to support LS_COLORS
   This is the best implementation for go I can find for reference:
   https://github.com/elves/elvish/blob/v0.21.0/pkg/cli/lscolors/lscolors.go
+- [] Setup a github pages site and write end user documentation. UPDATE: Most end user docs are in the ./docs dir.
+- [] Strip out the ``` from the Long description for dupes. This is used to ensure the markdown docs look correct.
+
+## Removed from scope
+
+- [] Test out the shell completion support. Also look into getting homebrew to install these.
+- [] Ensure homebrew releases are signed. https://goreleaser.com/customization/homebrew_casks/

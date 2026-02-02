@@ -110,14 +110,14 @@ homebrew_casks:
       directory: Casks
 
       homepage: "https://github.com/andrejacobs/ajfs"
-      description: "Snapshot file hierarchy, meta data and hash signatures"
+      description: "Index a file hierarchy with meta data and file signatures so that it can be searched, compared, duplicates found all while being on a different machine"
       license: "MIT"
 
 # nfpms:
 #     - package_name: ajfs
 
 #       homepage: "https://github.com/andrejacobs/ajfs"
-#       description: "Snapshot file hierarchy, meta data and hash signatures"
+#       description: "Index a file hierarchy with meta data and file signatures so that it can be searched, compared, duplicates found all while being on a different machine"
 #       license: "MIT"
 #       maintainer: "andrejacobs@users.noreply.github.com"
 #       vendor: André Jacobs

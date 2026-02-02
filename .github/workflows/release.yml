@@ -38,7 +38,7 @@ jobs:
                   docker run
                   -v $(pwd):/wrk -w /wrk
                   ghcr.io/google/addlicense
-                  -check -c "Andre Jacobs" -l mit -ignore '.github/**' -ignore 'build/**' ./
+                  -check -c "Andre Jacobs" -l mit -ignore '.github/**' -ignore 'build/**' -ignore 'dist/**' -ignore 'vendor/**' ./
 
             - name: Run unit-tests
               run: make test

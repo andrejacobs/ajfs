@@ -2,7 +2,7 @@
 
 [![](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml/badge.svg)](https://github.com/andrejacobs/ajfs/actions/workflows/makefile.yml)
 
-Snapshot file hierarchy, meta data and hash signatures.
+Index a file hierarchy with meta data and file signatures so that it can be searched, compared, duplicates found all while being on a different machine.
 
 ## Overview
 
