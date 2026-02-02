@@ -1,6 +1,6 @@
 module github.com/andrejacobs/ajfs
 
-go 1.25.1
+go 1.25
 
 require (
 	github.com/andrejacobs/go-aj v0.1.0
