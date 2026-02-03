@@ -198,6 +198,13 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs export --format=json database.ajfs export.json
     ```
 
+## Disclaimer
+
+This tool is provided "as is" and is intended for use at your own risk. The author makes no warranties as to its
+performance, merchantability, or fitness for a particular purpose. Under no circumstances shall the author be liable
+for any direct, indirect, special, incidental, or consequential damages (including, but not limited to, loss of data
+or profit) arising out of the use or inability to use this software, even if advised of the possibility of such damage.
+
 ## License
 
 `ajfs` is released under the MIT license. See [LICENSE](LICENSE).
