@@ -11,13 +11,9 @@ Certain features of ajfs require the file signature hashes to be present in the 
 
 The following examples use:
 
--   `$` to indicate your local machine and `remote$` to indicate another machine.
--   the words `I`, `my` etc. written as if it was you that performed the operations.
--   `...` indicate that there is more output and not included in the example.
-
-## Installing ajfs
-
-TODO:
+- `$` to indicate your local machine and `remote$` to indicate another machine.
+- the words `I`, `my` etc. written as if it was you that performed the operations.
+- `...` indicate that there is more output and not included in the example.
 
 ## Offline search
 
@@ -25,9 +21,8 @@ I have a big collection of E-books that I have bought from a couple of sources o
 a NAS running Linux. Before I buy any new books I need a way to quickly check if I have not already bought the book.
 This needs to be done from my main computer.
 
--   First I need to take a snapshot of the existing books.
-
-    -   See [ajfs scan](cli/md/ajfs_scan.md) for more details.
+- First I need to take a snapshot of the existing books.
+    - See [ajfs scan](cli/md/ajfs_scan.md) for more details.
 
     ```shell
     # On my Linux NAS
@@ -37,7 +32,7 @@ This needs to be done from my main computer.
     nas$ ajfs scan ~/mybooks.ajfs /media/megaladon/e-books
     ```
 
--   Copy the snapshot (aka database file) to my main computer which happens to be a Mac.
+- Copy the snapshot (aka database file) to my main computer which happens to be a Mac.
 
     ```shell
     # On my main computer
@@ -54,9 +49,8 @@ This needs to be done from my main computer.
     ...
     ```
 
--   Next I want to know if I have already bought the book `100 Go Mistakes`.
-
-    -   See [ajfs search](cli/md/ajfs_search.md) for more details.
+- Next I want to know if I have already bought the book `100 Go Mistakes`.
+    - See [ajfs search](cli/md/ajfs_search.md) for more details.
 
     ```shell
     $ ajfs search ~/mybooks.ajfs --iname '*go*'
@@ -70,7 +64,7 @@ This needs to be done from my main computer.
     ...
     ```
 
--   I bought a couple more books and need to update the snapshot.
+- I bought a couple more books and need to update the snapshot.
 
     ```shell
     # New books where added to the NAS under the same directory
@@ -88,7 +82,7 @@ This operation will take hours to perform on over 15TB of data.
 I also want to be able to check in every few hours and see the progress being made.
 It also happens to be that the SHA-1 algorithm performs much better on this "old" x86-64 machine.
 
--   Start the scan.
+- Start the scan.
 
     ```shell
     nas$ ajfs scan --hash --algo=sha1 --progress ~/database.ajfs /media
@@ -98,10 +92,10 @@ It also happens to be that the SHA-1 algorithm performs much better on this "old
     [1525/4464882]   0% |                | (12 GB/15 TB, 149 MB/s) [1m12s:27h16m8s]
     ```
 
--   After a few minutes I realise that I need to run this in `tmux` or `screen` so that the process doesn't get terminated when the connection gets dropped.
--   `Ctrl c` to stop the process.
--   Start a `tmux` or `screen` session.
--   Continue the process to calculate the file signature hashes. This will still take +/- 27 hours!
+- After a few minutes I realise that I need to run this in `tmux` or `screen` so that the process doesn't get terminated when the connection gets dropped.
+- `Ctrl c` to stop the process.
+- Start a `tmux` or `screen` session.
+- Continue the process to calculate the file signature hashes. This will still take +/- 27 hours!
 
     ```shell
     nas$ ajfs resume --progress ~/database.ajfs
@@ -111,12 +105,11 @@ It also happens to be that the SHA-1 algorithm performs much better on this "old
     [1589/4464882]   0% |                | (14 GB/15 TB, 152 MB/s) [9s:26h38m17s]
     ```
 
--   Now the process can be interuppted at any point and I can simply resume when needed.
+- Now the process can be interuppted at any point and I can simply resume when needed.
 
--   At some point I want to update the snapshot but really don't want to wait another 27 hours.
-
-    -   [ajfs update](cli/md/ajfs_update.md) will create a new
-        snapshot but only calculate file signature hashes for new files.
+- At some point I want to update the snapshot but really don't want to wait another 27 hours.
+    - [ajfs update](cli/md/ajfs_update.md) will create a new
+      snapshot but only calculate file signature hashes for new files.
 
     ```shell
     nas$ ajfs update --progress ~/database.ajfs
@@ -126,15 +119,15 @@ It also happens to be that the SHA-1 algorithm performs much better on this "old
 
 I need to see which files are being modified when I run a certain program.
 
--   See [ajfs diff](cli/md/ajfs_diff.md) for more details.
--   Create the initial snapshot.
+- See [ajfs diff](cli/md/ajfs_diff.md) for more details.
+- Create the initial snapshot.
 
     ```shell
     $ ajfs scan ~/snap1.ajfs ~/.config
     ```
 
--   Assume I run a program called `bravo` for the first time.
--   I want to see which files this program created.
+- Assume I run a program called `bravo` for the first time.
+- I want to see which files this program created.
 
     ```shell
     $ ajfs diff ~/snap1.ajfs
@@ -145,15 +138,15 @@ I need to see which files are being modified when I run a certain program.
     d~sl~ .
     ```
 
--   I can see that it has created a new directory called bravo and two new files.
--   Take another snapshot.
+- I can see that it has created a new directory called bravo and two new files.
+- Take another snapshot.
 
     ```shell
     $ ajfs scan ~/snap2.ajfs ~/.config
     ```
 
--   Assume I make changes to `bravo` and run it again.
--   I want to see which files this program modified.
+- Assume I make changes to `bravo` and run it again.
+- I want to see which files this program modified.
 
     ```shell
     $ ajfs diff ~/snap2.ajfs
@@ -167,9 +160,9 @@ I need to see which files are being modified when I run a certain program.
     d~sl~ bravo
     ```
 
--   From this I can see that the file 'cached_ids.json' was deleted. A new directory and files were created under 'data'. The 'bravo.settings' was changed (size and last modification time).
+- From this I can see that the file 'cached_ids.json' was deleted. A new directory and files were created under 'data'. The 'bravo.settings' was changed (size and last modification time).
 
--   I can also see the differences between two snapshots.
+- I can also see the differences between two snapshots.
 
     ```shell
     $ ajfs diff ~/snap1.ajfs ~/snap2.ajfs
@@ -178,10 +171,9 @@ I need to see which files are being modified when I run a certain program.
 
 ## Browse a snapshot
 
--   I want to see what file and directory information was stored in a snapshot.
-
-    -   See [ajfs list](cli/md/ajfs_list.md) for more details.
-    -   Remember you can also perform this on another computer with only the .ajfs database file.
+- I want to see what file and directory information was stored in a snapshot.
+    - See [ajfs list](cli/md/ajfs_list.md) for more details.
+    - Remember you can also perform this on another computer with only the .ajfs database file.
 
     ```shell
     ajfs list ~/snap3.ajfs
@@ -200,9 +192,8 @@ I need to see which files are being modified when I run a certain program.
     ...
     ```
 
--   I want to see this information in a `tree` like manner.
-
-    -   See [ajfs tree](cli/md/ajfs_tree.md) for more details.
+- I want to see this information in a `tree` like manner.
+    - See [ajfs tree](cli/md/ajfs_tree.md) for more details.
 
     ```shell
     $ ajfs tree ~/snap3.ajfs
@@ -222,7 +213,7 @@ I need to see which files are being modified when I run a certain program.
     ...
     ```
 
--   I want to only see the tree for a certain directory.
+- I want to only see the tree for a certain directory.
 
     ```shell
     $ ajfs tree ~/snap3.ajfs bravo/data
@@ -239,14 +230,14 @@ I need to see which files are being modified when I run a certain program.
 I have the problem where a lot of data was backed up over the years to a number of different locations on my NAS and
 I want to find these duplicates.
 
--   See [ajfs dupes](cli/md/ajfs_dupes.md) for more details.
--   First create a snapshot. I will be including the file signature hashes so that I can find duplicates even if the filenames are different.
+- See [ajfs dupes](cli/md/ajfs_dupes.md) for more details.
+- First create a snapshot. I will be including the file signature hashes so that I can find duplicates even if the filenames are different.
 
     ```shell
     nas$ ajfs scan --hash --algo=sha1 --progress ~/database.ajfs /media
     ```
 
--   I want to see all the subtrees that are the same. This is a good indicator of where certain directories were copied into different locations over time.
+- I want to see all the subtrees that are the same. This is a good indicator of where certain directories were copied into different locations over time.
 
     ```shell
     nas$ ajfs dupes --dirs ~/database.ajfs
@@ -266,7 +257,7 @@ I want to find these duplicates.
     # I can see that I have a duplicate set of photos backed up under a slightly different directory structure
     ```
 
--   I want to find all the duplicate files that might have different filenames but the exact same file data.
+- I want to find all the duplicate files that might have different filenames but the exact same file data.
 
     ```shell
     nas$ ajfs dupes ~/database.ajfs
@@ -290,7 +281,7 @@ I want to find these duplicates.
 
 A snapshot can also be exported to other formats like: CSV, JSON and hashdeep.
 
--   See [ajfs export](cli/md/ajfs_export.md) for more details.
+- See [ajfs export](cli/md/ajfs_export.md) for more details.
 
     ```shell
     $ ajfs export ~/database.ajfs export.csv
@@ -301,14 +292,14 @@ A snapshot can also be exported to other formats like: CSV, JSON and hashdeep.
 Scenario 1: I need to figure out which files on my laptop has not yet been backed up to my NAS. Unfortunately my files on the NAS
 could also be located in different directories and even have different filenames.
 
--   In this case I need to take snapshots of both machines as well as include file signature hashes.
+- In this case I need to take snapshots of both machines as well as include file signature hashes.
 
     ```shell
     $ ajfs scan --hash ~/laptop.ajfs ~/
     nas$ ajfs scan --hash ~/nas.ajfs /media/backup
     ```
 
--   I can now get the list of files that still need to be backed up.
+- I can now get the list of files that still need to be backed up.
 
     ```shell
     # I copied the nas.ajfs file from the NAS onto my laptop
@@ -325,13 +316,13 @@ I do however have a snapshot from my NAS. In scenario 1 the files could be store
 to ensure I at least backed up my local files somewhere on the NAS. This scenario does not require the file signature
 hashes to be calculated.
 
--   Get the list of files that still need to be backed up.
+- Get the list of files that still need to be backed up.
 
     ```shell
     $ ajfs tosync ~/laptop.ajfs ~/nas.ajfs
     ```
 
--   Which files exist on the NAS that I have deleted locally?
+- Which files exist on the NAS that I have deleted locally?
 
     ```shell
     $ ajfs tosync ~/nas.ajfs ~/laptop.ajfs
