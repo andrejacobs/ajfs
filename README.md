@@ -130,7 +130,7 @@ The following is just a couple of examples of what is possible with `ajfs`.
     ajfs resume --progress ~/database.ajfs
     ```
 
-- Update the snapshot the reflect the current file system hierarchy.
+- Update the snapshot to reflect the current file system hierarchy.
 
     ```shell
     ajfs update --progress ~/database.ajfs
