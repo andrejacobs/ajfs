@@ -57,7 +57,10 @@ func (dbf *DatabaseFile) CalculateStats() (Stats, error) {
 		return result, fmt.Errorf("failed to calculate statistics for %q. %w", dbf.Path(), err)
 	}
 
-	result.AvgFileSize = result.TotalFileSize / result.FileCount
+	if result.FileCount > 0 {
+		result.AvgFileSize = result.TotalFileSize / result.FileCount
+	}
+
 	return result, nil
 }
 

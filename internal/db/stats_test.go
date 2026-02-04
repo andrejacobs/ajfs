@@ -83,3 +83,23 @@ func TestCalculateStats(t *testing.T) {
 
 	assert.Equal(t, expStats, stats)
 }
+
+func TestCalculateStatsWhenEmpty(t *testing.T) {
+	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	// Create a new empty database
+	dbf, err := db.CreateDatabase(tempFile, "/test/", db.FeatureJustEntries)
+	require.NoError(t, err)
+	require.NoError(t, dbf.FinishEntries())
+	require.NoError(t, dbf.Close())
+
+	dbf, err = db.OpenDatabase(tempFile)
+	require.NoError(t, err)
+	defer dbf.Close()
+
+	stats, err := dbf.CalculateStats()
+	require.NoError(t, err)
+	require.Equal(t, db.Stats{}, stats)
+}
