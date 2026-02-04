@@ -82,6 +82,12 @@ This operation will take hours to perform on over 15TB of data.
 I also want to be able to check in every few hours and see the progress being made.
 It also happens to be that the SHA-1 algorithm performs much better on this "old" x86-64 machine.
 
+- Benchmark which hashing algorithm performs the best:
+
+    ```shell
+    nas$ openssl speed sha1 sha256 sha512
+    ```
+
 - Start the scan.
 
     ```shell

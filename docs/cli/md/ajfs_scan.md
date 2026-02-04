@@ -22,6 +22,10 @@ However it is not safe to interrupt the initial database creation,
 use "--verbose" or "--progress" to know when the calculation process has
 started.
 
+Supported file signature hash algorithms are: sha1, sha256 and sha512.
+You can determine the fastest algorithm to use by running this command:
+  openssl speed sha1 sha256 sha512
+
 Path filtering:
 
 Used to check whether a file or directory should be included or if it should
