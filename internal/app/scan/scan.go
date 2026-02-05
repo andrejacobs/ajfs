@@ -54,6 +54,8 @@ type Config struct {
 
 	DryRun   bool // Only display files and directories that would have been stored in the database.
 	InitOnly bool // The initial database will be created without long running processes (hashing).
+
+	simulateHashingError bool // Cause an error while calculating file signature hashes.
 }
 
 // Process the ajfs scan command.
@@ -91,6 +93,12 @@ func Run(cfg Config) error {
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		if err := dbf.Close(); err != nil {
+			fmt.Fprintln(cfg.Stderr, err)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -148,10 +156,6 @@ func Run(cfg Config) error {
 	default:
 	}
 
-	if err = dbf.Close(); err != nil {
-		return err
-	}
-
 	cfg.VerbosePrintln("Done!")
 
 	return nil
@@ -189,6 +193,10 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 
 		progress = progressbar.DefaultBytes(int64(stats.TotalFileSize)) //nolint:gosec // disable G115
 		totalCount = stats.FileCount
+	}
+
+	if cfg.simulateHashingError {
+		return fmt.Errorf("simulating an error while calculating file signature hashes")
 	}
 
 	err := dbf.EntriesNeedHashing(func(idx int, pi path.Info) error {
