@@ -25,6 +25,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash"
+	"io"
 	"io/fs"
 	"os"
 	"os/signal"
@@ -51,6 +53,7 @@ type Config struct {
 
 	CalculateHashes bool        // Calculate file signature hashes.
 	Algo            ajhash.Algo // Algorithm to use for calculating the hashes.
+	hashFn          hashFn      // Hashing function
 
 	DryRun   bool // Only display files and directories that would have been stored in the database.
 	InitOnly bool // The initial database will be created without long running processes (hashing).
@@ -58,8 +61,15 @@ type Config struct {
 	simulateHashingError bool // Cause an error while calculating file signature hashes.
 }
 
+// The hashing function to be used for calculating file signature hashes.
+type hashFn func(ctx context.Context, path string, hasher hash.Hash, w io.Writer) ([]byte, uint64, error)
+
 // Process the ajfs scan command.
 func Run(cfg Config) error {
+	if cfg.hashFn == nil {
+		cfg.hashFn = file.Hash
+	}
+
 	if cfg.DryRun {
 		return dryRun(cfg)
 	}
@@ -208,12 +218,14 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 		}
 
 		path := filepath.Join(dbf.RootPath(), pi.Path)
-		hash, _, err := file.Hash(ctx, path, cfg.Algo.Hasher(), progress)
+		hash, _, err := cfg.hashFn(ctx, path, cfg.Algo.Hasher(), progress)
 		if err != nil {
-			return fmt.Errorf("failed to calculate the hash for %q. %w", path, err)
-		}
-		if err = dbf.WriteHashEntry(idx, hash); err != nil {
-			return fmt.Errorf("failed to write the hash for %q. %w", path, err)
+			fmt.Fprintf(cfg.Stderr, "failed to calculate the hash for %q. %v", path, err)
+			// Continue hashing
+		} else {
+			if err = dbf.WriteHashEntry(idx, hash); err != nil {
+				return fmt.Errorf("failed to write the hash for %q. %w", path, err)
+			}
 		}
 
 		count++
