@@ -220,7 +220,7 @@ func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) erro
 		path := filepath.Join(dbf.RootPath(), pi.Path)
 		hash, _, err := cfg.hashFn(ctx, path, cfg.Algo.Hasher(), progress)
 		if err != nil {
-			fmt.Fprintf(cfg.Stderr, "failed to calculate the hash for %q. %v", path, err)
+			fmt.Fprintf(cfg.Stderr, "failed to calculate the hash for %q. %v\n", path, err)
 			// Continue hashing
 		} else {
 			if err = dbf.WriteHashEntry(idx, hash); err != nil {

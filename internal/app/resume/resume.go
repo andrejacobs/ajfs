@@ -25,6 +25,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -41,10 +43,19 @@ import (
 // Config for the ajfs scan command.
 type Config struct {
 	config.CommonConfig
+
+	hashFn hashFn // Hashing function
 }
+
+// The hashing function to be used for calculating file signature hashes.
+type hashFn func(ctx context.Context, path string, hasher hash.Hash, w io.Writer) ([]byte, uint64, error)
 
 // Process the ajfs scan command.
 func Run(cfg Config) error {
+	if cfg.hashFn == nil {
+		cfg.hashFn = file.Hash
+	}
+
 	cfg.ProgressPrintln(fmt.Sprintf("Resuming database file at %q", cfg.DbPath))
 	dbf, err := db.ResumeDatabase(cfg.DbPath)
 	if err != nil {
@@ -143,12 +154,14 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 		}
 
 		path := filepath.Join(dbf.RootPath(), pi.Path)
-		hash, _, err := file.Hash(ctx, path, algo.Hasher(), progress)
+		hash, _, err := cfg.hashFn(ctx, path, algo.Hasher(), progress)
 		if err != nil {
-			return fmt.Errorf("failed to calculate the hash for %q. %w", path, err)
-		}
-		if err = dbf.WriteHashEntry(idx, hash); err != nil {
-			return fmt.Errorf("failed to write the hash for %q. %w", path, err)
+			fmt.Fprintf(cfg.Stderr, "failed to calculate the hash for %q. %v\n", path, err)
+			// Continue hashing
+		} else {
+			if err = dbf.WriteHashEntry(idx, hash); err != nil {
+				return fmt.Errorf("failed to write the hash for %q. %w", path, err)
+			}
 		}
 
 		count++
