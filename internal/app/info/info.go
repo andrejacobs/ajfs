@@ -52,6 +52,7 @@ func Run(cfg Config) error {
 	cfg.Println(fmt.Sprintf("Database path: %s", dbf.Path()))
 	cfg.Println(fmt.Sprintf("Version:       %d", dbf.Version()))
 	cfg.Println(fmt.Sprintf("Root path:     %s", dbf.RootPath()))
+	cfg.Println(fmt.Sprintf("Tool:          %s", dbf.Meta().Tool))
 	cfg.Println(fmt.Sprintf("OS:            %s", dbf.Meta().OS))
 	cfg.Println(fmt.Sprintf("Architecture:  %s", dbf.Meta().Arch))
 	cfg.Println(fmt.Sprintf("Created at:    %s", dbf.Meta().CreatedAt))

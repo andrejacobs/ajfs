@@ -83,11 +83,13 @@ func TestInfo(t *testing.T) {
 	expOut1 := fmt.Sprintf(`Database path: %s
 Version:       %d
 Root path:     %s
+Tool:          %s
 OS:            %s
 Architecture:  %s`,
 		tempFile,
 		1,
 		absRoot,
+		"ajfs: v0.0.0 ",
 		runtime.GOOS,
 		runtime.GOARCH)
 

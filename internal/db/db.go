@@ -38,6 +38,7 @@ import (
 	"github.com/andrejacobs/go-aj/ajio/trackedoffset"
 	"github.com/andrejacobs/go-aj/ajio/vardata"
 	"github.com/andrejacobs/go-aj/ajmath/safe"
+	"github.com/andrejacobs/go-aj/buildinfo"
 )
 
 // The underlying file format for the ajfs database:
@@ -749,6 +750,7 @@ func (s *rootEntry) write(w io.Writer) error {
 // Meta info about how the database was created.
 type MetaEntry struct {
 	// The following fields will be written as the size of the data varint followed by the encoded form of the data
+	Tool      string    `json:"tool"`      // The tool used to create or update the database (e.g ajfs: v1.0.42)
 	OS        string    `json:"os"`        // The operating system (e.g. darwin, linux, windows etc.)
 	Arch      string    `json:"arch"`      // The architecture (e.g. arm64 etc.)
 	CreatedAt time.Time `json:"createdAt"` // Time of database creation (this is captured instead of relying on the file system time)
@@ -757,12 +759,19 @@ type MetaEntry struct {
 }
 
 func (s *MetaEntry) init() {
+	s.Tool = toolMeta
 	s.OS = runtime.GOOS
 	s.Arch = runtime.GOARCH
 	s.CreatedAt = time.Now()
 }
 
 func (s *MetaEntry) read(r vardata.Reader) error {
+	tool, _, err := varData.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("failed to read the tool info. %w", err)
+	}
+	s.Tool = tool
+
 	os, _, err := varData.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("failed to read the operating system. %w", err)
@@ -787,7 +796,12 @@ func (s *MetaEntry) read(r vardata.Reader) error {
 }
 
 func (s *MetaEntry) write(w io.Writer) error {
-	_, err := varData.WriteString(w, s.OS)
+	_, err := varData.WriteString(w, s.Tool)
+	if err != nil {
+		return fmt.Errorf("failed to write the tool info. %w", err)
+	}
+
+	_, err = varData.WriteString(w, s.OS)
 	if err != nil {
 		return fmt.Errorf("failed to write the operating system. %w", err)
 	}
@@ -956,6 +970,8 @@ var (
 	sentinel  = [4]byte{0x41, 0x4A, 0x43, 0x43} // AJCC (as in interrupt 3 0xCC :-)
 	varData   = vardata.NewVariableData()
 )
+
+var toolMeta = fmt.Sprintf("ajfs: %s", buildinfo.VersionString())
 
 const (
 	currentVersion = uint16(1)

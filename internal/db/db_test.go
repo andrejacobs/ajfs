@@ -165,6 +165,7 @@ func TestOpenDatabase(t *testing.T) {
 	assert.Equal(t, expRoot, f.RootPath())
 
 	meta := f.Meta()
+	assert.Equal(t, "ajfs: v0.0.0 ", meta.Tool)
 	assert.Equal(t, runtime.GOOS, meta.OS)
 	assert.Equal(t, runtime.GOARCH, meta.Arch)
 	assert.True(t, time.Now().After(meta.CreatedAt))
