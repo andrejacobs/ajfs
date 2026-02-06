@@ -37,7 +37,7 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -119,7 +119,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestSubpath(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -168,7 +168,7 @@ func TestSubpath(t *testing.T) {
 }
 
 func TestSubpathDoesNotExist(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -201,7 +201,7 @@ func TestSubpathDoesNotExist(t *testing.T) {
 }
 
 func TestOnlyDirs(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -256,7 +256,7 @@ func TestOnlyDirs(t *testing.T) {
 }
 
 func TestLimit(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 

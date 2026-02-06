@@ -45,11 +45,11 @@ import (
 )
 
 func TestExportCSV(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
-	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.csv")
+	tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.csv")
 	_ = os.Remove(tempExportFile)
 	defer os.Remove(tempExportFile)
 
@@ -92,11 +92,11 @@ func TestExportCSV(t *testing.T) {
 }
 
 func TestExportWithHashesCSV(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
-	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.csv")
+	tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.csv")
 	_ = os.Remove(tempExportFile)
 	defer os.Remove(tempExportFile)
 
@@ -167,11 +167,11 @@ type JsonDatabase struct {
 }
 
 func TestExportJSON(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
-	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.json")
+	tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.json")
 	_ = os.Remove(tempExportFile)
 	defer os.Remove(tempExportFile)
 
@@ -241,11 +241,11 @@ func TestExportJSON(t *testing.T) {
 }
 
 func TestExportWithHashesJSON(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
-	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.json")
+	tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.json")
 	_ = os.Remove(tempExportFile)
 	defer os.Remove(tempExportFile)
 
@@ -352,7 +352,7 @@ func TestExportHashdeep(t *testing.T) {
 		t.Run(tC.algo.String(), func(t *testing.T) {
 			algo := tC.algo
 
-			tempFile := filepath.Join(os.TempDir(), "unit-testing")
+			tempFile := filepath.Join(t.TempDir(), "unit-testing")
 			_ = os.Remove(tempFile)
 			defer os.Remove(tempFile)
 
@@ -370,7 +370,7 @@ func TestExportHashdeep(t *testing.T) {
 			err := scan.Run(cfg)
 			require.NoError(t, err)
 
-			tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.hashdeep")
+			tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.hashdeep")
 			_ = os.Remove(tempExportFile)
 			defer os.Remove(tempExportFile)
 
@@ -399,11 +399,11 @@ func TestExportHashdeep(t *testing.T) {
 }
 
 func TestExportFullPath(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
-	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.csv")
+	tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.csv")
 	_ = os.Remove(tempExportFile)
 	defer os.Remove(tempExportFile)
 
