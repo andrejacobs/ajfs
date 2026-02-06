@@ -52,4 +52,6 @@ func init() {
 	rootCmd.AddCommand(fixCmd)
 
 	fixCmd.Flags().BoolVar(&scanDryRun, "dry-run", false, "Only display the repairs that will need to be performed.")
+
+	//AJ### Add a flag to make a backup copy first (does not apply when dry-run is true)
 }
