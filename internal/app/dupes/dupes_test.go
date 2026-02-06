@@ -36,7 +36,7 @@ import (
 )
 
 func TestNoHashes(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -61,7 +61,7 @@ func TestNoHashes(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -114,7 +114,7 @@ Total size of all duplicates: 2420 [2.4 kB]
 }
 
 func TestSubtrees(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 

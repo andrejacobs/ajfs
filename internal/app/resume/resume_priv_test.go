@@ -40,7 +40,7 @@ import (
 )
 
 func TestResumeWithHashingErrors(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-testing")
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 

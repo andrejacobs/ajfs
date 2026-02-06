@@ -128,7 +128,7 @@ func TestDiffCompare(t *testing.T) {
 		return
 	}
 
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
 
@@ -142,7 +142,7 @@ func TestDiffCompare(t *testing.T) {
 	}
 	require.NoError(t, scan.Run(cfg))
 
-	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
 	_ = os.Remove(rhsPath)
 	defer os.Remove(rhsPath)
 
@@ -210,7 +210,7 @@ func TestDiffCompare(t *testing.T) {
 }
 
 func TestDiffCompareWithHashes(t *testing.T) {
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
 
@@ -226,7 +226,7 @@ func TestDiffCompareWithHashes(t *testing.T) {
 	}
 	require.NoError(t, scan.Run(cfg))
 
-	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
 	_ = os.Remove(rhsPath)
 	defer os.Remove(rhsPath)
 
@@ -263,7 +263,7 @@ func TestDiffCompareWithHashes(t *testing.T) {
 }
 
 func TestDiffCompareSame(t *testing.T) {
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
 
@@ -373,7 +373,7 @@ func TestRunTwoDatabases(t *testing.T) {
 		return
 	}
 
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
 
@@ -387,7 +387,7 @@ func TestRunTwoDatabases(t *testing.T) {
 	}
 	require.NoError(t, scan.Run(scanCfg))
 
-	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
 	_ = os.Remove(rhsPath)
 	defer os.Remove(rhsPath)
 
@@ -467,7 +467,7 @@ func TestRunTwoDatabases(t *testing.T) {
 }
 
 func TestRunSingleDatabases(t *testing.T) {
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
 
@@ -506,7 +506,7 @@ func TestRunSingleDatabases(t *testing.T) {
 }
 
 func TestSkipAll(t *testing.T) {
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
 
@@ -542,7 +542,7 @@ func TestSkipAll(t *testing.T) {
 }
 
 func TestRunTwoDatabasesWithDifferentHashAlgos(t *testing.T) {
-	lhsPath := filepath.Join(os.TempDir(), "unit-testing-lhs")
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
 	_ = os.Remove(lhsPath)
 	defer os.Remove(lhsPath)
 
@@ -558,7 +558,7 @@ func TestRunTwoDatabasesWithDifferentHashAlgos(t *testing.T) {
 	}
 	require.NoError(t, scan.Run(scanCfg))
 
-	rhsPath := filepath.Join(os.TempDir(), "unit-testing-rhs")
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
 	_ = os.Remove(rhsPath)
 	defer os.Remove(rhsPath)
 
