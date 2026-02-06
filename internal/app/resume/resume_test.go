@@ -53,7 +53,7 @@ func TestResume(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.algo.String(), func(t *testing.T) {
-			tempFile := filepath.Join(os.TempDir(), "unit-testing")
+			tempFile := filepath.Join(t.TempDir(), "unit-testing")
 			_ = os.Remove(tempFile)
 			defer os.Remove(tempFile)
 
@@ -82,7 +82,7 @@ func TestResume(t *testing.T) {
 			require.NoError(t, err)
 
 			// Export hashdeep
-			tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.hashdeep")
+			tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.hashdeep")
 			_ = os.Remove(tempExportFile)
 			defer os.Remove(tempExportFile)
 

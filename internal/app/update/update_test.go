@@ -39,7 +39,7 @@ import (
 )
 
 func TestUpdate(t *testing.T) {
-	dbFile := filepath.Join(os.TempDir(), "unit-testing")
+	dbFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(dbFile)
 	defer os.Remove(dbFile)
 
@@ -75,7 +75,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateWithHashes(t *testing.T) {
-	dbFile := filepath.Join(os.TempDir(), "unit-testing")
+	dbFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(dbFile)
 	defer os.Remove(dbFile)
 
@@ -112,7 +112,7 @@ func TestUpdateWithHashes(t *testing.T) {
 	assert.ElementsMatch(t, expPaths, dbPaths)
 
 	// Export and check hashes
-	tempExportFile := filepath.Join(os.TempDir(), "unit-test.ajfs.hashdeep")
+	tempExportFile := filepath.Join(t.TempDir(), "unit-test.ajfs.hashdeep")
 	_ = os.Remove(tempExportFile)
 	defer os.Remove(tempExportFile)
 
