@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
+	"github.com/andrejacobs/ajfs/internal/db"
 )
 
 // Config for the ajfs fix command.
@@ -32,9 +33,17 @@ type Config struct {
 	config.CommonConfig
 
 	DryRun bool // Only display what needs to be fixed.
+	//TODO: Backup
 }
 
 // Process the ajfs fix command.
 func Run(cfg Config) error {
-	return fmt.Errorf("to do")
+	//TODO: Backup
+
+	if err := db.FixDatabase(cfg.Stdout, cfg.DbPath, cfg.DryRun); err != nil {
+		fmt.Fprintf(cfg.Stderr, "!! ERROR: %v", err)
+		return err
+	}
+
+	return nil
 }

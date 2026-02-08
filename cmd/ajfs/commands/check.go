@@ -25,25 +25,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ajfs fix.
-var fixCmd = &cobra.Command{
-	Use:   "fix",
-	Short: "Attempts to repair a damaged database.",
-	Long: `Attempts to repair a damaged database.
-
->> Is used to display database errors that were found and that can be corrected.
-!! Is used when an error happened during the process.
-
+// ajfs check.
+var checkCmd = &cobra.Command{
+	Use:   "check",
+	Short: "Check the integrity of a database.",
+	Long: `Check the integrity of a database.
+This is just a convenient way for running: ajfs fix --dry-run
 `,
 	Example: `  # using the default ./db.ajfs database
-  ajfs fix
+  ajfs check
 
   # using a specific database
-  ajfs fix /path/to/database.ajfs`,
+  ajfs check /path/to/database.ajfs`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := fix.Config{
 			CommonConfig: commonConfig,
+			DryRun:       true,
 		}
 		cfg.DbPath = dbPathFromArgs(args)
 
@@ -54,9 +52,5 @@ var fixCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(fixCmd)
-
-	fixCmd.Flags().BoolVar(&scanDryRun, "dry-run", false, "Only display the repairs that will need to be performed.")
-
-	//AJ### Add a flag to make a backup copy first (does not apply when dry-run is true)
+	rootCmd.AddCommand(checkCmd)
 }

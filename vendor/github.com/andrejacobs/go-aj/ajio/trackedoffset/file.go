@@ -104,6 +104,43 @@ func (f *File) ReadByte() (byte, error) {
 	return b, nil
 }
 
+// Unreads the last byte. Only the most recently read byte can be unread.
+// See [bufio.Reader. UnreadByte].
+func (f *File) UnreadByte() error {
+	if err := f.reader.UnreadByte(); err != nil {
+		return err
+	}
+
+	newOffset, err := safe.Sub64(f.offset, 1)
+	if err != nil {
+		return err
+	}
+	f.offset = newOffset
+	return nil
+}
+
+// Peek returns the next n bytes without advancing the offset or the reader.
+// See [bufio.Reader.Peek].
+func (f *File) Peek(n int) ([]byte, error) {
+	return f.reader.Peek(n)
+}
+
+// Skips the next n bytes, returning the number of bytes discarded.
+func (f *File) Discard(n int) (int, error) {
+	rn, err := f.reader.Discard(n)
+	if err != nil {
+		return rn, err
+	}
+
+	newOffset, err := safe.Add64(f.offset, uint64(rn))
+	if err != nil {
+		return 0, err
+	}
+	f.offset = newOffset
+
+	return rn, nil
+}
+
 // io.Writer.
 func (f *File) Write(p []byte) (int, error) {
 	n, err := f.writer.Write(p)
@@ -134,6 +171,41 @@ func (f *File) WriteByte(c byte) error {
 	return nil
 }
 
+// Reads a single UTF-8 encoded Unicode character and returns the
+// rune and its size in bytes. If the encoded rune is invalid, it consumes one byte
+// and returns unicode.ReplacementChar (U+FFFD) with a size of 1.
+func (f *File) ReadRune() (rune, int, error) {
+	r, s, err := f.reader.ReadRune()
+	if err != nil {
+		return r, s, err
+	}
+
+	newOffset, err := safe.Add64(f.offset, uint64(s))
+	if err != nil {
+		return r, s, err
+	}
+	f.offset = newOffset
+
+	return r, s, nil
+}
+
+// Writes a single Unicode code point, returning
+// the number of bytes written and any error.
+func (f *File) WriteRune(r rune) (int, error) {
+	n, err := f.writer.WriteRune(r)
+	if err != nil {
+		return n, err
+	}
+
+	newOffset, err := safe.Add64(f.offset, uint64(n))
+	if err != nil {
+		return 0, err
+	}
+	f.offset = newOffset
+
+	return n, nil
+}
+
 // io.Seeker.
 // It is recommended that you ResetReadBuffer or ResetWriteBuffer.
 func (f *File) Seek(offset int64, whence int) (int64, error) {
@@ -153,6 +225,11 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 // Return the current offset in bytes.
 func (f *File) Offset() uint64 {
 	return f.offset
+}
+
+// Set the current offset in bytes.
+func (f *File) SetOffset(newOffset uint64) {
+	f.offset = newOffset
 }
 
 // Ensure the File's offset and the underlying os.File's actual offsets are the same.
@@ -191,6 +268,23 @@ func (f *File) ResetReadBuffer() {
 // Ensure you call this if you have changed the current offset using Seek.
 func (f *File) ResetWriteBuffer() {
 	f.writer.Reset(f.of)
+}
+
+// Guard rails removed ------
+
+// Access the underlying os.File.
+func (f *File) File() *os.File {
+	return f.of
+}
+
+// Access the underlying bufio.Reader.
+func (f *File) Reader() *bufio.Reader {
+	return f.reader
+}
+
+// Access the underlying bufio.Writer.
+func (f *File) Writer() *bufio.Writer {
+	return f.writer
 }
 
 //-----------------------------------------------------------------------------

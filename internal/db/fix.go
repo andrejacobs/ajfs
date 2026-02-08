@@ -21,8 +21,12 @@
 package db
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
+	"slices"
 
 	"github.com/andrejacobs/go-aj/ajio/trackedoffset"
 	"github.com/andrejacobs/go-aj/ajmath/safe"
@@ -32,20 +36,18 @@ import (
 // out is used to display information to the user (normally routed to STDOUT). Things to be fixed will be prefixed with >>.
 // path is the file path to an existing database file.
 // dryRun when set to true will only output issues to the output writer and not make any changes.
-func FixDatabase(out io.Writer, path string, dryRun bool) error {
+func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 	// > OpenDatabase -----------------------------------------------
 
 	dbf := &DatabaseFile{
-		path: path,
+		path: dbPath,
 	}
 
 	var err error
-	dbf.file, err = trackedoffset.Open(path)
+	dbf.file, err = trackedoffset.Open(dbPath)
 	if err != nil {
-		return fmt.Errorf("failed to open the ajfs database file. path: %q. %w", path, err)
+		return fmt.Errorf("failed to open the ajfs database file. path: %q. %w", dbPath, err)
 	}
-
-	//TODO: think about the close
 
 	// > readHeadersAndVerify ---------------------------------------
 
@@ -68,10 +70,13 @@ func FixDatabase(out io.Writer, path string, dryRun bool) error {
 		return fmt.Errorf("failed to read the ajfs header. path: %q. %w", dbf.path, err)
 	}
 
+	checksumHasher := crc32.NewIEEE()
+
 	// Read the root info
 	if err := dbf.root.read(dbf.file); err != nil {
 		return fmt.Errorf("failed to read the ajfs root entry. path: %q. %w", dbf.path, err)
 	}
+	_ = dbf.root.write(checksumHasher)
 
 	fmt.Fprintf(out, "Root: %q\n", dbf.root.path)
 
@@ -79,22 +84,238 @@ func FixDatabase(out io.Writer, path string, dryRun bool) error {
 	if err := dbf.meta.read(dbf.file); err != nil {
 		return fmt.Errorf("failed to read the ajfs meta entry. path: %q. %w", dbf.path, err)
 	}
+	_ = dbf.meta.write(checksumHasher)
 
 	fmt.Fprintf(out, "Meta | OS: %q\n", dbf.meta.OS)
 	fmt.Fprintf(out, "Meta | Arch: %q\n", dbf.meta.Arch)
 	fmt.Fprintf(out, "Meta | Created at: %q\n", dbf.Meta().CreatedAt)
 
-	// Read entries
+	//AJ### TODO: Meta | Tool: " but I need to merge first
+
+	// Read entries -------------------------------------------------
 	entriesOffset, err := safe.Uint64ToUint32(dbf.file.Offset())
 	if err != nil {
 		return err
 	}
 
 	if dbf.header.EntriesOffset != entriesOffset {
-		fmt.Fprintf(out, ">> Entries offset is expected to be %x, actual is %x\n", entriesOffset, dbf.header.EntriesOffset)
+		fmt.Fprintf(out, ">> Entries offset is expected to be 0x%x, actual is 0x%x\n", entriesOffset, dbf.header.EntriesOffset)
 	}
 
-	//TODO: spin and read, check for EOF
+	fmt.Fprintf(out, "Entries offset: 0x%x\n", entriesOffset)
+
+	keepGoing := true
+	entriesCount := uint32(0)
+	fileEntriesCount := uint32(0)
+	expectedEntryLookups := make([]entryLookup, 0, 64)
+	fileIndices := make([]uint32, 0, 64)
+	var s [4]byte
+
+	for keepGoing {
+		offset, err := safe.Uint64ToUint32(dbf.file.Offset())
+		if err != nil {
+			return err
+		}
+
+		entry := pathEntry{}
+		if err := entry.read(dbf.file); err != nil {
+			if errors.Is(err, io.EOF) {
+				return fmt.Errorf("database is corrupted. reached EOF while reading the entries")
+			}
+
+			return fmt.Errorf("failed to read entry at index %d (offset %d). %w", entriesCount, offset, err)
+		}
+		entriesCount++
+		_ = entry.write(checksumHasher)
+
+		expectedEntryLookups = append(expectedEntryLookups, entryLookup{
+			Id:     entry.header.Id,
+			Offset: offset,
+		})
+
+		if entry.header.Mode.IsRegular() {
+			fileEntriesCount++
+			fileIndices = append(fileIndices, entriesCount-1)
+		}
+
+		// Check for entries lookup table sentinel
+		buf, err := dbf.file.Peek(4)
+		if err != nil {
+			return fmt.Errorf("failed to check for the entry lookup table (1st sentinel). %w", err)
+		}
+
+		if bytes.Equal(buf, sentinel[:]) {
+			keepGoing = false
+			_, _ = checksumHasher.Write(sentinel[:])
+			_, err = dbf.file.Discard(4)
+			if err != nil {
+				return fmt.Errorf("failed to discard 4 bytes while looking for the entries offset table. %w", err)
+			}
+		}
+	}
+
+	if dbf.header.EntriesCount != entriesCount {
+		fmt.Fprintf(out, ">> Entries count is expected to be %d, actual is %d\n", entriesCount, dbf.header.EntriesCount)
+	}
+
+	fmt.Fprintf(out, "Entries: %d\nFiles: %d\n", entriesCount, fileEntriesCount)
+
+	// Read entries lookup table ------------------------------------
+	entriesLookupTableOffset, err := safe.Uint64ToUint32(dbf.file.Offset())
+	if err != nil {
+		return err
+	}
+	entriesLookupTableOffset -= 4
+
+	if dbf.header.EntriesLookupTableOffset != entriesLookupTableOffset {
+		fmt.Fprintf(out, ">> Entries lookup table offset is expected to be 0x%x, actual is 0x%x\n", entriesLookupTableOffset, dbf.header.EntriesLookupTableOffset)
+	}
+
+	fmt.Fprintf(out, "Entries lookup table offset: 0x%x\n", entriesLookupTableOffset)
+
+	entryLookups := make([]entryLookup, entriesCount)
+
+	for i := range entriesCount {
+		entry := &entryLookups[i]
+
+		err := entry.read(dbf.file)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return fmt.Errorf("database is corrupted. reached EOF while reading the entries lookup table")
+			}
+			return fmt.Errorf("failed to read the entry lookup table (near index %d). %w", i, err)
+		}
+		_ = entry.write(checksumHasher)
+	}
+
+	// Check 2nd sentinel
+	_, err = io.ReadFull(dbf.file, s[:])
+	if err != nil {
+		return fmt.Errorf("failed to read the entry lookup table (2nd sentinel). %w", err)
+	}
+	if s != sentinel {
+		return fmt.Errorf("failed to read the entry lookup table (2nd sentinel %q does not match %q)", s, sentinel)
+	}
+	_, _ = checksumHasher.Write(sentinel[:])
+
+	if len(expectedEntryLookups) != len(entryLookups) {
+		return fmt.Errorf("database is corrupted. expected %d entries in the entries lookup table, actual is %d", len(expectedEntryLookups), len(entryLookups))
+	}
+
+	for i := range expectedEntryLookups {
+		lhs := expectedEntryLookups[i]
+		rhs := entryLookups[i]
+
+		if lhs.Id != rhs.Id {
+			return fmt.Errorf("database is corrupted. expected entry lookup at index %d to have path Id 0x%x, actual is 0x%x", i, lhs.Id, rhs.Id)
+		}
+
+		if lhs.Offset != rhs.Offset {
+			return fmt.Errorf("database is corrupted. expected entry lookup at index %d to have offset 0x%x, actual is 0x%x", i, lhs.Offset, rhs.Offset)
+		}
+	}
+
+	// Check checksum -----------------------------------------------
+	expectedChecksum := checksumHasher.Sum32()
+	if expectedChecksum != dbf.header.Checksum {
+		fmt.Fprintf(out, ">> Checksum is expected to be 0x%x, actual is 0x%x\n", expectedChecksum, dbf.header.Checksum)
+	}
+
+	fmt.Fprintf(out, "Checksum: 0x%x\n", expectedChecksum)
+
+	// Check the hash table if present ------------------------------
+	hashTableOffset, err := safe.Uint64ToUint32(dbf.file.Offset())
+	if err != nil {
+		return err
+	}
+
+	eof := false
+
+	// 1st sentinel
+	_, err = io.ReadFull(dbf.file, s[:])
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			eof = true
+
+			if dbf.Features().HasHashTable() {
+				return fmt.Errorf("database is corrupted. expected a hash table to be present")
+			}
+			// this is fine, EOF and not expecting a hash table, continue
+		} else {
+			return fmt.Errorf("failed to read the hash table (1st sentinel). %w", err)
+		}
+	}
+
+	if !eof {
+		fmt.Fprintln(out, "Hash table: Yes")
+
+		// Hash table checks
+		if s != hashTableSentinel {
+			return fmt.Errorf("database is corrupted. expected hash table sentinel 0x%x, actual 0x%x)", hashTableSentinel, s)
+		}
+
+		if hashTableOffset != dbf.header.HashTableOffset {
+			fmt.Fprintf(out, ">> Hash table offset is expected to be 0x%x, actual is 0x%x\n", hashTableOffset, dbf.header.HashTableOffset)
+		}
+
+		fmt.Fprintf(out, "Hash table offset: 0x%x\n", hashTableOffset)
+
+		header := hashTableHeader{}
+		if err := header.read(dbf.file); err != nil {
+			return fmt.Errorf("failed to read the hash table header. %w", err)
+		}
+
+		fmt.Fprintf(out, "Hash algorithm: %s\n", header.Algo)
+
+		if fileEntriesCount != header.EntriesCount {
+			return fmt.Errorf("database is corrupted. the number of hash table entries %d does not match the number of file path entries %d in the database", header.EntriesCount, fileEntriesCount)
+		}
+
+		hashFileIndices := make([]uint32, 0, 64)
+
+		for i := range header.EntriesCount {
+			entry := hashEntry{
+				Hash: header.Algo.Buffer(),
+			}
+			if err := entry.read(dbf.file); err != nil {
+				if errors.Is(err, io.EOF) {
+					return fmt.Errorf("database is corrupted. reached EOF while reading the hash table entries")
+				}
+				return fmt.Errorf("failed to read the hash table entry at index %d. %w", i, err)
+			}
+			hashFileIndices = append(hashFileIndices, entry.Index)
+		}
+
+		// 2nd sentinel
+		_, err = io.ReadFull(dbf.file, s[:])
+		if err != nil {
+			return fmt.Errorf("failed to read the hash table (2nd sentinel). %w", err)
+		}
+		if s != hashTableSentinel {
+			return fmt.Errorf("failed to read the hash table (2nd sentinel %q does not match %q)", s, hashTableSentinel)
+		}
+
+		// Validate indices
+		slices.Sort(fileIndices)
+		slices.Sort(hashFileIndices)
+		if !slices.Equal(fileIndices, hashFileIndices) {
+			return fmt.Errorf("database is corrupted. file indices does not match hash table's file indices")
+		}
+	} else {
+		fmt.Fprintln(out, "Hash table: No")
+	}
+
+	if err := dbf.file.Close(); err != nil {
+		return err
+	}
+
+	// Dry-run / validate finished, next is actual file changes
+	if dryRun {
+		return nil
+	}
+	//=========================================================================
 
 	return nil
 }
+
+//TODO: spit out a bit more info (like file entry count, hash table found etc. etc.)

@@ -23,11 +23,16 @@ package db_test
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/andrejacobs/ajfs/internal/db"
+	"github.com/andrejacobs/ajfs/internal/path"
+	"github.com/andrejacobs/go-aj/ajhash"
+	"github.com/andrejacobs/go-aj/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,10 +47,22 @@ func TestFixEmptyDatabase(t *testing.T) {
 		os.Remove(tempFile)
 	})
 
+	// Create a valid empty database
 	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
 	require.NoError(t, err)
+
+	p := path.Info{
+		Id:      path.IdFromPath("."),
+		Path:    ".",
+		Size:    0,
+		Mode:    fs.ModeDir | 0744,
+		ModTime: time.Now(),
+	}
+	require.NoError(t, dbf.WriteEntry(&p))
+	require.NoError(t, dbf.FinishEntries())
 	require.NoError(t, dbf.Close())
 
+	// Fix
 	var out bytes.Buffer
 
 	err = db.FixDatabase(&out, tempFile, false)
@@ -58,34 +75,214 @@ Version: 1
 Root: "/test"
 `
 	assert.Contains(t, outStr, exp1)
+	assert.NotContains(t, outStr, ">>")
 
+	exp2 := `Entries offset: 0x67
+Entries: 1
+Files: 0
+Entries lookup table offset: 0x9d
+`
+	assert.Contains(t, outStr, exp2)
+	assert.Contains(t, outStr, "Hash table: No")
+}
+
+func TestFixEmptyDatabaseWithHashes(t *testing.T) {
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	t.Cleanup(func() {
+		os.Remove(tempFile)
+	})
+
+	// Create a valid empty database with hash table
+	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureHashTable)
+	require.NoError(t, err)
+
+	p := path.Info{
+		Id:      path.IdFromPath("."),
+		Path:    ".",
+		Size:    0,
+		Mode:    fs.ModeDir,
+		ModTime: time.Now(),
+	}
+	require.NoError(t, dbf.WriteEntry(&p))
+	require.NoError(t, dbf.FinishEntries())
+	require.NoError(t, dbf.StartHashTable(ajhash.AlgoSHA1))
+	require.NoError(t, dbf.FinishHashTable())
+	require.NoError(t, dbf.Close())
+
+	// Fix
+	var out bytes.Buffer
+
+	err = db.FixDatabase(&out, tempFile, false)
+	require.NoError(t, err)
+
+	outStr := out.String()
+
+	exp1 := `Signature: AJFS
+Version: 1
+Root: "/test"
+`
+	assert.Contains(t, outStr, exp1)
+	assert.NotContains(t, outStr, ">>")
+
+	exp2 := `Entries offset: 0x67
+Entries: 1
+Files: 0
+Entries lookup table offset: 0x9d
+`
+	assert.Contains(t, outStr, exp2)
+
+	exp3 := `
+Hash table: Yes
+Hash table offset: 0xbd
+Hash algorithm: SHA-1
+`
+	assert.Contains(t, outStr, exp3)
+}
+
+func TestFixValidDatabase(t *testing.T) {
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	t.Cleanup(func() {
+		os.Remove(tempFile)
+	})
+
+	require.NoError(t, createTestDatabase(tempFile, false))
+
+	// Fix
+	var out bytes.Buffer
+
+	err := db.FixDatabase(&out, tempFile, false)
+	require.NoError(t, err)
+
+	outStr := out.String()
+
+	exp1 := `Signature: AJFS
+Version: 1
+Root: "/test"
+`
+	assert.Contains(t, outStr, exp1)
+	assert.NotContains(t, outStr, ">>")
+
+	exp2 := `Entries offset: 0x67
+Entries: 15
+Files: 10
+Entries lookup table offset: 0x454
+`
+	assert.Contains(t, outStr, exp2)
+	assert.Contains(t, outStr, "Hash table: No")
+}
+
+func TestFixValidDatabaseWithHashes(t *testing.T) {
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
+	_ = os.Remove(tempFile)
+	t.Cleanup(func() {
+		os.Remove(tempFile)
+	})
+
+	require.NoError(t, createTestDatabase(tempFile, true))
+
+	// Fix
+	var out bytes.Buffer
+
+	err := db.FixDatabase(&out, tempFile, false)
+	require.NoError(t, err)
+
+	outStr := out.String()
+
+	exp1 := `Signature: AJFS
+Version: 1
+Root: "/test"
+`
+	assert.Contains(t, outStr, exp1)
+	assert.NotContains(t, outStr, ">>")
+
+	exp2 := `Entries offset: 0x67
+Entries: 15
+Files: 10
+Entries lookup table offset: 0x454
+`
+	assert.Contains(t, outStr, exp2)
+
+	exp3 := `
+Hash table: Yes
+Hash table offset: 0x5c4
+Hash algorithm: SHA-1
+`
+	assert.Contains(t, outStr, exp3)
 }
 
 //-----------------------------------------------------------------------------
 
-func createTestDatabase(path string, hashTable bool) error {
+func createTestDatabase(dbPath string, hashTable bool) error {
+	// Create new database and write N path info objects
+	var features db.FeatureFlags = db.FeatureJustEntries
+	if hashTable {
+		features = db.FeatureHashTable
+	}
 
-	// // Create new database and write N path info objects
-	// dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
-	// require.NoError(t, err)
+	dbf, err := db.CreateDatabase(dbPath, "/test", features)
+	if err != nil {
+		return err
+	}
 
-	// expCount := 10
-	// expTime := time.Now().Add(-10 * time.Minute)
+	// Dirs
+	for i := range 5 {
+		dirPath := fmt.Sprintf("some/dir-%d", i)
+		p := path.Info{
+			Id:      path.IdFromPath(dirPath),
+			Path:    dirPath,
+			Size:    uint64(142),
+			Mode:    0644 | fs.ModeDir,
+			ModTime: time.Now().Add(-20 * time.Minute),
+		}
+		if err := dbf.WriteEntry(&p); err != nil {
+			return err
+		}
+	}
 
-	// for i := range expCount {
-	// 	filePath := fmt.Sprintf("/some/path/%d.txt", i)
-	// 	p := path.Info{
-	// 		Id:      path.IdFromPath(filePath),
-	// 		Path:    filePath,
-	// 		Size:    uint64(i),
-	// 		Mode:    0740,
-	// 		ModTime: expTime,
-	// 	}
-	// 	require.NoError(t, dbf.WriteEntry(&p))
-	// }
+	// Files
+	expCount := 10
+	expTime := time.Now().Add(-10 * time.Minute)
 
-	// require.NoError(t, dbf.FinishEntries())
-	// require.NoError(t, dbf.Close())
+	for i := range expCount {
+		filePath := fmt.Sprintf("/some/path/%d.txt", i)
+		p := path.Info{
+			Id:      path.IdFromPath(filePath),
+			Path:    filePath,
+			Size:    uint64(i),
+			Mode:    0740,
+			ModTime: expTime,
+		}
+		if err := dbf.WriteEntry(&p); err != nil {
+			return err
+		}
+	}
 
-	return fmt.Errorf("Whoosh")
+	if err := dbf.FinishEntries(); err != nil {
+		return err
+	}
+
+	if hashTable {
+		algo := ajhash.AlgoSHA1
+		if err := dbf.StartHashTable(algo); err != nil {
+			return nil
+		}
+
+		for i := range expCount {
+			h := make([]byte, algo.Size())
+			random.SecureBytes(h)
+			dbf.WriteHashEntry(i, h)
+		}
+
+		if err := dbf.FinishHashTable(); err != nil {
+			return err
+		}
+	}
+
+	if err := dbf.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }

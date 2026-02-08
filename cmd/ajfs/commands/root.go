@@ -123,7 +123,7 @@ func customHelp() {
 		},
 		{
 			Title:    "Information commands",
-			Commands: []string{"info", "list", "export", "tree", "search"},
+			Commands: []string{"info", "check", "list", "export", "tree", "search"},
 		},
 		{
 			Title:    "Comparison commands",
