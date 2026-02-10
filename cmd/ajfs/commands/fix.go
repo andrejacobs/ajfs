@@ -21,6 +21,8 @@
 package commands
 
 import (
+	"os"
+
 	"github.com/andrejacobs/ajfs/internal/app/fix"
 	"github.com/spf13/cobra"
 )
@@ -31,6 +33,15 @@ var fixCmd = &cobra.Command{
 	Short: "Attempts to repair a damaged database.",
 	Long: `Attempts to repair a damaged database.
 
+Use '--dry-run' to check the integrity of a database without making changes to
+the database. This is equavalent to running 'ajfs check'.
+
+A backup of the database header will be made before applying any changes.
+The backup will be created in the current working directory using the same
+filename as the database with the extension '.bak' added.
+
+Use '--restore /path/to/___.bak' to restore a backup header to a database. 
+
 >> Is used to display database errors that were found and that can be corrected.
 !! Is used when an error happened during the process.
 
@@ -39,11 +50,17 @@ var fixCmd = &cobra.Command{
   ajfs fix
 
   # using a specific database
-  ajfs fix /path/to/database.ajfs`,
+  ajfs fix /path/to/database.ajfs
+
+  # restore a backup header file
+  ajfs fix --restore /path/to/header.ajfs.bak /path/to/database.ajfs`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := fix.Config{
 			CommonConfig: commonConfig,
+			Stdin:        os.Stdin,
+			DryRun:       fixDryRun,
+			RestorePath:  fixRestorePath,
 		}
 		cfg.DbPath = dbPathFromArgs(args)
 
@@ -56,7 +73,12 @@ var fixCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(fixCmd)
 
-	fixCmd.Flags().BoolVar(&scanDryRun, "dry-run", false, "Only display the repairs that will need to be performed.")
+	fixCmd.Flags().BoolVar(&fixDryRun, "dry-run", false, "Only display the repairs that will need to be performed.")
+	fixCmd.Flags().StringVar(&fixRestorePath, "restore", "", "Path to a backup header to be restored.")
 
-	//AJ### Add a flag to make a backup copy first (does not apply when dry-run is true)
 }
+
+var (
+	fixDryRun      bool
+	fixRestorePath string
+)

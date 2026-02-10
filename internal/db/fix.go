@@ -22,21 +22,25 @@ package db
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
+	"os"
 	"slices"
 
 	"github.com/andrejacobs/go-aj/ajio/trackedoffset"
 	"github.com/andrejacobs/go-aj/ajmath/safe"
+	"github.com/andrejacobs/go-aj/file"
 )
 
 // Attempts to repair a damaged database.
 // out is used to display information to the user (normally routed to STDOUT). Things to be fixed will be prefixed with >>.
 // path is the file path to an existing database file.
 // dryRun when set to true will only output issues to the output writer and not make any changes.
-func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
+// bakPath path to where the backup file will be created. NOTE: only the headers are saved.
+func FixDatabase(out io.Writer, dbPath string, dryRun bool, bakPath string) error {
 	// > OpenDatabase -----------------------------------------------
 
 	dbf := &DatabaseFile{
@@ -70,6 +74,8 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 		return fmt.Errorf("failed to read the ajfs header. path: %q. %w", dbf.path, err)
 	}
 
+	fixHeader := dbf.header
+
 	checksumHasher := crc32.NewIEEE()
 
 	// Read the root info
@@ -99,6 +105,7 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 	}
 
 	if dbf.header.EntriesOffset != entriesOffset {
+		fixHeader.EntriesOffset = entriesOffset
 		fmt.Fprintf(out, ">> Entries offset is expected to be 0x%x, actual is 0x%x\n", entriesOffset, dbf.header.EntriesOffset)
 	}
 
@@ -155,7 +162,13 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 	}
 
 	if dbf.header.EntriesCount != entriesCount {
+		fixHeader.EntriesCount = entriesCount
 		fmt.Fprintf(out, ">> Entries count is expected to be %d, actual is %d\n", entriesCount, dbf.header.EntriesCount)
+	}
+
+	if dbf.header.FileEntriesCount != fileEntriesCount {
+		fixHeader.FileEntriesCount = fileEntriesCount
+		fmt.Fprintf(out, ">> File entries count is expected to be %d, actual is %d\n", fileEntriesCount, dbf.header.FileEntriesCount)
 	}
 
 	fmt.Fprintf(out, "Entries: %d\nFiles: %d\n", entriesCount, fileEntriesCount)
@@ -168,6 +181,7 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 	entriesLookupTableOffset -= 4
 
 	if dbf.header.EntriesLookupTableOffset != entriesLookupTableOffset {
+		fixHeader.EntriesLookupTableOffset = entriesLookupTableOffset
 		fmt.Fprintf(out, ">> Entries lookup table offset is expected to be 0x%x, actual is 0x%x\n", entriesLookupTableOffset, dbf.header.EntriesLookupTableOffset)
 	}
 
@@ -202,6 +216,16 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 		return fmt.Errorf("database is corrupted. expected %d entries in the entries lookup table, actual is %d", len(expectedEntryLookups), len(entryLookups))
 	}
 
+	featuresOffset, err := safe.Uint64ToUint32(dbf.file.Offset())
+	if err != nil {
+		return err
+	}
+
+	if dbf.header.FeaturesOffset != featuresOffset {
+		fixHeader.FeaturesOffset = featuresOffset
+		fmt.Fprintf(out, ">> Features offset is expected to be 0x%x, actual is 0x%x\n", featuresOffset, dbf.header.FeaturesOffset)
+	}
+
 	for i := range expectedEntryLookups {
 		lhs := expectedEntryLookups[i]
 		rhs := entryLookups[i]
@@ -218,6 +242,7 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 	// Check checksum -----------------------------------------------
 	expectedChecksum := checksumHasher.Sum32()
 	if expectedChecksum != dbf.header.Checksum {
+		fixHeader.Checksum = expectedChecksum
 		fmt.Fprintf(out, ">> Checksum is expected to be 0x%x, actual is 0x%x\n", expectedChecksum, dbf.header.Checksum)
 	}
 
@@ -254,7 +279,10 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 			return fmt.Errorf("database is corrupted. expected hash table sentinel 0x%x, actual 0x%x)", hashTableSentinel, s)
 		}
 
+		fixHeader.Features |= FeatureHashTable
+
 		if hashTableOffset != dbf.header.HashTableOffset {
+			fixHeader.HashTableOffset = hashTableOffset
 			fmt.Fprintf(out, ">> Hash table offset is expected to be 0x%x, actual is 0x%x\n", hashTableOffset, dbf.header.HashTableOffset)
 		}
 
@@ -309,13 +337,122 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool) error {
 		return err
 	}
 
+	needFixing := fixHeader != dbf.header
+
 	// Dry-run / validate finished, next is actual file changes
 	if dryRun {
-		return nil
+		if needFixing {
+			fmt.Fprintln(out, "Database needs to be fixed. Skipping because running in dry-run mode.")
+			return fmt.Errorf("database needs to be fixed")
+		} else {
+			fmt.Fprintln(out, "Nothing to be fixed")
+			return nil
+		}
 	}
 	//=========================================================================
+
+	if !needFixing {
+		fmt.Fprintln(out, "Nothing to be fixed")
+		return nil
+	}
+
+	// Make backup of the headers
+	fmt.Fprintf(out, "Backing up headers to: %q\n", bakPath)
+
+	if err = saveDatabaseHeaders(dbPath, bakPath); err != nil {
+		return err
+	}
+
+	f, err := trackedoffset.OpenFile(dbPath, os.O_RDWR|os.O_EXCL, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open the database for applying fixes. %w", err)
+	}
+	defer f.Close()
+
+	_, err = f.Seek(headerOffset(), io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	if err = fixHeader.write(f); err != nil {
+		return fmt.Errorf("failed to write the fixed header to the database. %w", err)
+	}
+
+	if err = f.Flush(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-//TODO: spit out a bit more info (like file entry count, hash table found etc. etc.)
+// Restore the headers from a backup file.
+func RestoreDatabaseHeader(dbPath string, bakPath string) error {
+
+	bakHeader, err := readHeader(bakPath)
+	if err != nil {
+		return fmt.Errorf("not a valid backup file. %w", err)
+	}
+
+	_, err = readHeader(dbPath)
+	if err != nil {
+		return err
+	}
+
+	return replaceHeader(bakHeader, dbPath)
+}
+
+//-----------------------------------------------------------------------------
+
+func saveDatabaseHeaders(dbPath string, bakPath string) error {
+	bakSize := headerOffset() + headerSize()
+	_, err := file.CopyFileN(context.Background(), dbPath, bakPath, bakSize)
+	if err != nil {
+		return fmt.Errorf("failed to make a backup of the headers. %w", err)
+	}
+	return nil
+}
+
+func readHeader(dbPath string) (header, error) {
+	f, err := os.Open(dbPath)
+	if err != nil {
+		return header{}, err
+	}
+	defer f.Close()
+
+	// readHeadersAndVerify
+
+	// Check the signature and version
+	var ph prefixHeader
+	if err := ph.read(f); err != nil {
+		return header{}, fmt.Errorf("error reading the ajfs prefix header. path: %q. %w", dbPath, err)
+	}
+	if ph.Signature != signature {
+		return header{}, fmt.Errorf("not a valid ajfs file (invalid signature %q, expected %q). path: %q", ph.Signature, signature, dbPath)
+	}
+	if ph.Version > currentVersion {
+		return header{}, fmt.Errorf("not a supported ajfs file (invalid version %d, expected <= %d). path: %q", ph.Version, currentVersion, dbPath)
+	}
+
+	// Read the header
+	var result header
+	if err := result.read(f); err != nil {
+		return header{}, fmt.Errorf("failed to read the ajfs header. path: %q. %w", dbPath, err)
+
+	}
+	return result, err
+}
+
+func replaceHeader(newHeader header, dbPath string) error {
+	f, err := os.OpenFile(dbPath, os.O_RDWR|os.O_EXCL, 0)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Seek(headerOffset(), io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	return newHeader.write(f)
+}

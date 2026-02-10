@@ -22,7 +22,11 @@
 package fix
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/db"
@@ -32,16 +36,45 @@ import (
 type Config struct {
 	config.CommonConfig
 
-	DryRun bool // Only display what needs to be fixed.
-	//TODO: Backup
+	Stdin       io.Reader
+	DryRun      bool   // Only display what needs to be fixed.
+	RestorePath string // Path to a backup header to be restored.
 }
 
 // Process the ajfs fix command.
 func Run(cfg Config) error {
-	//TODO: Backup
 
-	if err := db.FixDatabase(cfg.Stdout, cfg.DbPath, cfg.DryRun); err != nil {
-		fmt.Fprintf(cfg.Stderr, "!! ERROR: %v", err)
+	// Confirm with user
+	if !cfg.DryRun {
+		r := bufio.NewReader(cfg.Stdin)
+		fmt.Fprintf(cfg.Stdout, "WARNING: Changes might be made to the database: %q\n", cfg.DbPath)
+		fmt.Fprintf(cfg.Stdout, "Type 'yes' to confirm you want to continue: ")
+		input, _ := r.ReadString('\n')
+
+		if input != "yes\n" {
+			return fmt.Errorf("user cancelled")
+		}
+	}
+
+	// Restore?
+	if cfg.RestorePath != "" {
+		fmt.Fprintf(cfg.Stdout, "Restoring backup headers from: %q to database file: %q\n", cfg.RestorePath, cfg.DbPath)
+		if err := db.RestoreDatabaseHeader(cfg.DbPath, cfg.RestorePath); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// Fix
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	bakPath := filepath.Join(cwd, filepath.Base(cfg.DbPath)+".bak")
+
+	if err := db.FixDatabase(cfg.Stdout, cfg.DbPath, cfg.DryRun, bakPath); err != nil {
+		fmt.Fprintf(cfg.Stderr, "!! ERROR: %v\n", err)
 		return err
 	}
 
