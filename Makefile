@@ -138,7 +138,7 @@ check: check-formatting check-lint
 # Run the tests as close as we can get to GitHub action environment
 .PHONY: test-docker
 test-docker:
-	@docker run --rm --platform linux/amd64 -v $(pwd):/app -w /app golang:1.25.7-trixie make test
+	@docker run --rm --platform linux/amd64 -v $(shell pwd):/app -w /app golang:1.25.7-trixie make test
 
 #------------------------------------------------------------------------------
 # Go miscellaneous

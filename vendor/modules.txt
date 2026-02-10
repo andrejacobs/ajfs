@@ -1,4 +1,4 @@
-# github.com/andrejacobs/go-aj v0.1.0
+# github.com/andrejacobs/go-aj v0.2.0
 ## explicit; go 1.24.0
 github.com/andrejacobs/go-aj/ajhash
 github.com/andrejacobs/go-aj/ajio/trackedoffset

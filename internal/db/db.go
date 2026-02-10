@@ -646,11 +646,11 @@ func (dbf *DatabaseFile) writeEntryLookupTable() error {
 	// 2nd sentinel
 	_, err = dbf.checksumWriter.Write(sentinel[:])
 	if err != nil {
-		return fmt.Errorf("failed to finish writing the entrie lookup table (2nd sentinel). %w", err)
+		return fmt.Errorf("failed to finish writing the entries lookup table (2nd sentinel). %w", err)
 	}
 
 	if err := dbf.Flush(); err != nil {
-		return fmt.Errorf("failed to finish writing the entrie lookup table (flush). %w", err)
+		return fmt.Errorf("failed to finish writing the entries lookup table (flush). %w", err)
 	}
 
 	return nil

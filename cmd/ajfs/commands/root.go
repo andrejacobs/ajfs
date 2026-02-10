@@ -119,11 +119,11 @@ func customHelp() {
 	}{
 		{
 			Title:    "Creation commands",
-			Commands: []string{"scan", "resume", "update"},
+			Commands: []string{"scan", "resume", "update", "fix"},
 		},
 		{
 			Title:    "Information commands",
-			Commands: []string{"info", "list", "export", "tree", "search"},
+			Commands: []string{"info", "check", "list", "export", "tree", "search"},
 		},
 		{
 			Title:    "Comparison commands",
