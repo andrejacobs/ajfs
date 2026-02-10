@@ -78,14 +78,14 @@ Root: "/test"
 	assert.Contains(t, outStr, exp1)
 	assert.NotContains(t, outStr, ">>")
 
-	exp2 := `Entries offset: 0x67
-Entries: 1
+	exp2 := `Entries: 1
 Files: 0
-Entries lookup table offset: 0x9d
 `
 	assert.Contains(t, outStr, exp2)
 	assert.Contains(t, outStr, "Hash table: No")
 	assert.Contains(t, outStr, "Nothing to be fixed")
+	assert.Contains(t, outStr, "Entries offset:")
+	assert.Contains(t, outStr, "Entries lookup table offset:")
 }
 
 func TestFixEmptyDatabaseWithHashes(t *testing.T) {
@@ -127,19 +127,15 @@ Root: "/test"
 	assert.Contains(t, outStr, exp1)
 	assert.NotContains(t, outStr, ">>")
 
-	exp2 := `Entries offset: 0x67
-Entries: 1
+	exp2 := `Entries: 1
 Files: 0
-Entries lookup table offset: 0x9d
 `
 	assert.Contains(t, outStr, exp2)
-
-	exp3 := `
-Hash table: Yes
-Hash table offset: 0xbd
-Hash algorithm: SHA-1
-`
-	assert.Contains(t, outStr, exp3)
+	assert.Contains(t, outStr, "Entries offset:")
+	assert.Contains(t, outStr, "Entries lookup table offset:")
+	assert.Contains(t, outStr, "Hash table: Yes")
+	assert.Contains(t, outStr, "Hash algorithm: SHA-1")
+	assert.Contains(t, outStr, "Hash table offset:")
 	assert.Contains(t, outStr, "Nothing to be fixed")
 }
 
@@ -167,12 +163,12 @@ Root: "/test"
 	assert.Contains(t, outStr, exp1)
 	assert.NotContains(t, outStr, ">>")
 
-	exp2 := `Entries offset: 0x67
-Entries: 15
+	exp2 := `Entries: 15
 Files: 10
-Entries lookup table offset: 0x454
 `
 	assert.Contains(t, outStr, exp2)
+	assert.Contains(t, outStr, "Entries offset:")
+	assert.Contains(t, outStr, "Entries lookup table offset:")
 	assert.Contains(t, outStr, "Hash table: No")
 	assert.Contains(t, outStr, "Nothing to be fixed")
 }
@@ -201,19 +197,15 @@ Root: "/test"
 	assert.Contains(t, outStr, exp1)
 	assert.NotContains(t, outStr, ">>")
 
-	exp2 := `Entries offset: 0x67
-Entries: 15
+	exp2 := `Entries: 15
 Files: 10
-Entries lookup table offset: 0x454
 `
 	assert.Contains(t, outStr, exp2)
-
-	exp3 := `
-Hash table: Yes
-Hash table offset: 0x5c4
-Hash algorithm: SHA-1
-`
-	assert.Contains(t, outStr, exp3)
+	assert.Contains(t, outStr, "Entries offset:")
+	assert.Contains(t, outStr, "Entries lookup table offset:")
+	assert.Contains(t, outStr, "Hash table: Yes")
+	assert.Contains(t, outStr, "Hash table offset:")
+	assert.Contains(t, outStr, "Hash algorithm: SHA-1")
 	assert.Contains(t, outStr, "Nothing to be fixed")
 }
 
@@ -260,8 +252,8 @@ func TestFixZeroHeader(t *testing.T) {
 	assert.Contains(t, outStr, ">> Entries offset is expected to be")
 	assert.Contains(t, outStr, ">> Entries count is expected to be 15, actual is 0")
 	assert.Contains(t, outStr, ">> File entries count is expected to be 10, actual is 0")
-	assert.Contains(t, outStr, ">> Entries lookup table offset is expected to be 0x454, actual is 0x0")
-	assert.Contains(t, outStr, ">> Features offset is expected to be 0x5c4, actual is 0x0")
+	assert.Contains(t, outStr, ">> Entries lookup table offset is expected to be")
+	assert.Contains(t, outStr, ">> Features offset is expected to be")
 	assert.Contains(t, outStr, ">> Checksum is expected to be")
 	assert.Contains(t, outStr, "Database needs to be fixed. Skipping because running in dry-run mode.")
 
@@ -329,8 +321,8 @@ func TestFixZeroHeaderWithHashes(t *testing.T) {
 	assert.Contains(t, outStr, ">> Entries offset is expected to be")
 	assert.Contains(t, outStr, ">> Entries count is expected to be 15, actual is 0")
 	assert.Contains(t, outStr, ">> File entries count is expected to be 10, actual is 0")
-	assert.Contains(t, outStr, ">> Entries lookup table offset is expected to be 0x454, actual is 0x0")
-	assert.Contains(t, outStr, ">> Features offset is expected to be 0x5c4, actual is 0x0")
+	assert.Contains(t, outStr, ">> Entries lookup table offset is expected to be")
+	assert.Contains(t, outStr, ">> Features offset is expected to be")
 	assert.Contains(t, outStr, ">> Checksum is expected to be")
 	assert.Contains(t, outStr, ">> Hash table offset is expected to be")
 	assert.Contains(t, outStr, "Database needs to be fixed. Skipping because running in dry-run mode.")

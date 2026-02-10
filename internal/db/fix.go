@@ -95,8 +95,7 @@ func FixDatabase(out io.Writer, dbPath string, dryRun bool, bakPath string) erro
 	fmt.Fprintf(out, "Meta | OS: %q\n", dbf.meta.OS)
 	fmt.Fprintf(out, "Meta | Arch: %q\n", dbf.meta.Arch)
 	fmt.Fprintf(out, "Meta | Created at: %q\n", dbf.Meta().CreatedAt)
-
-	//AJ### TODO: Meta | Tool: " but I need to merge first
+	fmt.Fprintf(out, "Meta | Tool: %q\n", dbf.Meta().Tool)
 
 	// Read entries -------------------------------------------------
 	entriesOffset, err := safe.Uint64ToUint32(dbf.file.Offset())
