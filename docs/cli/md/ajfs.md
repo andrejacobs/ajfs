@@ -25,9 +25,11 @@ Which can then be used in an offline and independent way to do the following:
 
 ### SEE ALSO
 
+* [ajfs check](ajfs_check.md)	 - Check the integrity of a database.
 * [ajfs diff](ajfs_diff.md)	 - Display the differences between two databases and or file system hierarchies.
 * [ajfs dupes](ajfs_dupes.md)	 - Display all duplicate files or directory trees.
 * [ajfs export](ajfs_export.md)	 - Export a database.
+* [ajfs fix](ajfs_fix.md)	 - Attempts to repair a damaged database.
 * [ajfs info](ajfs_info.md)	 - Display information about a database.
 * [ajfs list](ajfs_list.md)	 - Display the database path entries.
 * [ajfs resume](ajfs_resume.md)	 - Resume calculating file signature hashes.
