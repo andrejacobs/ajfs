@@ -53,7 +53,7 @@ func TestWriteInitialHashTable(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.algo.String(), func(t *testing.T) {
-			tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+			tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 			_ = os.Remove(tempFile)
 			defer os.Remove(tempFile)
 
@@ -135,7 +135,7 @@ func TestWriteHashTable(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.algo.String(), func(t *testing.T) {
-			tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+			tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 			_ = os.Remove(tempFile)
 			defer os.Remove(tempFile)
 
@@ -219,7 +219,7 @@ func TestWriteHashTable(t *testing.T) {
 }
 
 func TestEntriesNeedHashing(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -336,7 +336,7 @@ func TestEntriesNeedHashing(t *testing.T) {
 }
 
 func TestFindDuplicatesPanics(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -358,7 +358,7 @@ func TestFindDuplicatesPanics(t *testing.T) {
 func TestFindDuplicates(t *testing.T) {
 	algo := ajhash.AlgoSHA1
 
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -447,7 +447,7 @@ func TestFindDuplicates(t *testing.T) {
 func TestReadAllEntriesWithHashes(t *testing.T) {
 	algo := ajhash.AlgoSHA1
 
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -514,7 +514,7 @@ func TestReadAllEntriesWithHashes(t *testing.T) {
 func TestBuildIdToHashMap(t *testing.T) {
 	algo := ajhash.AlgoSHA1
 
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -574,7 +574,7 @@ func TestBuildIdToHashMap(t *testing.T) {
 func TestBuildHashStrToIndexMap(t *testing.T) {
 	algo := ajhash.AlgoSHA1
 
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 

@@ -36,7 +36,7 @@ import (
 )
 
 func TestCalculateStats(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -85,7 +85,7 @@ func TestCalculateStats(t *testing.T) {
 }
 
 func TestCalculateStatsWhenEmpty(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 

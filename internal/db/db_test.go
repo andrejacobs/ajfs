@@ -53,7 +53,7 @@ type header struct {
 }
 
 func TestCreateDatabase(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 
 	dbf, err := db.CreateDatabase(tempFile, "/test", db.FeatureJustEntries)
@@ -130,7 +130,7 @@ func TestOpenDatabaseWhenInvalidFile(t *testing.T) {
 }
 
 func TestCreateDatabaseAbsRoot(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 
 	dbf, err := db.CreateDatabase(tempFile, "../", db.FeatureJustEntries)
@@ -144,7 +144,7 @@ func TestCreateDatabaseAbsRoot(t *testing.T) {
 }
 
 func TestOpenDatabase(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 
 	// Create a valid "empty" database
@@ -165,13 +165,14 @@ func TestOpenDatabase(t *testing.T) {
 	assert.Equal(t, expRoot, f.RootPath())
 
 	meta := f.Meta()
+	assert.Equal(t, "ajfs: v0.0.0 ", meta.Tool)
 	assert.Equal(t, runtime.GOOS, meta.OS)
 	assert.Equal(t, runtime.GOARCH, meta.Arch)
 	assert.True(t, time.Now().After(meta.CreatedAt))
 }
 
 func TestWritePathInfo(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -240,7 +241,7 @@ func TestWritePathInfo(t *testing.T) {
 }
 
 func TestReadAll(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -303,7 +304,7 @@ func TestReadAll(t *testing.T) {
 }
 
 func TestReadWritePanicConditions(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -343,7 +344,7 @@ func TestReadWritePanicConditions(t *testing.T) {
 }
 
 func TestVerifyChecksums(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
@@ -388,7 +389,7 @@ func TestVerifyChecksums(t *testing.T) {
 }
 
 func TestBuildIdToInfoMap(t *testing.T) {
-	tempFile := filepath.Join(os.TempDir(), "unit-test.ajfs")
+	tempFile := filepath.Join(t.TempDir(), "unit-test.ajfs")
 	_ = os.Remove(tempFile)
 	defer os.Remove(tempFile)
 
