@@ -156,8 +156,12 @@ func resumeCalculatingHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFi
 		path := filepath.Join(dbf.RootPath(), pi.Path)
 		hash, _, err := cfg.hashFn(ctx, path, algo.Hasher(), progress)
 		if err != nil {
-			fmt.Fprintf(cfg.Stderr, "failed to calculate the hash for %q. %v\n", path, err)
+			if errors.Is(err, context.Canceled) {
+				return err
+			}
+
 			// Continue hashing
+			fmt.Fprintf(cfg.Stderr, "failed to calculate the hash for %q. %v\n", path, err)
 		} else {
 			if err = dbf.WriteHashEntry(idx, hash); err != nil {
 				return fmt.Errorf("failed to write the hash for %q. %w", path, err)
