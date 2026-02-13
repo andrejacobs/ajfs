@@ -113,6 +113,10 @@ func Run(cfg Config) error {
 			if err := dbf.Close(); err != nil {
 				fmt.Fprintln(cfg.Stderr, err)
 			}
+		} else {
+			// Close file and remove it since it is damaged
+			cfg.Errorln("\nApp was interrupted and the ajfs database file is incomplete. File will be deleted.")
+			_ = dbf.Interrupted()
 		}
 	}()
 
@@ -142,9 +146,7 @@ func Run(cfg Config) error {
 
 	cfg.ProgressPrintln("Scanning ...")
 	if err = s.Scan(ctx, dbf); err != nil {
-		if !errors.Is(err, context.Canceled) {
-			return err
-		}
+		return err
 	}
 
 	safeToShutdown = true
