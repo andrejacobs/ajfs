@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"runtime"
 
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
@@ -54,6 +55,10 @@ func NewScanner() Scanner {
 
 // Return the default file excluder.
 func DefaultFileExcluder() file.MatchPathFn {
+	if runtime.GOOS == "darwin" {
+		return file.MatchAppleProtected(file.MatchAppleDSStore(file.MatchNever))
+	}
+
 	return file.MatchAppleDSStore(file.MatchNever)
 }
 

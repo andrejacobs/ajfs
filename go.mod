@@ -3,7 +3,7 @@ module github.com/andrejacobs/ajfs
 go 1.25
 
 require (
-	github.com/andrejacobs/go-aj v0.2.0
+	github.com/andrejacobs/go-aj v0.2.1
 	github.com/andrejacobs/go-collection v0.1.0
 	github.com/schollz/progressbar/v3 v3.19.0
 	github.com/spf13/cobra v1.10.2
