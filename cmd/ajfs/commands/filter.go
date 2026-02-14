@@ -22,6 +22,7 @@ package commands
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/filter"
@@ -69,5 +70,11 @@ func parseFilterConfig() (*config.FilterConfig, error) {
 
 	result.FileExcluder = file.MatchAppleDSStore(exclF)
 	result.DirExcluder = exclD
+
+	if runtime.GOOS == "darwin" {
+		result.FileExcluder = file.MatchAppleProtected(result.FileExcluder)
+		result.DirExcluder = file.MatchAppleProtected(result.DirExcluder)
+	}
+
 	return result, nil
 }

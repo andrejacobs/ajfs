@@ -41,6 +41,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestScanWithErrors(t *testing.T) {
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	cfg := initialConfig()
+	cfg.DbPath = tempFile
+	cfg.CalculateHashes = true
+	cfg.Algo = ajhash.AlgoSHA1
+
+	// Cause an error while scanning
+	cfg.simulateScanningError = true
+
+	var err error
+	require.NotPanics(t, func() {
+		err = Run(cfg)
+	})
+
+	require.ErrorContains(t, err, "simulating an error while scanning")
+}
+
 func TestScanWithHashingErrors(t *testing.T) {
 	tempFile := filepath.Join(t.TempDir(), "unit-testing")
 	_ = os.Remove(tempFile)

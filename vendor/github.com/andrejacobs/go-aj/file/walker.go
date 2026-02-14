@@ -186,6 +186,17 @@ func MatchAppleDSStore(next MatchPathFn) MatchPathFn {
 	}
 }
 
+// MatchAppleProtected middleware will match Apple protected files / dirs.
+func MatchAppleProtected(next MatchPathFn) MatchPathFn {
+	return func(path string, d fs.DirEntry) (bool, error) {
+		switch d.Name() {
+		case ".Spotlight-V100", ".DocumentRevisions-V100", ".Trashes", ".fseventsd":
+			return true, nil
+		}
+		return next(path, d)
+	}
+}
+
 // MatchRegex middleware takes a slice of regular expression patterns and will check
 // a path if any of the expressions matched.
 func MatchRegex(expressions []string, next MatchPathFn) (MatchPathFn, error) {

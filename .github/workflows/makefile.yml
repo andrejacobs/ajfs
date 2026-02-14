@@ -19,7 +19,7 @@ jobs:
             - name: Set up Go
               uses: actions/setup-go@v5
               with:
-                  go-version: stable
+                  go-version: 1.25
 
             - name: Install dependencies
               run: make go-deps
@@ -30,7 +30,7 @@ jobs:
             - name: Checking code quality with golangci-lint
               uses: golangci/golangci-lint-action@v8
               with:
-                  version: v2.4.0
+                  version: latest
 
             - name: Checking copyright and license is applied
               run: >-

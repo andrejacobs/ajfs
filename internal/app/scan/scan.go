@@ -58,7 +58,8 @@ type Config struct {
 	DryRun   bool // Only display files and directories that would have been stored in the database.
 	InitOnly bool // The initial database will be created without long running processes (hashing).
 
-	simulateHashingError bool // Cause an error while calculating file signature hashes.
+	simulateScanningError bool // Cause an error while scanning.
+	simulateHashingError  bool // Cause an error while calculating file signature hashes.
 }
 
 // The hashing function to be used for calculating file signature hashes.
@@ -104,9 +105,18 @@ func Run(cfg Config) error {
 		return err
 	}
 
+	safeToShutdown := false
+
 	defer func() {
-		if err := dbf.Close(); err != nil {
-			fmt.Fprintln(cfg.Stderr, err)
+		if safeToShutdown {
+			// Only close and verify if we did not encounter an error during the scanning process
+			if err := dbf.Close(); err != nil {
+				fmt.Fprintln(cfg.Stderr, err)
+			}
+		} else {
+			// Close file and remove it since it is damaged
+			cfg.Errorln("\nApp was interrupted and the ajfs database file is incomplete. File will be deleted.")
+			_ = dbf.Interrupted()
 		}
 	}()
 
@@ -117,8 +127,6 @@ func Run(cfg Config) error {
 	signalCh := make(chan os.Signal, 1)
 	interruptedCh := make(chan bool, 1)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
-
-	safeToShutdown := false
 
 	go func() {
 		rcv := <-signalCh
@@ -138,11 +146,21 @@ func Run(cfg Config) error {
 
 	cfg.ProgressPrintln("Scanning ...")
 	if err = s.Scan(ctx, dbf); err != nil {
-		if !errors.Is(err, context.Canceled) {
+		return err
+	}
+
+	safeToShutdown = true
+
+	if cfg.simulateScanningError {
+		if err := dbf.StartHashTable(cfg.Algo); err != nil {
 			return err
 		}
-	} else {
-		safeToShutdown = true
+
+		if err := dbf.FinishHashTable(); err != nil {
+			return err
+		}
+
+		return fmt.Errorf("simulating an error while scanning")
 	}
 
 	if cfg.CalculateHashes && (ctx.Err() == nil) {
