@@ -22,6 +22,8 @@ Please see the [documentation](docs/cli/md/ajfs.md) for more details.
     brew install --cask ajfs
     ```
 
+    **macOS NOTE:** The binaries are not currently being codesigned and this raises a warning. To remove the quarantine flag: `xattr -d com.apple.quarantine $(which ajfs)`
+
 ## Manual Installation
 
 You can download the pre-compiled binary for your system directly from the [Releases Page](https://github.com/andrejacobs/ajfs/releases).
