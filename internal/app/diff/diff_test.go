@@ -36,7 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test(t *testing.T) {
+func TestDiffString(t *testing.T) {
 	testCases := []struct {
 		typ   diff.Type
 		path  string
@@ -154,7 +154,7 @@ func TestDiffCompare(t *testing.T) {
 	rhs := make([]string, 0, 10)
 	changed := make([]string, 0, 10)
 
-	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, rhsPath, false, diff.ChangedNothing, diff.ChangedNothing, func(d diff.Diff) error {
 		if d.Path == "." {
 			return nil
 		}
@@ -236,7 +236,7 @@ func TestDiffCompareWithHashes(t *testing.T) {
 
 	changed := make([]string, 0, 10)
 
-	err := diff.Compare(lhsPath, rhsPath, false, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, rhsPath, false, diff.ChangedNothing, diff.ChangedNothing, func(d diff.Diff) error {
 		if d.Path == "." {
 			return nil
 		}
@@ -277,7 +277,7 @@ func TestDiffCompareSame(t *testing.T) {
 	}
 	require.NoError(t, scan.Run(cfg))
 
-	err := diff.Compare(lhsPath, lhsPath, false, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, lhsPath, false, diff.ChangedNothing, diff.ChangedNothing, func(d diff.Diff) error {
 		switch d.Type {
 		case diff.TypeNothing:
 			// nothing changed
@@ -289,6 +289,332 @@ func TestDiffCompareSame(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestDiffCompareOrder(t *testing.T) {
+	if os.Getenv("SKIP_TEST") == "1" {
+		t.Skip("Skipping CompareDiffOrder test")
+		return
+	}
+
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/b"
+	require.NoError(t, scan.Run(cfg))
+
+	// We are testing that the order of diffs are always, LHS only, followed by RHS only, lastly followed by Changed.
+	// 0 = LHS, 1 = RHS, 2 == Changed
+	state := 0
+
+	err := diff.Compare(lhsPath, rhsPath, false, diff.ChangedNothing, diff.ChangedNothing, func(d diff.Diff) error {
+		if d.Path == "." {
+			return nil
+		}
+		switch d.Type {
+		case diff.TypeLeftOnly:
+			require.LessOrEqual(t, state, 0)
+			state = 0
+		case diff.TypeRightOnly:
+			require.LessOrEqual(t, state, 1)
+			state = 1
+		case diff.TypeChanged:
+			require.LessOrEqual(t, state, 2)
+			state = 2
+		case diff.TypeNothing:
+			// nothing changed
+		default:
+			require.Fail(t, "invalid type")
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+func TestDiffCompareIncludeAndExcludeIsMutuallyExlusive(t *testing.T) {
+	assert.ErrorContains(t, diff.Compare("./", "./", false, diff.ChangedMode, diff.ChangedSize, nil), "the include and exclude filters are mutually exclusive")
+}
+
+func TestDiffCompareIncludeFilter(t *testing.T) {
+	if os.Getenv("SKIP_TEST") == "1" {
+		t.Skip("Skipping DiffCompareIncludeFilter test")
+		return
+	}
+
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/b"
+	require.NoError(t, scan.Run(cfg))
+
+	testCases := []struct {
+		desc   string
+		filter diff.ChangedFlags
+		exp    []string
+	}{
+		{
+			desc:   "mode",
+			filter: diff.ChangedMode,
+			exp: []string{
+				"fm~~~ both/7.txt",
+			},
+		},
+		{
+			desc:   "size",
+			filter: diff.ChangedSize,
+			exp: []string{
+				"f~s~~ both/6.txt",
+			},
+		},
+		{
+			desc:   "last mod",
+			filter: diff.ChangedModTime,
+			exp: []string{
+				"f~~l~ both/8.txt",
+			},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			changed := make([]string, 0, 10)
+
+			err := diff.Compare(lhsPath, rhsPath, false, tC.filter, diff.ChangedNothing, func(d diff.Diff) error {
+				if d.Path == "." {
+					return nil
+				}
+				switch d.Type {
+				case diff.TypeChanged:
+					changed = append(changed, d.String())
+				}
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			slices.Sort(tC.exp)
+			slices.Sort(changed)
+
+			assert.Equal(t, tC.exp, changed)
+		})
+	}
+}
+
+func TestDiffCompareExcludeFilter(t *testing.T) {
+	if os.Getenv("SKIP_TEST") == "1" {
+		t.Skip("Skipping DiffCompareExcludeFilter test")
+		return
+	}
+
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/b"
+	require.NoError(t, scan.Run(cfg))
+
+	testCases := []struct {
+		desc   string
+		filter diff.ChangedFlags
+		exp    []string
+	}{
+		{
+			desc:   "mode",
+			filter: diff.ChangedMode,
+			exp: []string{
+				"f~s~~ both/6.txt",
+				"f~~l~ both/8.txt",
+			},
+		},
+		{
+			desc:   "size",
+			filter: diff.ChangedSize,
+			exp: []string{
+				"fm~~~ both/7.txt",
+				"f~~l~ both/8.txt",
+			},
+		},
+		{
+			desc:   "last mod",
+			filter: diff.ChangedModTime,
+			exp: []string{
+				"f~s~~ both/6.txt",
+				"fm~~~ both/7.txt",
+			},
+		},
+		{
+			desc:   "mode & size",
+			filter: diff.ChangedMode | diff.ChangedSize,
+			exp: []string{
+				"f~~l~ both/8.txt",
+			},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			changed := make([]string, 0, 10)
+
+			err := diff.Compare(lhsPath, rhsPath, false, diff.ChangedNothing, tC.filter, func(d diff.Diff) error {
+				if d.Path == "." {
+					return nil
+				}
+				switch d.Type {
+				case diff.TypeChanged:
+					changed = append(changed, d.String())
+				}
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			slices.Sort(tC.exp)
+			slices.Sort(changed)
+
+			assert.Equal(t, tC.exp, changed)
+		})
+	}
+}
+
+func TestDiffCompareIncludeFilterWithHashes(t *testing.T) {
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root:            "../../testdata/diff/c",
+		CalculateHashes: true,
+		Algo:            ajhash.AlgoSHA1,
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/d"
+	require.NoError(t, scan.Run(cfg))
+
+	changed := make([]string, 0, 10)
+
+	err := diff.Compare(lhsPath, rhsPath, false, diff.ChangedHash, diff.ChangedNothing, func(d diff.Diff) error {
+		if d.Path == "." {
+			return nil
+		}
+		switch d.Type {
+		case diff.TypeChanged:
+			changed = append(changed, d.String())
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	expectedChanged := []string{
+		"f~~~x changed.txt",
+	}
+	slices.Sort(expectedChanged)
+	slices.Sort(changed)
+
+	assert.Equal(t, expectedChanged, changed)
+}
+
+func TestDiffCompareExcludeFilterWithHashes(t *testing.T) {
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root:            "../../testdata/diff/c",
+		CalculateHashes: true,
+		Algo:            ajhash.AlgoSHA1,
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/d"
+	require.NoError(t, scan.Run(cfg))
+
+	changed := make([]string, 0, 10)
+
+	err := diff.Compare(lhsPath, rhsPath, false, diff.ChangedNothing, diff.ChangedHash, func(d diff.Diff) error {
+		if d.Path == "." {
+			return nil
+		}
+		switch d.Type {
+		case diff.TypeChanged:
+			changed = append(changed, d.String())
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	assert.Len(t, changed, 0)
+}
+
+//-----------------------------------------------------------------------------
+// Run tests
 
 func TestRunTwoDirs(t *testing.T) {
 	if os.Getenv("SKIP_TEST") == "1" {

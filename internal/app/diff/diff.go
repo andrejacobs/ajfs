@@ -47,6 +47,9 @@ type Config struct {
 	LhsPath string
 	RhsPath string
 
+	IncludeChanges ChangedFlags
+	ExcludeChanges ChangedFlags
+
 	Fn CompareFn
 }
 
@@ -94,7 +97,7 @@ func Run(cfg Config) error {
 	}
 
 	cfg.VerbosePrintln("Checking differences ...")
-	err = Compare(cfg.LhsPath, cfg.RhsPath, false, cfg.Fn)
+	err = Compare(cfg.LhsPath, cfg.RhsPath, false, cfg.IncludeChanges, cfg.ExcludeChanges, cfg.Fn)
 	if err != nil {
 		return err
 	}
@@ -118,6 +121,7 @@ const (
 type ChangedFlags uint8
 
 const (
+	ChangedNothing = 0         // Nothing changed
 	ChangedMode    = 1 << iota // The path's type and or permissions has changed
 	ChangedSize                // The size has changed
 	ChangedModTime             // The last modification time has changed
@@ -206,7 +210,14 @@ type CompareFn func(d Diff) error
 // Compare the differences between two ajfs database files.
 // fn Will be called for each difference that is found.
 // If fn returns [SkipAll] then the process will be stopped and nil will be returned as the error.
-func Compare(lhsPath string, rhsPath string, onlyLHS bool, fn CompareFn) error {
+func Compare(lhsPath string, rhsPath string,
+	onlyLHS bool, includeChanges ChangedFlags, excludeChanges ChangedFlags,
+	fn CompareFn) error {
+
+	if (includeChanges != ChangedNothing) && (excludeChanges != ChangedNothing) {
+		return fmt.Errorf("the include and exclude filters are mutually exclusive")
+	}
+
 	lhs, err := db.OpenDatabase(lhsPath)
 	if err != nil {
 		return fmt.Errorf("failed to open left hand side database. %w", err)
@@ -219,8 +230,30 @@ func Compare(lhsPath string, rhsPath string, onlyLHS bool, fn CompareFn) error {
 	}
 	defer rhs.Close()
 
+	var compFn CompareFn = fn
+
+	// Include changes filter
+	if includeChanges != ChangedNothing {
+		compFn = func(d Diff) error {
+			if (d.Type == TypeChanged) &&
+				(d.Changed&includeChanges != 0) {
+				return fn(d)
+			}
+			return nil
+		}
+	} else if excludeChanges != ChangedNothing {
+		// Exclude changes filter
+		compFn = func(d Diff) error {
+			if (d.Type == TypeChanged) &&
+				(d.Changed&excludeChanges == 0) {
+				return fn(d)
+			}
+			return nil
+		}
+	}
+
 	if lhs.Features().HasHashTable() && rhs.Features().HasHashTable() {
-		err = compareWithHashes(lhs, rhs, onlyLHS, fn)
+		err = compareWithHashes(lhs, rhs, onlyLHS, compFn)
 		if err != nil {
 			if err != SkipAll {
 				return err
@@ -228,7 +261,7 @@ func Compare(lhsPath string, rhsPath string, onlyLHS bool, fn CompareFn) error {
 			return nil
 		}
 	} else {
-		err = CompareDatabases(lhs, rhs, onlyLHS, fn)
+		err = CompareDatabases(lhs, rhs, onlyLHS, compFn)
 		if err != nil {
 			if err != SkipAll {
 				return err
