@@ -121,6 +121,10 @@ func generateDiffFiles(rootDir string) {
 	makeFile(filepath.Join(baseDir, "d/changed.txt"), "jumped over the lazy dog", 0644) // only first character is different
 	setLastMod(filepath.Join(baseDir, "c/changed.txt"), "2023-10-31T05:30:42.00Z")
 	setLastMod(filepath.Join(baseDir, "d/changed.txt"), "2023-10-31T05:30:42.00Z")
+
+	// Fix up
+	setLastMod(filepath.Join(baseDir, "a/both"), "2026-05-26T05:30:42.00Z")
+	setLastMod(filepath.Join(baseDir, "b/both"), "2026-05-26T05:30:42.00Z")
 }
 
 func generateNeedSyncFiles(rootDir string) {
