@@ -72,11 +72,11 @@ func generateDiffFiles(rootDir string) {
 	// d+++++ dir2
 	// f+++++ dir2/rhs-only
 
-	// d~~sm~ .				<-- valid
-	// d~~~m~ both
+	// d~~sl~ .				<-- valid
+	// d~~~l~ both
 	// f~~s~~ both/6.txt
-	// f~p~~~ both/7.txt
-	// f~~~m~ both/8.txt
+	// f~m~~~ both/7.txt
+	// f~~~l~ both/8.txt
 
 	// LHS only
 	makeFile(filepath.Join(baseDir, "a/quick/1.txt"), "The quick brown fox", 0644)

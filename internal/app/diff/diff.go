@@ -617,3 +617,64 @@ func makeTempDatabase(cfg Config, path string) (string, error) {
 
 	return dbPath, nil
 }
+
+//-----------------------------------------------------------------------------
+
+// DiffStats can be used to get some statistics out of a diff.
+type DiffStats struct {
+	LeftOnly   int // Count of left hand side only items
+	RightOnly  int // Count of right hand side only items
+	Changed    int // Count of changed items
+	NotChanged int // Count of items that exist in both sides and that is unchanged
+
+	Files int // Count of files
+	Dirs  int // Count of directories
+
+	ModeChanged    int // Count of items where the mode has changed
+	SizeChanged    int // Count of items where the size has changed
+	ModTimeChanged int // Count of items where the last modification time changed
+	HashChanged    int // Count of items where the hash has changed
+
+	Fn CompareFn // The compare function to be called
+}
+
+// Compare function that will update the stats.
+func (ds *DiffStats) Compare(d Diff) error {
+	if d.Type == TypeNothing {
+		ds.NotChanged++
+	} else {
+		flags := d.FilterFlagsMask()
+
+		if flags&FilterTypeLeft != 0 {
+			ds.LeftOnly++
+		} else if flags&FilterTypeRight != 0 {
+			ds.RightOnly++
+		} else {
+			ds.Changed++
+		}
+
+		if flags&FilterFiles != 0 {
+			ds.Files++
+		} else if flags&FilterDirs != 0 {
+			ds.Dirs++
+		}
+
+		if flags&FilterChangedMode != 0 {
+			ds.ModeChanged++
+		}
+
+		if flags&FilterChangedSize != 0 {
+			ds.SizeChanged++
+		}
+
+		if flags&FilterChangedModTime != 0 {
+			ds.ModTimeChanged++
+		}
+
+		if flags&FilterChangedHash != 0 {
+			ds.HashChanged++
+		}
+	}
+
+	return ds.Fn(d)
+}

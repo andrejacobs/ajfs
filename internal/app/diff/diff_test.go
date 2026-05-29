@@ -1022,6 +1022,134 @@ func TestDiffCompareIncludeAndExcludeFilter(t *testing.T) {
 }
 
 //-----------------------------------------------------------------------------
+// Stats tests
+
+func TestDiffStats(t *testing.T) {
+	if os.Getenv("SKIP_TEST") == "1" {
+		t.Skip("Skipping DiffCompareIncludeFilter test")
+		return
+	}
+
+	lhsPath := filepath.Join(t.TempDir(), "unit-testing-lhs")
+	_ = os.Remove(lhsPath)
+	defer os.Remove(lhsPath)
+
+	cfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+			DbPath: lhsPath,
+		},
+		Root: "../../testdata/diff/a",
+	}
+	require.NoError(t, scan.Run(cfg))
+
+	rhsPath := filepath.Join(t.TempDir(), "unit-testing-rhs")
+	_ = os.Remove(rhsPath)
+	defer os.Remove(rhsPath)
+
+	cfg.DbPath = rhsPath
+	cfg.Root = "../../testdata/diff/b"
+	require.NoError(t, scan.Run(cfg))
+
+	testCases := []struct {
+		desc    string
+		include diff.FilterFlags
+		exclude diff.FilterFlags
+		exp     diff.DiffStats
+	}{
+		{
+			desc:    "no filter",
+			include: diff.FilterNoOp,
+			exclude: diff.FilterNoOp,
+			exp: diff.DiffStats{
+				LeftOnly:       5,
+				RightOnly:      6,
+				Changed:        4,
+				NotChanged:     2,
+				Files:          9,
+				Dirs:           6,
+				ModeChanged:    1,
+				SizeChanged:    2,
+				ModTimeChanged: 2,
+			},
+		},
+		{
+			desc:    "lhs",
+			include: diff.FilterTypeLeft,
+			exclude: diff.FilterNoOp,
+			exp: diff.DiffStats{
+				LeftOnly: 5,
+				Files:    3,
+				Dirs:     2,
+			},
+		},
+		{
+			desc:    "rhs",
+			include: diff.FilterTypeRight,
+			exclude: diff.FilterNoOp,
+			exp: diff.DiffStats{
+				RightOnly: 6,
+				Files:     3,
+				Dirs:      3,
+			},
+		},
+		{
+			desc:    "changed",
+			include: diff.FilterTypeChanged,
+			exclude: diff.FilterNoOp,
+			exp: diff.DiffStats{
+				Changed:        4,
+				Files:          3,
+				Dirs:           1,
+				ModeChanged:    1,
+				SizeChanged:    2,
+				ModTimeChanged: 2,
+			},
+		},
+		{
+			desc:    "lhs files",
+			include: diff.FilterTypeLeft | diff.FilterFiles,
+			exclude: diff.FilterNoOp,
+			exp: diff.DiffStats{
+				LeftOnly: 3,
+				Files:    3,
+			},
+		},
+		{
+			desc:    "changed files excl size",
+			include: diff.FilterFiles | diff.FilterTypeChanged,
+			exclude: diff.FilterChangedSize,
+			exp: diff.DiffStats{
+				Changed:        2,
+				Files:          2,
+				ModeChanged:    1,
+				SizeChanged:    0,
+				ModTimeChanged: 1,
+			},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			result := diff.DiffStats{
+				Fn: func(d diff.Diff) error {
+					if d.Path == "." {
+						return nil
+					}
+					return nil
+				},
+			}
+
+			err := diff.Compare(lhsPath, rhsPath, tC.include, tC.exclude, result.Compare)
+			require.NoError(t, err)
+
+			result.Fn = nil
+			assert.Equal(t, tC.exp, result)
+		})
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Run tests
 
 func TestRunTwoDirs(t *testing.T) {

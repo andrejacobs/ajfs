@@ -116,7 +116,16 @@ The filter uses the same m, s, l and x notation.
 			cfg.RhsPath = args[1]
 		}
 
-		cfg.Fn = printDiff
+		stats := diff.DiffStats{}
+		if showStats {
+			stats.Fn = printDiff
+			cfg.Fn = stats.Compare
+		} else if showOnlyStats {
+			stats.Fn = func(d diff.Diff) error { return nil }
+			cfg.Fn = stats.Compare
+		} else {
+			cfg.Fn = printDiff
+		}
 
 		var err error
 		cfg.IncludeFilter, err = diff.ParseFilterFlags(includeFilter)
@@ -131,6 +140,22 @@ The filter uses the same m, s, l and x notation.
 		if err := diff.Run(cfg); err != nil {
 			exitOnError(err, 1)
 		}
+
+		if showStats || showOnlyStats {
+			fmt.Println()
+			fmt.Println("Statistics:")
+			fmt.Println("-----------")
+			fmt.Printf("Files:                          %d\n", stats.Files)
+			fmt.Printf("Directories:                    %d\n", stats.Dirs)
+			fmt.Printf("Left hand side only:            %d\n", stats.LeftOnly)
+			fmt.Printf("Right hand side only:           %d\n", stats.RightOnly)
+			fmt.Printf("Changed:                        %d\n", stats.Changed)
+			fmt.Printf("Did not change:                 %d\n", stats.NotChanged)
+			fmt.Printf("Mode changed:                   %d\n", stats.ModeChanged)
+			fmt.Printf("Size changed:                   %d\n", stats.SizeChanged)
+			fmt.Printf("Last modification time changed: %d\n", stats.ModTimeChanged)
+			fmt.Printf("File signature hash changed:    %d\n", stats.HashChanged)
+		}
 	},
 }
 
@@ -139,11 +164,15 @@ func init() {
 
 	diffCmd.Flags().StringVarP(&includeFilter, "include", "i", "", "Include filter")
 	diffCmd.Flags().StringVarP(&excludeFilter, "exclude", "e", "", "Exclude filter")
+	diffCmd.Flags().BoolVarP(&showStats, "stats", "s", false, "Display diffs and statistics")
+	diffCmd.Flags().BoolVarP(&showOnlyStats, "only-stats", "o", false, "Display only statistics")
 }
 
 var (
 	includeFilter string
 	excludeFilter string
+	showStats     bool
+	showOnlyStats bool
 )
 
 func printDiff(d diff.Diff) error {
