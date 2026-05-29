@@ -22,7 +22,6 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/andrejacobs/ajfs/internal/app/diff"
 	"github.com/spf13/cobra"
@@ -78,7 +77,7 @@ Differences are displayed in the following order:
 * Items that only exist in the right hand side.
 * Items that exist on both sides and have changed.
 
-Differences where the item has changed can also be filtered on by either an include or an exclude filter.
+AJ### TODO: Redoc this Differences where the item has changed can also be filtered on by either an include or an exclude filter.
 The filter uses the same m, s, l and x notation.
 `,
 	Example: `  # differences between the default ./db.ajfs database and the root path
@@ -120,17 +119,13 @@ The filter uses the same m, s, l and x notation.
 		cfg.Fn = printDiff
 
 		var err error
-		cfg.IncludeChanges, err = parseFilter(includeChangedFilter)
+		cfg.IncludeFilter, err = diff.ParseFilterFlags(includeFilter)
 		if err != nil {
 			exitOnError(err, 1)
 		}
-		cfg.ExcludeChanges, err = parseFilter(excludeChangedFilter)
+		cfg.ExcludeFilter, err = diff.ParseFilterFlags(excludeFilter)
 		if err != nil {
 			exitOnError(err, 1)
-		}
-
-		if (cfg.IncludeChanges != 0) && (cfg.ExcludeChanges != 0) {
-			exitOnError(fmt.Errorf("Please only use either an include change filter or an exclude change filter but not both at the same time"), 1)
 		}
 
 		if err := diff.Run(cfg); err != nil {
@@ -142,13 +137,13 @@ The filter uses the same m, s, l and x notation.
 func init() {
 	rootCmd.AddCommand(diffCmd)
 
-	diffCmd.Flags().StringVarP(&includeChangedFilter, "include", "i", "", "Include changed filter")
-	diffCmd.Flags().StringVarP(&excludeChangedFilter, "exclude", "e", "", "Exclude changed filter")
+	diffCmd.Flags().StringVarP(&includeFilter, "include", "i", "", "Include filter")
+	diffCmd.Flags().StringVarP(&excludeFilter, "exclude", "e", "", "Exclude filter")
 }
 
 var (
-	includeChangedFilter string
-	excludeChangedFilter string
+	includeFilter string
+	excludeFilter string
 )
 
 func printDiff(d diff.Diff) error {
@@ -158,24 +153,4 @@ func printDiff(d diff.Diff) error {
 
 	fmt.Println(d.String())
 	return nil
-}
-
-func parseFilter(input string) (diff.ChangedFlags, error) {
-	var result diff.ChangedFlags = diff.ChangedNothing
-	for _, c := range strings.ToLower(input) {
-		switch c {
-		case 'm':
-			result |= diff.ChangedMode
-		case 's':
-			result |= diff.ChangedSize
-		case 'l':
-			result |= diff.ChangedModTime
-		case 'x':
-			result |= diff.ChangedHash
-		default:
-			return 0, fmt.Errorf("invalid change filter: %s. unknown filter: %c", input, c)
-		}
-	}
-
-	return result, nil
 }

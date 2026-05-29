@@ -47,8 +47,8 @@ type Config struct {
 	LhsPath string
 	RhsPath string
 
-	IncludeChanges ChangedFlags
-	ExcludeChanges ChangedFlags
+	IncludeFilter FilterFlags
+	ExcludeFilter FilterFlags
 
 	Fn CompareFn
 }
@@ -97,7 +97,7 @@ func Run(cfg Config) error {
 	}
 
 	cfg.VerbosePrintln("Checking differences ...")
-	err = Compare(cfg.LhsPath, cfg.RhsPath, false, cfg.IncludeChanges, cfg.ExcludeChanges, cfg.Fn)
+	err = Compare(cfg.LhsPath, cfg.RhsPath, cfg.IncludeFilter, cfg.ExcludeFilter, cfg.Fn)
 	if err != nil {
 		return err
 	}
@@ -142,6 +142,156 @@ func (f ChangedFlags) ModTimeChanged() bool {
 
 func (f ChangedFlags) HashChanged() bool {
 	return (f & ChangedHash) != 0
+}
+
+func (f ChangedFlags) FilterFlagsMask() FilterFlags {
+	var result FilterFlags = FilterNoOp
+
+	if f == ChangedNothing {
+		return result
+	}
+
+	if f.ModeChanged() {
+		result |= FilterChangedMode
+	}
+
+	if f.SizeChanged() {
+		result |= FilterChangedSize
+	}
+
+	if f.ModTimeChanged() {
+		result |= FilterChangedModTime
+	}
+
+	if f.HashChanged() {
+		result |= FilterChangedHash
+	}
+
+	return result
+}
+
+// Flags used to decide which items to be included or excluded in a diff.
+type FilterFlags uint16
+
+const (
+	FilterNoOp           = 0         // Don't apply a filter
+	FilterDirs           = 1 << iota // Directories
+	FilterFiles                      // Files
+	FilterTypeLeft                   // LHS only (mutually exclusive with FilterOnlyRight)
+	FilterTypeRight                  // RHS only
+	FilterTypeChanged                // Both sides but has changes
+	FilterChangedMode                // The path's type and or permissions has changed
+	FilterChangedSize                // The size has changed
+	FilterChangedModTime             // The last modification time has changed
+	FilterChangedHash                // The hash is different
+
+	FilterChangedMask = FilterChangedMode | FilterChangedSize | FilterChangedModTime | FilterChangedHash
+)
+
+func (f FilterFlags) Validate() error {
+	if (f&FilterTypeLeft != 0) && (f&FilterTypeRight != 0) {
+		return fmt.Errorf("filtering on left hand side only or right hand side only is mutually exclusive. Use FilterTypeChanged (~) instead")
+	}
+
+	if (f&FilterTypeLeft != 0) && (f&FilterChangedMask != 0) {
+		return fmt.Errorf("can't filter on left hand side only and changes")
+	}
+
+	if (f&FilterTypeRight != 0) && (f&FilterChangedMask != 0) {
+		return fmt.Errorf("can't filter on right hand side only and changes")
+	}
+
+	return nil
+}
+
+func (f FilterFlags) ChangedFlagsMask() ChangedFlags {
+	var result ChangedFlags = ChangedNothing
+
+	if f&FilterChangedMode != 0 {
+		result |= ChangedMode
+	}
+
+	if f&FilterChangedSize != 0 {
+		result |= ChangedSize
+	}
+
+	if f&FilterChangedModTime != 0 {
+		result |= ChangedModTime
+	}
+
+	if f&FilterChangedHash != 0 {
+		result |= ChangedHash
+	}
+
+	return result
+}
+
+func (f FilterFlags) String() string {
+	sb := strings.Builder{}
+
+	if f&FilterTypeLeft != 0 {
+		sb.WriteRune('-')
+	} else if f&FilterTypeRight != 0 {
+		sb.WriteRune('+')
+	} else if f&FilterTypeChanged != 0 {
+		sb.WriteRune('~')
+	}
+
+	if f&FilterDirs != 0 {
+		sb.WriteRune('d')
+	}
+
+	if f&FilterFiles != 0 {
+		sb.WriteRune('f')
+	}
+
+	if f&FilterChangedMode != 0 {
+		sb.WriteRune('m')
+	}
+
+	if f&FilterChangedSize != 0 {
+		sb.WriteRune('s')
+	}
+
+	if f&FilterChangedModTime != 0 {
+		sb.WriteRune('l')
+	}
+
+	if f&FilterChangedHash != 0 {
+		sb.WriteRune('x')
+	}
+
+	return sb.String()
+}
+
+func ParseFilterFlags(input string) (FilterFlags, error) {
+	var result FilterFlags = FilterNoOp
+	for _, c := range strings.ToLower(input) {
+		switch c {
+		case '-':
+			result |= FilterTypeLeft
+		case '+':
+			result |= FilterTypeRight
+		case '~':
+			result |= FilterTypeChanged
+		case 'd':
+			result |= FilterDirs
+		case 'f':
+			result |= FilterFiles
+		case 'm':
+			result |= FilterChangedMode
+		case 's':
+			result |= FilterChangedSize
+		case 'l':
+			result |= FilterChangedModTime
+		case 'x':
+			result |= FilterChangedHash
+		default:
+			return 0, fmt.Errorf("invalid filter: %s. unknown filter property: %c", input, c)
+		}
+	}
+
+	return result, nil
 }
 
 // Describe a difference between the LHS and RHS databases.
@@ -198,6 +348,29 @@ func (d *Diff) String() string {
 	}
 }
 
+func (d Diff) FilterFlagsMask() FilterFlags {
+	var result FilterFlags = FilterNoOp
+
+	switch d.Type {
+	case TypeLeftOnly:
+		result |= FilterTypeLeft
+	case TypeRightOnly:
+		result |= FilterTypeRight
+	case TypeChanged:
+		result |= FilterTypeChanged
+	}
+
+	if d.IsDir {
+		result |= FilterDirs
+	} else {
+		result |= FilterFiles
+	}
+
+	result |= d.Changed.FilterFlagsMask()
+
+	return result
+}
+
 //-----------------------------------------------------------------------------
 
 // Indicates to Compare to stop processing differences.
@@ -211,11 +384,15 @@ type CompareFn func(d Diff) error
 // fn Will be called for each difference that is found.
 // If fn returns [SkipAll] then the process will be stopped and nil will be returned as the error.
 func Compare(lhsPath string, rhsPath string,
-	onlyLHS bool, includeChanges ChangedFlags, excludeChanges ChangedFlags,
+	includeFilter FilterFlags, excludeFilter FilterFlags,
 	fn CompareFn) error {
 
-	if (includeChanges != ChangedNothing) && (excludeChanges != ChangedNothing) {
-		return fmt.Errorf("the include and exclude filters are mutually exclusive")
+	if err := includeFilter.Validate(); err != nil {
+		return fmt.Errorf("invalid include filter. %w", err)
+	}
+
+	if err := excludeFilter.Validate(); err != nil {
+		return fmt.Errorf("invalid exclude filter. %w", err)
 	}
 
 	lhs, err := db.OpenDatabase(lhsPath)
@@ -232,25 +409,32 @@ func Compare(lhsPath string, rhsPath string,
 
 	var compFn CompareFn = fn
 
-	// Include changes filter
-	if includeChanges != ChangedNothing {
+	if includeFilter != FilterNoOp || excludeFilter != FilterNoOp {
 		compFn = func(d Diff) error {
-			if (d.Type == TypeChanged) &&
-				(d.Changed&includeChanges != 0) {
-				return fn(d)
+			if d.Type == TypeNothing {
+				return nil
 			}
-			return nil
-		}
-	} else if excludeChanges != ChangedNothing {
-		// Exclude changes filter
-		compFn = func(d Diff) error {
-			if (d.Type == TypeChanged) &&
-				(d.Changed&excludeChanges == 0) {
+
+			keep := true
+
+			// Include filter
+			if includeFilter != FilterNoOp {
+				keep = (d.FilterFlagsMask()&includeFilter == includeFilter)
+			}
+
+			// Exclude filter
+			if keep && excludeFilter != FilterNoOp {
+				keep = (d.FilterFlagsMask()&excludeFilter != excludeFilter)
+			}
+
+			if keep {
 				return fn(d)
 			}
 			return nil
 		}
 	}
+
+	onlyLHS := false
 
 	if lhs.Features().HasHashTable() && rhs.Features().HasHashTable() {
 		err = compareWithHashes(lhs, rhs, onlyLHS, compFn)
