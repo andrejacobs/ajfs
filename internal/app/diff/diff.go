@@ -434,7 +434,7 @@ func Compare(lhsPath string, rhsPath string,
 	}
 	defer rhs.Close()
 
-	var compFn CompareFn = fn
+	var compFn = fn
 
 	hasIncludeFilters := len(includeFilters) > 0
 	hasExcludeFilters := len(excludeFilters) > 0
