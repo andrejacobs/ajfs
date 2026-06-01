@@ -154,7 +154,7 @@ func TestDiffCompare(t *testing.T) {
 	rhs := make([]string, 0, 10)
 	changed := make([]string, 0, 10)
 
-	err := diff.Compare(lhsPath, rhsPath, diff.FilterNoOp, diff.FilterNoOp, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{}, []diff.FilterFlags{}, func(d diff.Diff) error {
 		if d.Path == "." {
 			return nil
 		}
@@ -236,7 +236,7 @@ func TestDiffCompareWithHashes(t *testing.T) {
 
 	changed := make([]string, 0, 10)
 
-	err := diff.Compare(lhsPath, rhsPath, diff.FilterNoOp, diff.FilterNoOp, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{}, []diff.FilterFlags{}, func(d diff.Diff) error {
 		if d.Path == "." {
 			return nil
 		}
@@ -277,7 +277,7 @@ func TestDiffCompareSame(t *testing.T) {
 	}
 	require.NoError(t, scan.Run(cfg))
 
-	err := diff.Compare(lhsPath, lhsPath, diff.FilterNoOp, diff.FilterNoOp, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, lhsPath, []diff.FilterFlags{}, []diff.FilterFlags{}, func(d diff.Diff) error {
 		switch d.Type {
 		case diff.TypeNothing:
 			// nothing changed
@@ -322,7 +322,7 @@ func TestDiffCompareOrder(t *testing.T) {
 	// 0 = LHS, 1 = RHS, 2 == Changed
 	state := 0
 
-	err := diff.Compare(lhsPath, rhsPath, diff.FilterNoOp, diff.FilterNoOp, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{}, []diff.FilterFlags{}, func(d diff.Diff) error {
 		if d.Path == "." {
 			return nil
 		}
@@ -430,6 +430,45 @@ func TestParseFilterFlags(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.exp.String(), func(t *testing.T) {
 			result, err := diff.ParseFilterFlags(tC.input)
+			require.NoError(t, err)
+			assert.Equal(t, tC.exp, result)
+		})
+	}
+
+	_, err := diff.ParseFilterFlags("abcd")
+	require.ErrorContains(t, err, "invalid filter: abcd")
+}
+
+func TestParseFilterFlagsArray(t *testing.T) {
+	testCases := []struct {
+		desc  string
+		exp   []diff.FilterFlags
+		input []string
+	}{
+		{
+			desc:  "nil",
+			exp:   []diff.FilterFlags{},
+			input: nil,
+		},
+		{
+			desc:  "empty array",
+			exp:   []diff.FilterFlags{},
+			input: []string{""},
+		},
+		{
+			desc:  "lhs or rhs",
+			exp:   []diff.FilterFlags{diff.FilterTypeLeft, diff.FilterTypeRight},
+			input: []string{"-", "+"},
+		},
+		{
+			desc:  "fs or -fl",
+			exp:   []diff.FilterFlags{diff.FilterFiles | diff.FilterChangedSize, diff.FilterFiles | diff.FilterTypeLeft | diff.FilterChangedModTime},
+			input: []string{"fs", "f-l"},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			result, err := diff.ParseFilterFlagsArray(tC.input)
 			require.NoError(t, err)
 			assert.Equal(t, tC.exp, result)
 		})
@@ -573,13 +612,13 @@ func TestDiffCompareIncludeFilter(t *testing.T) {
 	require.NoError(t, scan.Run(cfg))
 
 	testCases := []struct {
-		desc   string
-		filter diff.FilterFlags
-		exp    []string
+		desc    string
+		filters []diff.FilterFlags
+		exp     []string
 	}{
 		{
-			desc:   "lhs",
-			filter: diff.FilterTypeLeft,
+			desc:    "lhs",
+			filters: []diff.FilterFlags{diff.FilterTypeLeft},
 			exp: []string{
 				"d---- dir1",
 				"f---- dir1/lhs-only",
@@ -589,8 +628,8 @@ func TestDiffCompareIncludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "rhs",
-			filter: diff.FilterTypeRight,
+			desc:    "rhs",
+			filters: []diff.FilterFlags{diff.FilterTypeRight},
 			exp: []string{
 				"d++++ dir2",
 				"f++++ dir2/rhs-only",
@@ -600,8 +639,8 @@ func TestDiffCompareIncludeFilter(t *testing.T) {
 				"f++++ hole/4.txt"},
 		},
 		{
-			desc:   "changed",
-			filter: diff.FilterTypeChanged,
+			desc:    "changed",
+			filters: []diff.FilterFlags{diff.FilterTypeChanged},
 			exp: []string{
 				"fm~~~ both/7.txt",
 				"f~s~~ both/6.txt",
@@ -609,8 +648,8 @@ func TestDiffCompareIncludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "files",
-			filter: diff.FilterFiles,
+			desc:    "files",
+			filters: []diff.FilterFlags{diff.FilterFiles},
 			exp: []string{
 				"f---- dir1/lhs-only",
 				"f---- quick/1.txt",
@@ -624,8 +663,8 @@ func TestDiffCompareIncludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "files lhs",
-			filter: diff.FilterTypeLeft | diff.FilterFiles,
+			desc:    "files lhs",
+			filters: []diff.FilterFlags{diff.FilterTypeLeft | diff.FilterFiles},
 			exp: []string{
 				"f---- dir1/lhs-only",
 				"f---- quick/1.txt",
@@ -633,24 +672,32 @@ func TestDiffCompareIncludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "mode",
-			filter: diff.FilterChangedMode,
+			desc:    "mode",
+			filters: []diff.FilterFlags{diff.FilterChangedMode},
 			exp: []string{
 				"fm~~~ both/7.txt",
 			},
 		},
 		{
-			desc:   "size",
-			filter: diff.FilterChangedSize,
+			desc:    "size",
+			filters: []diff.FilterFlags{diff.FilterChangedSize},
 			exp: []string{
 				"f~s~~ both/6.txt",
 			},
 		},
 		{
-			desc:   "last mod",
-			filter: diff.FilterChangedModTime,
+			desc:    "last mod",
+			filters: []diff.FilterFlags{diff.FilterChangedModTime},
 			exp: []string{
 				"f~~l~ both/8.txt",
+			},
+		},
+		{
+			desc:    "file && size or mode",
+			filters: []diff.FilterFlags{diff.FilterFiles | diff.FilterChangedSize, diff.FilterFiles | diff.FilterChangedMode},
+			exp: []string{
+				"fm~~~ both/7.txt",
+				"f~s~~ both/6.txt",
 			},
 		},
 	}
@@ -658,7 +705,7 @@ func TestDiffCompareIncludeFilter(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			result := make([]string, 0, 10)
 
-			err := diff.Compare(lhsPath, rhsPath, tC.filter, diff.FilterNoOp, func(d diff.Diff) error {
+			err := diff.Compare(lhsPath, rhsPath, tC.filters, []diff.FilterFlags{}, func(d diff.Diff) error {
 				if d.Path == "." {
 					return nil
 				}
@@ -704,13 +751,13 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 	require.NoError(t, scan.Run(cfg))
 
 	testCases := []struct {
-		desc   string
-		filter diff.FilterFlags
-		exp    []string
+		desc    string
+		filters []diff.FilterFlags
+		exp     []string
 	}{
 		{
-			desc:   "lhs",
-			filter: diff.FilterTypeLeft,
+			desc:    "lhs",
+			filters: []diff.FilterFlags{diff.FilterTypeLeft},
 			exp: []string{
 				"d++++ dir2",
 				"d++++ fox",
@@ -724,8 +771,8 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "rhs",
-			filter: diff.FilterTypeRight,
+			desc:    "rhs",
+			filters: []diff.FilterFlags{diff.FilterTypeRight},
 			exp: []string{
 				"d---- dir1",
 				"d---- quick",
@@ -738,8 +785,8 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "changed",
-			filter: diff.FilterTypeChanged,
+			desc:    "changed",
+			filters: []diff.FilterFlags{diff.FilterTypeChanged},
 			exp: []string{
 				"d++++ dir2",
 				"d++++ fox",
@@ -755,8 +802,8 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "files",
-			filter: diff.FilterFiles,
+			desc:    "files",
+			filters: []diff.FilterFlags{diff.FilterFiles},
 			exp: []string{
 				"d++++ dir2",
 				"d++++ fox",
@@ -766,8 +813,8 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "dir",
-			filter: diff.FilterDirs,
+			desc:    "dir",
+			filters: []diff.FilterFlags{diff.FilterDirs},
 			exp: []string{
 				"f++++ dir2/rhs-only",
 				"f++++ fox/3.txt",
@@ -781,8 +828,8 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "mode",
-			filter: diff.FilterChangedMode,
+			desc:    "mode",
+			filters: []diff.FilterFlags{diff.FilterChangedMode},
 			exp: []string{
 				"d++++ dir2",
 				"d++++ fox",
@@ -800,27 +847,8 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 			},
 		},
 		{
-			desc:   "size",
-			filter: diff.FilterChangedSize,
-			exp: []string{
-				"d++++ dir2",
-				"d++++ fox",
-				"d++++ hole",
-				"d---- dir1",
-				"d---- quick",
-				"f++++ dir2/rhs-only",
-				"f++++ fox/3.txt",
-				"f++++ hole/4.txt",
-				"f---- dir1/lhs-only",
-				"f---- quick/1.txt",
-				"f---- quick/2.txt",
-				"fm~~~ both/7.txt",
-				"f~~l~ both/8.txt",
-			},
-		},
-		{
-			desc:   "last mod",
-			filter: diff.FilterChangedModTime,
+			desc:    "size",
+			filters: []diff.FilterFlags{diff.FilterChangedSize},
 			exp: []string{
 				"d++++ dir2",
 				"d++++ fox",
@@ -834,7 +862,34 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 				"f---- quick/1.txt",
 				"f---- quick/2.txt",
 				"fm~~~ both/7.txt",
+				"f~~l~ both/8.txt",
+			},
+		},
+		{
+			desc:    "last mod",
+			filters: []diff.FilterFlags{diff.FilterChangedModTime},
+			exp: []string{
+				"d++++ dir2",
+				"d++++ fox",
+				"d++++ hole",
+				"d---- dir1",
+				"d---- quick",
+				"f++++ dir2/rhs-only",
+				"f++++ fox/3.txt",
+				"f++++ hole/4.txt",
+				"f---- dir1/lhs-only",
+				"f---- quick/1.txt",
+				"f---- quick/2.txt",
+				"fm~~~ both/7.txt",
 				"f~s~~ both/6.txt",
+			},
+		},
+		{
+			desc:    "exclude a lot",
+			filters: []diff.FilterFlags{diff.FilterTypeLeft, diff.FilterTypeRight, diff.FilterDirs, diff.FilterChangedModTime},
+			exp: []string{
+				"f~s~~ both/6.txt",
+				"fm~~~ both/7.txt",
 			},
 		},
 	}
@@ -842,7 +897,7 @@ func TestDiffCompareExcludeFilter(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			result := make([]string, 0, 10)
 
-			err := diff.Compare(lhsPath, rhsPath, diff.FilterNoOp, tC.filter, func(d diff.Diff) error {
+			err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{}, tC.filters, func(d diff.Diff) error {
 				if d.Path == "." {
 					return nil
 				}
@@ -886,7 +941,7 @@ func TestDiffCompareIncludeFilterWithHashes(t *testing.T) {
 
 	changed := make([]string, 0, 10)
 
-	err := diff.Compare(lhsPath, rhsPath, diff.FilterChangedHash, diff.FilterNoOp, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{diff.FilterChangedHash}, []diff.FilterFlags{}, func(d diff.Diff) error {
 		if d.Path == "." {
 			return nil
 		}
@@ -935,7 +990,7 @@ func TestDiffCompareExcludeFilterWithHashes(t *testing.T) {
 
 	changed := make([]string, 0, 10)
 
-	err := diff.Compare(lhsPath, rhsPath, diff.FilterNoOp, diff.FilterChangedHash, func(d diff.Diff) error {
+	err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{diff.FilterNoOp}, []diff.FilterFlags{diff.FilterChangedHash}, func(d diff.Diff) error {
 		if d.Path == "." {
 			return nil
 		}
@@ -1004,7 +1059,7 @@ func TestDiffCompareIncludeAndExcludeFilter(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			result := make([]string, 0, 10)
 
-			err := diff.Compare(lhsPath, rhsPath, tC.include, tC.exclude, func(d diff.Diff) error {
+			err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{tC.include}, []diff.FilterFlags{tC.exclude}, func(d diff.Diff) error {
 				if d.Path == "." {
 					return nil
 				}
@@ -1140,7 +1195,7 @@ func TestDiffStats(t *testing.T) {
 				},
 			}
 
-			err := diff.Compare(lhsPath, rhsPath, tC.include, tC.exclude, result.Compare)
+			err := diff.Compare(lhsPath, rhsPath, []diff.FilterFlags{tC.include}, []diff.FilterFlags{tC.exclude}, result.Compare)
 			require.NoError(t, err)
 
 			result.Fn = nil

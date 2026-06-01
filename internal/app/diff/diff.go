@@ -47,8 +47,8 @@ type Config struct {
 	LhsPath string
 	RhsPath string
 
-	IncludeFilter FilterFlags
-	ExcludeFilter FilterFlags
+	IncludeFilters []FilterFlags
+	ExcludeFilters []FilterFlags
 
 	Fn CompareFn
 }
@@ -96,8 +96,15 @@ func Run(cfg Config) error {
 		defer os.Remove(dbPath)
 	}
 
+	if cfg.IncludeFilters == nil {
+		cfg.IncludeFilters = []FilterFlags{}
+	}
+	if cfg.ExcludeFilters == nil {
+		cfg.ExcludeFilters = []FilterFlags{}
+	}
+
 	cfg.VerbosePrintln("Checking differences ...")
-	err = Compare(cfg.LhsPath, cfg.RhsPath, cfg.IncludeFilter, cfg.ExcludeFilter, cfg.Fn)
+	err = Compare(cfg.LhsPath, cfg.RhsPath, cfg.IncludeFilters, cfg.ExcludeFilters, cfg.Fn)
 	if err != nil {
 		return err
 	}
@@ -294,6 +301,22 @@ func ParseFilterFlags(input string) (FilterFlags, error) {
 	return result, nil
 }
 
+func ParseFilterFlagsArray(input []string) ([]FilterFlags, error) {
+	result := make([]FilterFlags, 0, len(input))
+
+	for _, elem := range input {
+		if len(elem) > 0 {
+			f, err := ParseFilterFlags(elem)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, f)
+		}
+	}
+
+	return result, nil
+}
+
 // Describe a difference between the LHS and RHS databases.
 type Diff struct {
 	Type    Type         // Type of difference
@@ -384,15 +407,19 @@ type CompareFn func(d Diff) error
 // fn Will be called for each difference that is found.
 // If fn returns [SkipAll] then the process will be stopped and nil will be returned as the error.
 func Compare(lhsPath string, rhsPath string,
-	includeFilter FilterFlags, excludeFilter FilterFlags,
+	includeFilters []FilterFlags, excludeFilters []FilterFlags,
 	fn CompareFn) error {
 
-	if err := includeFilter.Validate(); err != nil {
-		return fmt.Errorf("invalid include filter. %w", err)
+	for _, f := range includeFilters {
+		if err := f.Validate(); err != nil {
+			return fmt.Errorf("invalid include filter. %w", err)
+		}
 	}
 
-	if err := excludeFilter.Validate(); err != nil {
-		return fmt.Errorf("invalid exclude filter. %w", err)
+	for _, f := range excludeFilters {
+		if err := f.Validate(); err != nil {
+			return fmt.Errorf("invalid exclude filter. %w", err)
+		}
 	}
 
 	lhs, err := db.OpenDatabase(lhsPath)
@@ -409,22 +436,33 @@ func Compare(lhsPath string, rhsPath string,
 
 	var compFn CompareFn = fn
 
-	if includeFilter != FilterNoOp || excludeFilter != FilterNoOp {
+	hasIncludeFilters := len(includeFilters) > 0
+	hasExcludeFilters := len(excludeFilters) > 0
+
+	if hasIncludeFilters || hasExcludeFilters {
 		compFn = func(d Diff) error {
 			if d.Type == TypeNothing {
 				return nil
 			}
 
-			keep := true
+			keep := !hasIncludeFilters
 
 			// Include filter
-			if includeFilter != FilterNoOp {
-				keep = (d.FilterFlagsMask()&includeFilter == includeFilter)
+			for _, f := range includeFilters {
+				if f != FilterNoOp && d.FilterFlagsMask()&f == f {
+					keep = true
+					break
+				}
 			}
 
 			// Exclude filter
-			if keep && excludeFilter != FilterNoOp {
-				keep = (d.FilterFlagsMask()&excludeFilter != excludeFilter)
+			if keep {
+				for _, f := range excludeFilters {
+					if f != FilterNoOp && (d.FilterFlagsMask()&f == f) {
+						keep = false
+						break
+					}
+				}
 			}
 
 			if keep {

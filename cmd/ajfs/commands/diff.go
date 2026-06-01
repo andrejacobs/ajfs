@@ -77,9 +77,12 @@ Differences are displayed in the following order:
 * Items that only exist in the right hand side.
 * Items that exist on both sides and have changed.
 
-AJ### TODO: Redoc this Differences where the item has changed can also be filtered on by either an include or an exclude filter.
-The filter uses the same m, s, l and x notation.
-`,
+You can also filter on items to be included or excluded from the diff output.
+The filter uses the same f, d, m, s, l and x notation.
+The filter can also include - for LHS, + for RHS or ~ for something has changed.
+Include filters are checked first and at least one need to be matched for the item to appear in the output.
+Exclude filters are checked after any include filters and an item need to not match any exclude filter to be kept
+in the output.`,
 	Example: `  # differences between the default ./db.ajfs database and the root path
   ajfs diff
 
@@ -99,7 +102,13 @@ The filter uses the same m, s, l and x notation.
   ajfs diff --include=sx /path/to/lhs /path/to/rhs
 
   # only show differences where the last modification time has not been changed
-  ajfs diff --exclude=l /path/to/lhs /path/to/rhs`,
+  ajfs diff --exclude=l /path/to/lhs /path/to/rhs
+
+  # ignore differences where a directory's size or a file's mode has changed (e.g. copying files from a Mac to a NAS)
+  ajfs diff -e=ds -e=fm /path/to/lhs /path/to/rhs
+
+  # only show differences for files on LHS or RHS and exclude if the size or last modification time has been changed
+  ajfs diff -i=f- -i=f+ -e=s -e=l /path/to/lhs /path/to/rhs`,
 	Args: cobra.MaximumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := diff.Config{
@@ -128,11 +137,11 @@ The filter uses the same m, s, l and x notation.
 		}
 
 		var err error
-		cfg.IncludeFilter, err = diff.ParseFilterFlags(includeFilter)
+		cfg.IncludeFilters, err = diff.ParseFilterFlagsArray(includeFilters)
 		if err != nil {
 			exitOnError(err, 1)
 		}
-		cfg.ExcludeFilter, err = diff.ParseFilterFlags(excludeFilter)
+		cfg.ExcludeFilters, err = diff.ParseFilterFlagsArray(excludeFilters)
 		if err != nil {
 			exitOnError(err, 1)
 		}
@@ -162,17 +171,17 @@ The filter uses the same m, s, l and x notation.
 func init() {
 	rootCmd.AddCommand(diffCmd)
 
-	diffCmd.Flags().StringVarP(&includeFilter, "include", "i", "", "Include filter")
-	diffCmd.Flags().StringVarP(&excludeFilter, "exclude", "e", "", "Exclude filter")
+	diffCmd.Flags().StringArrayVarP(&includeFilters, "include", "i", nil, "Include filter")
+	diffCmd.Flags().StringArrayVarP(&excludeFilters, "exclude", "e", nil, "Exclude filter")
 	diffCmd.Flags().BoolVarP(&showStats, "stats", "s", false, "Display diffs and statistics")
 	diffCmd.Flags().BoolVarP(&showOnlyStats, "only-stats", "o", false, "Display only statistics")
 }
 
 var (
-	includeFilter string
-	excludeFilter string
-	showStats     bool
-	showOnlyStats bool
+	includeFilters []string
+	excludeFilters []string
+	showStats      bool
+	showOnlyStats  bool
 )
 
 func printDiff(d diff.Diff) error {
