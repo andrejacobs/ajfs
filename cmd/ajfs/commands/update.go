@@ -59,6 +59,7 @@ and if any error occurred then the database will be restored.
 		cfg := update.Config{
 			CommonConfig: commonConfig,
 			FilterConfig: *filterCfg,
+			KeepCopyPath: keepCopyPath,
 		}
 		cfg.DbPath = dbPathFromArgs(args)
 
@@ -72,6 +73,11 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 
 	updateCmd.Flags().BoolVarP(&showProgress, "progress", "p", false, "Display progress information.")
+	updateCmd.Flags().StringVarP(&keepCopyPath, "keep-copy", "k", "", "Path to where to keep a copy of the existing database before the update.")
 
 	addPathFilteringFlags(updateCmd)
 }
+
+var (
+	keepCopyPath string
+)

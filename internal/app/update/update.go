@@ -22,6 +22,7 @@
 package update
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -31,17 +32,30 @@ import (
 	"github.com/andrejacobs/ajfs/internal/app/scan"
 	"github.com/andrejacobs/ajfs/internal/db"
 	"github.com/andrejacobs/ajfs/internal/path"
+	"github.com/andrejacobs/go-aj/file"
 )
 
 // Config for the ajfs update command.
 type Config struct {
 	config.CommonConfig
 	config.FilterConfig
+
+	KeepCopyPath string // Path to where a copy of the existing database should be kept
 }
 
 // Process the ajfs update command.
 func Run(cfg Config) error {
 	cfg.VerbosePrintln(fmt.Sprintf("Updating database file at %q", cfg.DbPath))
+
+	if cfg.KeepCopyPath != "" {
+		var err error
+		cfg.KeepCopyPath, err = file.ExpandPath(cfg.KeepCopyPath)
+		cfg.VerbosePrintln(fmt.Sprintf("creating a copy at: %q", cfg.KeepCopyPath))
+		_, err = file.CopyFile(context.Background(), cfg.DbPath, cfg.KeepCopyPath)
+		if err != nil {
+			return fmt.Errorf("failed to create a copy of the database file %q to %q. %w", cfg.DbPath, cfg.KeepCopyPath, err)
+		}
+	}
 
 	// Rename existing file
 	backupDbPath := cfg.DbPath + ".bak"

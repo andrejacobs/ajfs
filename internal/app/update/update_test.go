@@ -137,3 +137,35 @@ func TestUpdateWithHashes(t *testing.T) {
 
 	assert.ElementsMatch(t, expectedHashDeep, exportedHashDeep)
 }
+
+func TestUpdateKeepACopy(t *testing.T) {
+	dbFile := filepath.Join(t.TempDir(), "unit-testing")
+	_ = os.Remove(dbFile)
+	defer os.Remove(dbFile)
+
+	// Create database
+	scanCfg := scan.Config{
+		CommonConfig: config.CommonConfig{
+			DbPath: dbFile,
+			Stdout: io.Discard,
+			Stderr: io.Discard,
+		},
+		Root: "../../testdata/scan",
+	}
+	require.NoError(t, scan.Run(scanCfg))
+
+	// Update and a keep a copy of existing database
+	updateCfg := update.Config{
+		CommonConfig: scanCfg.CommonConfig,
+		KeepCopyPath: filepath.Join(t.TempDir(), "unit-testing-copy"),
+	}
+	require.NoError(t, update.Run(updateCfg))
+
+	expPaths, err := testshared.DatabasePaths(scanCfg.DbPath)
+	require.NoError(t, err)
+
+	dbPaths, err := testshared.DatabasePaths(updateCfg.KeepCopyPath)
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t, expPaths, dbPaths)
+}
