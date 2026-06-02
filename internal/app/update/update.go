@@ -50,6 +50,10 @@ func Run(cfg Config) error {
 	if cfg.KeepCopyPath != "" {
 		var err error
 		cfg.KeepCopyPath, err = file.ExpandPath(cfg.KeepCopyPath)
+		if err != nil {
+			return fmt.Errorf("failed to expand path %q. %w", cfg.KeepCopyPath, err)
+		}
+
 		cfg.VerbosePrintln(fmt.Sprintf("creating a copy at: %q", cfg.KeepCopyPath))
 		_, err = file.CopyFile(context.Background(), cfg.DbPath, cfg.KeepCopyPath)
 		if err != nil {
