@@ -38,6 +38,7 @@ ajfs update [flags]
   -e, --exclude stringArray   Exclude path regex filter
   -h, --help                  help for update
   -i, --include stringArray   Include path regex filter
+  -k, --keep-copy string      Path to where to keep a copy of the existing database before the update.
   -p, --progress              Display progress information.
 ```
 

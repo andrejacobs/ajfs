@@ -44,6 +44,18 @@ Differences are displayed in the following format:
 
    f~sl~ Path/of/file
 
+Differences are displayed in the following order:
+
+* Items that only exist in the left hand side.
+* Items that only exist in the right hand side.
+* Items that exist on both sides and have changed.
+
+You can also filter on items to be included or excluded from the diff output.
+The filter uses the same f, d, m, s, l and x notation.
+The filter can also include - for LHS, + for RHS or ~ for something has changed.
+Include filters are checked first and at least one need to be matched for the item to appear in the output.
+Exclude filters are checked after any include filters and an item need to not match any exclude filter to be kept
+in the output.
 
 ```
 ajfs diff [flags]
@@ -66,12 +78,28 @@ ajfs diff [flags]
 
   # differences between two file system hierarchies
   ajfs diff /path/to/lhs /path/to/rhs
+ 
+  # only show differences where the size and hash has been changed
+  ajfs diff --include=sx /path/to/lhs /path/to/rhs
+
+  # only show differences where the last modification time has not been changed
+  ajfs diff --exclude=l /path/to/lhs /path/to/rhs
+
+  # ignore differences where a directory's size or a file's mode has changed (e.g. copying files from a Mac to a NAS)
+  ajfs diff -e=ds -e=fm /path/to/lhs /path/to/rhs
+
+  # only show differences for files on LHS or RHS and exclude if the size or last modification time has been changed
+  ajfs diff -i=f- -i=f+ -e=s -e=l /path/to/lhs /path/to/rhs
 ```
 
 ### Options
 
 ```
-  -h, --help   help for diff
+  -e, --exclude stringArray   Exclude filter
+  -h, --help                  help for diff
+  -i, --include stringArray   Include filter
+  -o, --only-stats            Display only statistics
+  -s, --stats                 Display diffs and statistics
 ```
 
 ### Options inherited from parent commands
