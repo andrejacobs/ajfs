@@ -32,6 +32,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/andrejacobs/ajfs/internal/app/config"
 	"github.com/andrejacobs/ajfs/internal/db"
@@ -39,6 +40,7 @@ import (
 	"github.com/andrejacobs/ajfs/internal/scanner"
 	"github.com/andrejacobs/go-aj/ajhash"
 	"github.com/andrejacobs/go-aj/file"
+	"github.com/andrejacobs/go-aj/stats"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -145,8 +147,12 @@ func Run(cfg Config) error {
 	s.DirExcluder = cfg.DirExcluder
 
 	cfg.ProgressPrintln("Scanning ...")
+	startTime := time.Now()
 	if err = s.Scan(ctx, dbf); err != nil {
 		return err
+	}
+	if cfg.Verbose {
+		stats.PrintTimeTaken(cfg.Stdout, "scanning", startTime, time.Now())
 	}
 
 	safeToShutdown = true
@@ -190,6 +196,10 @@ func Run(cfg Config) error {
 }
 
 func calculateHashes(ctx context.Context, cfg Config, dbf *db.DatabaseFile) error {
+	if cfg.Verbose {
+		defer stats.MeasureElapsedTime(cfg.Stdout, "calculating file signatures", time.Now())
+	}
+
 	cfg.VerbosePrintln("Calculating file signature hashes ...")
 	cfg.VerbosePrintln(fmt.Sprintf("  Algorithm: %s", cfg.Algo))
 
