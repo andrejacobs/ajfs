@@ -21,6 +21,7 @@
 package scan_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"io"
 	"os"
@@ -219,6 +220,34 @@ func TestScanInitOnly(t *testing.T) {
 			assert.Empty(t, ht)
 		})
 	}
+}
+
+func TestScanVerbose(t *testing.T) {
+	tempFile := filepath.Join(t.TempDir(), "unit-testing")
+	_ = os.Remove(tempFile)
+	defer os.Remove(tempFile)
+
+	cfg := initialConfig()
+
+	var out bytes.Buffer
+	cfg.Stdout = &out
+
+	cfg.DbPath = tempFile
+	cfg.Verbose = true
+	cfg.CalculateHashes = true
+	cfg.Algo = ajhash.AlgoSHA1
+
+	err := scan.Run(cfg)
+	require.NoError(t, err)
+
+	outStr := out.String()
+	assert.Contains(t, outStr, "Scanning root path")
+	assert.Contains(t, outStr, "Creating database file at")
+	assert.Contains(t, outStr, "Scanning ...")
+	assert.Contains(t, outStr, "scanning took:")
+	assert.Contains(t, outStr, "Calculating file signature hashes ...")
+	assert.Contains(t, outStr, "calculating file signatures took:")
+	assert.Contains(t, outStr, "Done!")
 }
 
 //-----------------------------------------------------------------------------
